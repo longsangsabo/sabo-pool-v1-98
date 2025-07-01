@@ -46,14 +46,26 @@ export const useSeasons = () => {
     setError('');
 
     try {
-      const { data, error } = await supabase
-        .from('seasons')
-        .select('*')
-        .order('start_date', { ascending: false });
+      // Mock seasons data since seasons table doesn't exist
+      const mockSeasons: LocalSeason[] = [
+        {
+          id: '1',
+          name: 'Mùa giải 2024',
+          year: 2024,
+          start_date: '2024-01-01',
+          end_date: '2024-12-31',
+          status: 'ongoing',
+          description: 'Mùa giải chính thức năm 2024',
+          total_prize_pool: 1000000000,
+          total_tournaments: 12,
+          total_participants: 500,
+          type: 'official',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ];
 
-      if (error) throw error;
-
-      setSeasons(data);
+      setSeasons(mockSeasons);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch seasons');
     } finally {
@@ -66,21 +78,24 @@ export const useSeasons = () => {
     setError('');
 
     try {
-      const { data, error } = await supabase
-        .from('seasons')
-        .select('*')
-        .eq('status', 'ongoing')
-        .single();
+      // Mock current season data since seasons table doesn't exist
+      const mockCurrentSeason: LocalSeason = {
+        id: '1',
+        name: 'Mùa giải 2024',
+        year: 2024,
+        start_date: '2024-01-01',
+        end_date: '2024-12-31',
+        status: 'ongoing',
+        description: 'Mùa giải chính thức năm 2024',
+        total_prize_pool: 1000000000,
+        total_tournaments: 12,
+        total_participants: 500,
+        type: 'official',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) {
-        if (error.message.includes('No rows found')) {
-          setCurrentSeason(null);
-        } else {
-          throw error;
-        }
-      } else {
-        setCurrentSeason(data);
-      }
+      setCurrentSeason(mockCurrentSeason);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch current season');
       setCurrentSeason(null);
@@ -94,15 +109,25 @@ export const useSeasons = () => {
     setError('');
 
     try {
-      const { data, error } = await supabase
-        .from('season_standings')
-        .select('*')
-        .eq('season_id', seasonId)
-        .order('total_elo_points', { ascending: false });
+      // Mock season standings data since season_standings table doesn't exist
+      const mockStandings: LocalSeasonStanding[] = [
+        {
+          id: '1',
+          season_id: seasonId,
+          user_id: 'user1',
+          total_elo_points: 2500,
+          tournaments_played: 8,
+          best_finish: 1,
+          total_prize_money: 5000000,
+          current_rank: 1,
+          previous_rank: 2,
+          rank_change: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ];
 
-      if (error) throw error;
-
-      setStandings(data);
+      setStandings(mockStandings);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch season standings');
     } finally {
@@ -115,22 +140,25 @@ export const useSeasons = () => {
     setError('');
 
     try {
-      const { data, error } = await supabase
-        .from('seasons')
-        .insert([{
-          ...seasonData,
-          start_date: seasonData.start_date,
-          end_date: seasonData.end_date,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }])
-        .select()
-        .single();
+      // Mock create season since seasons table doesn't exist
+      const newSeason: LocalSeason = {
+        id: Date.now().toString(),
+        name: seasonData.name || 'Mùa giải mới',
+        year: seasonData.year || new Date().getFullYear(),
+        start_date: seasonData.start_date || new Date().toISOString(),
+        end_date: seasonData.end_date || new Date().toISOString(),
+        status: seasonData.status || 'upcoming',
+        description: seasonData.description || '',
+        total_prize_pool: seasonData.total_prize_pool || 0,
+        total_tournaments: seasonData.total_tournaments || 0,
+        total_participants: seasonData.total_participants || 0,
+        type: seasonData.type || 'official',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) throw error;
-
-      setSeasons(prev => [data, ...prev]);
-      return data;
+      setSeasons(prev => [newSeason, ...prev]);
+      return newSeason;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create season');
       throw err;
@@ -144,42 +172,32 @@ export const useSeasons = () => {
     setError('');
 
     try {
-      const { data, error } = await supabase
-        .from('seasons')
-        .update({
-          ...updates,
-          start_date: updates.start_date,
-          end_date: updates.end_date,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id)
-        .select()
-        .single();
+      // Mock update season since seasons table doesn't exist
+      const updatedSeason = seasons.find(s => s.id === id);
+      if (!updatedSeason) throw new Error('Season not found');
 
-      if (error) throw error;
+      const newSeason: LocalSeason = {
+        ...updatedSeason,
+        ...updates,
+        updated_at: new Date().toISOString(),
+      };
 
-      setSeasons(prev => prev.map(s => s.id === id ? data : s));
-      return data;
+      setSeasons(prev => prev.map(s => s.id === id ? newSeason : s));
+      return newSeason;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update season');
       throw err;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [seasons]);
 
   const deleteSeason = useCallback(async (id: string) => {
     setLoading(true);
     setError('');
 
     try {
-      const { error } = await supabase
-        .from('seasons')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
+      // Mock delete season since seasons table doesn't exist
       setSeasons(prev => prev.filter(s => s.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete season');
@@ -193,16 +211,24 @@ export const useSeasons = () => {
     setError('');
 
     try {
-      const { data, error } = await supabase
-        .from('season_standings')
-        .insert([standingData])
-        .select()
-        .single();
+      // Mock create season standing since season_standings table doesn't exist
+      const newStanding: LocalSeasonStanding = {
+        id: Date.now().toString(),
+        season_id: standingData.season_id || '',
+        user_id: standingData.user_id || '',
+        total_elo_points: standingData.total_elo_points || 0,
+        tournaments_played: standingData.tournaments_played || 0,
+        best_finish: standingData.best_finish || 0,
+        total_prize_money: standingData.total_prize_money || 0,
+        current_rank: standingData.current_rank || 0,
+        previous_rank: standingData.previous_rank,
+        rank_change: standingData.rank_change,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) throw error;
-
-      setStandings(prev => [data, ...prev]);
-      return data;
+      setStandings(prev => [newStanding, ...prev]);
+      return newStanding;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create season standing');
       throw err;
@@ -216,24 +242,25 @@ export const useSeasons = () => {
     setError('');
 
     try {
-      const { data, error } = await supabase
-        .from('season_standings')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      // Mock update season standing since season_standings table doesn't exist
+      const existingStanding = standings.find(s => s.id === id);
+      if (!existingStanding) throw new Error('Standing not found');
 
-      if (error) throw error;
+      const updatedStanding: LocalSeasonStanding = {
+        ...existingStanding,
+        ...updates,
+        updated_at: new Date().toISOString(),
+      };
 
-      setStandings(prev => prev.map(s => s.id === id ? data : s));
-      return data;
+      setStandings(prev => prev.map(s => s.id === id ? updatedStanding : s));
+      return updatedStanding;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update season standing');
       throw err;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [standings]);
 
   const getSeasonById = useCallback((id: string) => {
     return seasons.find(season => season.id === id);

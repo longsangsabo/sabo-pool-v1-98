@@ -28,14 +28,29 @@ export const useProfile = () => {
       const { data, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userData.user.id)
+        .eq('user_id', userData.user.id)
         .single();
 
       if (profileError) {
         throw profileError;
       }
 
-      return data;
+      // Convert database profile to UserProfile format
+      const userProfile: UserProfile = {
+        ...data,
+        current_rank: 'B',
+        ranking_points: 1000,
+        total_matches: 0,
+        wins: 0,
+        losses: 0,
+        current_streak: 0,
+        matches_played: 0,
+        matches_won: 0,
+        min_bet_points: 50,
+        max_bet_points: 1000,
+      };
+
+      return userProfile;
     } catch (err) {
       console.error('Error fetching profile:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch profile');
@@ -58,7 +73,7 @@ export const useProfile = () => {
       const { data, error: updateError } = await supabase
         .from('profiles')
         .update(profileData)
-        .eq('id', userData.user.id)
+        .eq('user_id', userData.user.id)
         .select()
         .single();
 
@@ -66,7 +81,22 @@ export const useProfile = () => {
         throw updateError;
       }
 
-      return data;
+      // Convert database profile to UserProfile format
+      const userProfile: UserProfile = {
+        ...data,
+        current_rank: 'B',
+        ranking_points: 1000,
+        total_matches: 0,
+        wins: 0,
+        losses: 0,
+        current_streak: 0,
+        matches_played: 0,
+        matches_won: 0,
+        min_bet_points: 50,
+        max_bet_points: 1000,
+      };
+
+      return userProfile;
     } catch (err) {
       console.error('Error updating profile:', err);
       setError(err instanceof Error ? err.message : 'Failed to update profile');

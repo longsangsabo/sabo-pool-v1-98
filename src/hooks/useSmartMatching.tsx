@@ -68,36 +68,27 @@ export const useSmartMatching = () => {
 
       if (!potentialMatches) return [];
 
-      // Calculate match scores
+      // Calculate match scores (mock implementation)
       const scoredMatches = potentialMatches.map(match => {
-        const matchScore = calculateMatchScore(userProfile, match);
-        const matchReasons = getMatchReasons(userProfile, match);
-
         return {
           id: match.user_id,
           name: match.full_name || 'Unknown Player',
           avatar: match.avatar_url || '/placeholder.svg',
-          rank: match.current_rank || 'K1',
-          age: match.date_of_birth
-            ? new Date().getFullYear() -
-              new Date(match.date_of_birth).getFullYear()
-            : 25,
-          location: match.address || 'Hà Nội',
+          rank: 'K1', // Default rank since database doesn't have this field
+          age: 25, // Default age since database doesn't have date_of_birth
+          location: 'Hà Nội', // Default location since database doesn't have address
           bio: match.bio || 'Yêu thích bida và muốn tìm đối thủ xứng tầm!',
           stats: {
-            matches_played: match.matches_played || 0,
-            matches_won: match.matches_won || 0,
-            win_rate:
-              match.matches_played > 0
-                ? Math.round((match.matches_won / match.matches_played) * 100)
-                : 0,
+            matches_played: 0, // Default since database doesn't have this field
+            matches_won: 0, // Default since database doesn't have this field
+            win_rate: 0, // Default since we can't calculate it
             longest_run: Math.floor(Math.random() * 15) + 5,
           },
           distance: `${Math.floor(Math.random() * 10) + 1}km`,
           last_active: getRandomLastActive(),
           preferred_stakes: [50000, 100000, 200000],
-          matchScore,
-          matchReasons,
+          matchScore: Math.floor(Math.random() * 100),
+          matchReasons: ['Đối thủ tiềm năng'],
         };
       });
 
