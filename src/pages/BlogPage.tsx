@@ -113,12 +113,12 @@ const BlogPage = () => {
                   <div className='flex items-center justify-between text-sm text-gray-500'>
                     <div className='flex items-center gap-2'>
                       <Avatar className='h-6 w-6'>
-                        <AvatarImage src={post.author_profile?.avatar_url} />
+                        <AvatarImage src={post.author_id} />
                         <AvatarFallback>
-                          {post.author_profile?.full_name?.charAt(0)}
+                          {post.author_id?.charAt(0) || 'A'}
                         </AvatarFallback>
                       </Avatar>
-                      <span>{post.author_profile?.full_name}</span>
+                      <span>Tác giả</span>
                     </div>
                     <div className='flex items-center gap-1'>
                       <Calendar className='h-3 w-3' />
@@ -182,12 +182,12 @@ const BlogPage = () => {
                   <div className='flex items-center justify-between text-sm text-gray-500'>
                     <div className='flex items-center gap-2'>
                       <Avatar className='h-6 w-6'>
-                        <AvatarImage src={post.author_profile?.avatar_url} />
+                        <AvatarImage src={post.author_id} />
                         <AvatarFallback>
-                          {post.author_profile?.full_name?.charAt(0)}
+                          {post.author_id?.charAt(0) || 'A'}
                         </AvatarFallback>
                       </Avatar>
-                      <span>{post.author_profile?.full_name}</span>
+                      <span>Tác giả</span>
                     </div>
                     <div className='flex items-center gap-1'>
                       <Calendar className='h-3 w-3' />
@@ -251,12 +251,12 @@ const BlogPage = () => {
                   <div className='flex items-center justify-between text-sm text-gray-500'>
                     <div className='flex items-center gap-2'>
                       <Avatar className='h-6 w-6'>
-                        <AvatarImage src={post.author_profile?.avatar_url} />
+                        <AvatarImage src={post.author_id} />
                         <AvatarFallback>
-                          {post.author_profile?.full_name?.charAt(0)}
+                          {post.author_id?.charAt(0) || 'A'}
                         </AvatarFallback>
                       </Avatar>
-                      <span>{post.author_profile?.full_name}</span>
+                      <span>Tác giả</span>
                     </div>
                     <div className='flex items-center gap-1'>
                       <Calendar className='h-3 w-3' />
