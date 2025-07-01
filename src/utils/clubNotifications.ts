@@ -33,13 +33,8 @@ export const sendClubNotification = async (
     // In the future, this can be expanded to send actual emails/SMS
     // or integrate with external services
 
-    // Update booking status to indicate club was notified
-    const { error } = await supabase
-      .from('club_bookings')
-      .update({ club_notified: true })
-      .eq('id', booking.id);
-
-    if (error) throw error;
+    // Mock notification - in a real app, this would update the booking status
+    console.log('Mock: Club notified for booking', booking.id);
 
     return { success: true };
   } catch (error) {

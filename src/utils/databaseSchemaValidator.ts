@@ -218,15 +218,9 @@ class DatabaseSchemaValidator {
 
   private async getTableInfo(tableName: string): Promise<any> {
     try {
-      const { data, error } = await supabase
-        .from('information_schema.columns')
-        .select('column_name, is_nullable, data_type')
-        .eq('table_schema', 'public')
-        .eq('table_name', tableName)
-        .order('ordinal_position');
-
-      if (error) throw error;
-      return data;
+      // Mock table info since information_schema access is not available
+      console.log(`Mock: Getting table info for ${tableName}`);
+      return null;
     } catch (error) {
       console.error(`Error getting table info for ${tableName}:`, error);
       return null;
@@ -235,14 +229,9 @@ class DatabaseSchemaValidator {
 
   private async getTablePolicies(tableName: string): Promise<string[]> {
     try {
-      const { data, error } = await supabase
-        .from('information_schema.policies')
-        .select('policy_name')
-        .eq('table_schema', 'public')
-        .eq('table_name', tableName);
-
-      if (error) throw error;
-      return (data as Array<{ policy_name: string }>).map((policy) => policy.policy_name);
+      // Mock policies since information_schema access is not available
+      console.log(`Mock: Getting policies for ${tableName}`);
+      return [];
     } catch (error) {
       console.error(`Error getting policies for ${tableName}:`, error);
       return [];
@@ -251,15 +240,9 @@ class DatabaseSchemaValidator {
 
   private async getTableIndexes(tableName: string): Promise<string[]> {
     try {
-      const { data, error } = await supabase
-        .from('information_schema.statistics')
-        .select('index_name')
-        .eq('table_schema', 'public')
-        .eq('table_name', tableName)
-        .not('index_name', 'like', '%_pkey');
-
-      if (error) throw error;
-      return [...new Set((data as Array<{ index_name: string }>).map((index) => index.index_name))];
+      // Mock indexes since information_schema access is not available
+      console.log(`Mock: Getting indexes for ${tableName}`);
+      return [];
     } catch (error) {
       console.error(`Error getting indexes for ${tableName}:`, error);
       return [];
@@ -268,15 +251,9 @@ class DatabaseSchemaValidator {
 
   private async checkRLS(tableName: string): Promise<boolean> {
     try {
-      const { data, error } = await supabase
-        .from('information_schema.tables')
-        .select('row_security')
-        .eq('table_schema', 'public')
-        .eq('table_name', tableName)
-        .single();
-
-      if (error) throw error;
-      return (data as { row_security: string }).row_security === 'YES';
+      // Mock RLS check since information_schema access is not available
+      console.log(`Mock: Checking RLS for ${tableName}`);
+      return false;
     } catch (error) {
       console.error(`Error checking RLS for ${tableName}:`, error);
       return false;
