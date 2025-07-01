@@ -36,14 +36,27 @@ const HelpPage = () => {
   const { data: faqs, isLoading } = useQuery({
     queryKey: ['faqs'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('faqs')
-        .select('*')
-        .eq('status', 'active')
-        .order('order_index', { ascending: true });
+      // Mock FAQs data since faqs table doesn't exist
+      const mockFaqs = [
+        {
+          id: '1',
+          question: 'Làm thế nào để đăng ký tài khoản?',
+          answer: 'Bạn có thể đăng ký tài khoản bằng cách nhấp vào nút "Đăng ký" và điền thông tin cần thiết.',
+          category: 'account',
+          status: 'active',
+          order_index: 1,
+        },
+        {
+          id: '2',
+          question: 'Cách tham gia giải đấu?',
+          answer: 'Để tham gia giải đấu, bạn cần có tài khoản và đăng ký trong thời gian quy định.',
+          category: 'tournament',
+          status: 'active',
+          order_index: 2,
+        },
+      ];
 
-      if (error) throw error;
-      return data;
+      return mockFaqs;
     },
   });
 

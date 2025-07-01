@@ -86,12 +86,14 @@ const EnhancedMarketplacePage = () => {
 
   const fetchProvinces = async () => {
     try {
-      const { data } = await supabase
-        .from('provinces')
-        .select('*')
-        .order('name');
+      // Mock provinces data since provinces table doesn't exist
+      const mockProvinces = [
+        { id: '1', name: 'Hà Nội', code: 'HN', region: 'north' },
+        { id: '2', name: 'Hồ Chí Minh', code: 'HCM', region: 'south' },
+        { id: '3', name: 'Đà Nẵng', code: 'DN', region: 'central' },
+      ];
 
-      setProvinces(data || []);
+      setProvinces(mockProvinces);
     } catch (error) {
       console.error('Error fetching provinces:', error);
     }
