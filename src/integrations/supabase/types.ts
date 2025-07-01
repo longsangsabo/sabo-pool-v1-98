@@ -9,7 +9,283 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      challenges: {
+        Row: {
+          bet_points: number | null
+          challenger_id: string
+          club_id: string | null
+          created_at: string
+          handicap_05_rank: number | null
+          handicap_1_rank: number | null
+          id: string
+          opponent_id: string
+          race_to: number | null
+          scheduled_time: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          bet_points?: number | null
+          challenger_id: string
+          club_id?: string | null
+          created_at?: string
+          handicap_05_rank?: number | null
+          handicap_1_rank?: number | null
+          id?: string
+          opponent_id: string
+          race_to?: number | null
+          scheduled_time?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bet_points?: number | null
+          challenger_id?: string
+          club_id?: string | null
+          created_at?: string
+          handicap_05_rank?: number | null
+          handicap_1_rank?: number | null
+          id?: string
+          opponent_id?: string
+          race_to?: number | null
+          scheduled_time?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenges_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clubs: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          name: string
+          status: string | null
+          updated_at: string
+          verified: boolean | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          status?: string | null
+          updated_at?: string
+          verified?: boolean | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          status?: string | null
+          updated_at?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
+      matches: {
+        Row: {
+          challenge_id: string | null
+          club_id: string | null
+          created_at: string
+          id: string
+          played_at: string | null
+          player1_id: string
+          player2_id: string
+          score_player1: number | null
+          score_player2: number | null
+          status: string | null
+          tournament_id: string | null
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          challenge_id?: string | null
+          club_id?: string | null
+          created_at?: string
+          id?: string
+          played_at?: string | null
+          player1_id: string
+          player2_id: string
+          score_player1?: number | null
+          score_player2?: number | null
+          status?: string | null
+          tournament_id?: string | null
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          challenge_id?: string | null
+          club_id?: string | null
+          created_at?: string
+          id?: string
+          played_at?: string | null
+          player1_id?: string
+          player2_id?: string
+          score_player1?: number | null
+          score_player2?: number | null
+          status?: string | null
+          tournament_id?: string | null
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memberships: {
+        Row: {
+          club_id: string
+          created_at: string
+          id: string
+          joined_at: string
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          id?: string
+          joined_at?: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          id?: string
+          joined_at?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          club_id: string | null
+          created_at: string
+          elo: number | null
+          full_name: string | null
+          id: string
+          nickname: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          club_id?: string | null
+          created_at?: string
+          elo?: number | null
+          full_name?: string | null
+          id?: string
+          nickname?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          club_id?: string | null
+          created_at?: string
+          elo?: number | null
+          full_name?: string | null
+          id?: string
+          nickname?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournaments: {
+        Row: {
+          club_id: string | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          start_date: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          club_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          club_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournaments_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
