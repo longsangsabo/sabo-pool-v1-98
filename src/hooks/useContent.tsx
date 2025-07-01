@@ -1,7 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { UserProfile } from '@/types/common';
 
 interface Post {
   id: string;
@@ -18,7 +16,6 @@ interface Post {
   view_count: number;
   created_at: string;
   updated_at: string;
-  author_profile?: UserProfile;
 }
 
 interface FAQ {
@@ -53,33 +50,7 @@ export const useContent = () => {
           published_at: new Date().toISOString(),
           view_count: 150,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-            author_profile: {
-            id: 'profile1',
-            user_id: 'author1',
-            full_name: 'Nguyễn Văn A',
-            nickname: 'VanA',
-            avatar_url: null,
-            bio: null,
-            phone: null,
-            ranking_points: 1200,
-            total_matches: 25,
-            wins: 18,
-            losses: 7,
-            current_rank: 'A1',
-            highest_rank: 'A1',
-            elo_rating: 1400,
-            join_date: new Date().toISOString(),
-            last_match_date: new Date().toISOString(),
-            status: 'active',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            current_streak: 3,
-            matches_played: 25,
-            matches_won: 18,
-            min_bet_points: 100,
-            max_bet_points: 500
-          }
+          updated_at: new Date().toISOString()
         }
       ];
       return mockPosts;
