@@ -9,6 +9,7 @@ import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/hooks/useAuth";
+import MainLayout from "@/components/MainLayout";
 
 // Import components directly instead of lazy loading to avoid loading issues
 import SimpleDashboard from "./pages/SimpleDashboard";
@@ -23,6 +24,51 @@ import SimpleClubAboutPage from "./pages/SimpleClubAboutPage";
 import SimpleClubContactPage from "./pages/SimpleClubContactPage";
 import SystemAuditPage from "./pages/SystemAuditPage";
 import TestPage from "./pages/TestPage";
+
+// Import all other pages
+import AboutPage from "./pages/AboutPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import AuthTestPage from "./pages/AuthTestPage";
+import BlogPage from "./pages/BlogPage";
+import ChallengesPage from "./pages/ChallengesPage";
+import ChatPage from "./pages/ChatPage";
+import ClubDetailPage from "./pages/ClubDetailPage";
+import ClubsPage from "./pages/ClubsPage";
+import CreateTournamentPage from "./pages/CreateTournamentPage";
+import Dashboard from "./pages/Dashboard";
+import DashboardOverview from "./pages/DashboardOverview";
+import DiscoveryPage from "./pages/DiscoveryPage";
+import EnhancedChallengesPage from "./pages/EnhancedChallengesPage";
+import EnhancedDiscoveryPage from "./pages/EnhancedDiscoveryPage";
+import EnhancedLeaderboardPage from "./pages/EnhancedLeaderboardPage";
+import EnhancedMarketplacePage from "./pages/EnhancedMarketplacePage";
+import FAQPage from "./pages/FAQPage";
+import FeedPage from "./pages/FeedPage";
+import HelpPage from "./pages/HelpPage";
+import Index from "./pages/Index";
+import LeaderboardPage from "./pages/LeaderboardPage";
+import LiveStreamPage from "./pages/LiveStreamPage";
+import MarketplacePage from "./pages/MarketplacePage";
+import MatchHistoryPage from "./pages/MatchHistoryPage";
+import MembershipPage from "./pages/MembershipPage";
+import NotFound from "./pages/NotFound";
+import PaymentClubMembershipPage from "./pages/PaymentClubMembershipPage";
+import PaymentMembershipPage from "./pages/PaymentMembershipPage";
+import PaymentResultPage from "./pages/PaymentResultPage";
+import PaymentSuccessPage from "./pages/PaymentSuccessPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import ProfilePage from "./pages/ProfilePage";
+import RankingPage from "./pages/RankingPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import SecurityPage from "./pages/SecurityPage";
+import SettingsPage from "./pages/SettingsPage";
+import SocialFeedPage from "./pages/SocialFeedPage";
+import SystemHealthPage from "./pages/SystemHealthPage";
+import TermsPage from "./pages/TermsPage";
+import TournamentDiscoveryPage from "./pages/TournamentDiscoveryPage";
+import TournamentsPage from "./pages/TournamentsPage";
+import WalletPage from "./pages/WalletPage";
+import SiteMapPage from "./pages/SiteMapPage";
 
 // Simple loading fallback
 const LoadingFallback = () => (
@@ -57,18 +103,90 @@ const App = () => {
                 <BrowserRouter>
                   <Suspense fallback={<LoadingFallback />}>
                     <Routes>
-                      <Route path="/" element={<SimpleDashboard />} />
-                      <Route path="/test" element={<TestPage />} />
-                      <Route path="/booking" element={<SimpleBookingPage />} />
+                      <Route path="/" element={<MainLayout />}>
+                        {/* Routes with navigation */}
+                        {/* Trang chính */}
+                        <Route index element={<SimpleDashboard />} />
+                        <Route path="dashboard" element={<Dashboard />} />
+                        <Route path="dashboard-overview" element={<DashboardOverview />} />
+                        <Route path="index" element={<Index />} />
+                        
+                        {/* Social & Feed */}
+                        <Route path="feed" element={<FeedPage />} />
+                        <Route path="social-feed" element={<SocialFeedPage />} />
+                        <Route path="discovery" element={<DiscoveryPage />} />
+                        <Route path="enhanced-discovery" element={<EnhancedDiscoveryPage />} />
+                        
+                        {/* Tournaments & Challenges */}
+                        <Route path="tournaments" element={<TournamentsPage />} />
+                        <Route path="tournament-discovery" element={<TournamentDiscoveryPage />} />
+                        <Route path="create-tournament" element={<CreateTournamentPage />} />
+                        <Route path="challenges" element={<ChallengesPage />} />
+                        <Route path="enhanced-challenges" element={<EnhancedChallengesPage />} />
+                        
+                        {/* Clubs & Membership */}
+                        <Route path="clubs" element={<ClubsPage />} />
+                        <Route path="club/:id" element={<ClubDetailPage />} />
+                        <Route path="membership" element={<MembershipPage />} />
+                        
+                        {/* Leaderboard & Ranking */}
+                        <Route path="leaderboard" element={<LeaderboardPage />} />
+                        <Route path="enhanced-leaderboard" element={<EnhancedLeaderboardPage />} />
+                        <Route path="ranking" element={<RankingPage />} />
+                        
+                        {/* Marketplace & Wallet */}
+                        <Route path="marketplace" element={<MarketplacePage />} />
+                        <Route path="enhanced-marketplace" element={<EnhancedMarketplacePage />} />
+                        <Route path="wallet" element={<WalletPage />} />
+                        
+                        {/* Payment */}
+                        <Route path="payment-membership" element={<PaymentMembershipPage />} />
+                        <Route path="payment-club-membership" element={<PaymentClubMembershipPage />} />
+                        <Route path="payment-result" element={<PaymentResultPage />} />
+                        <Route path="payment-success" element={<PaymentSuccessPage />} />
+                        
+                        {/* Profile & Settings */}
+                        <Route path="profile" element={<ProfilePage />} />
+                        <Route path="settings" element={<SettingsPage />} />
+                        <Route path="security" element={<SecurityPage />} />
+                        
+                        {/* Chat & History */}
+                        <Route path="chat" element={<ChatPage />} />
+                        <Route path="matches" element={<MatchHistoryPage />} />
+                        <Route path="live-stream" element={<LiveStreamPage />} />
+                        
+                        {/* Information pages */}
+                        <Route path="about" element={<AboutPage />} />
+                        <Route path="help" element={<HelpPage />} />
+                        <Route path="faq" element={<FAQPage />} />
+                        <Route path="blog" element={<BlogPage />} />
+                        <Route path="terms" element={<TermsPage />} />
+                        <Route path="privacy" element={<PrivacyPage />} />
+                        
+                        {/* Admin & Analytics */}
+                        <Route path="analytics" element={<AnalyticsPage />} />
+                        <Route path="system-health" element={<SystemHealthPage />} />
+                        <Route path="system-audit" element={<SystemAuditPage />} />
+                        
+                        {/* Test page */}
+                        <Route path="test" element={<TestPage />} />
+                        <Route path="sitemap" element={<SiteMapPage />} />
+                      </Route>
+                      
+                      {/* Auth routes - standalone without layout */}
                       <Route path="/login" element={<LoginPage />} />
                       <Route path="/register" element={<RegisterPage />} />
                       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                      <Route path="/reset-password" element={<ResetPasswordPage />} />
                       <Route path="/auth/callback" element={<AuthCallbackPage />} />
+                      <Route path="/auth-test" element={<AuthTestPage />} />
+                      
+                      {/* Simple Club Pages - standalone without layout */}
                       <Route path="/simple-club" element={<SimpleClubHomePage />} />
                       <Route path="/simple-booking" element={<SimpleClubBookingPage />} />
                       <Route path="/simple-about" element={<SimpleClubAboutPage />} />
                       <Route path="/simple-contact" element={<SimpleClubContactPage />} />
-                      <Route path="/system-audit" element={<SystemAuditPage />} />
+                      <Route path="/booking" element={<SimpleBookingPage />} />
                       
                       <Route path="*" element={
                         <div className="min-h-screen flex items-center justify-center bg-green-900 text-white">

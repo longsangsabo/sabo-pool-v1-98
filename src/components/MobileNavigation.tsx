@@ -16,27 +16,27 @@ const MobileNavigation = () => {
   const navigationItems = [
     {
       name: 'Trang chủ',
-      href: '/feed',
+      href: '/',
       icon: Home,
-      current: location.pathname === '/feed',
+      current: location.pathname === '/' || location.pathname === '/feed',
     },
     {
       name: 'Khám phá',
       href: '/discovery',
       icon: Compass,
-      current: location.pathname === '/discovery',
+      current: location.pathname === '/discovery' || location.pathname === '/enhanced-discovery',
     },
     {
       name: 'Giải đấu',
-      href: '/tournament-discovery',
+      href: '/tournaments',
       icon: Trophy,
-      current: location.pathname === '/tournament-discovery',
+      current: location.pathname === '/tournaments' || location.pathname === '/tournament-discovery',
     },
     {
       name: 'Thách đấu',
       href: '/challenges',
       icon: Zap,
-      current: location.pathname === '/challenges',
+      current: location.pathname === '/challenges' || location.pathname === '/enhanced-challenges',
     },
     {
       name: 'Hồ sơ',
