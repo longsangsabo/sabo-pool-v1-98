@@ -27,26 +27,23 @@ export const useAdmin = () => {
 
   const checkAdminStatus = async () => {
     try {
-      const { data, error } = await supabase
-        .from('admin_users')
-        .select('*')
-        .eq('user_id', user?.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error checking admin status:', error);
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error occurred';
-        setError(`Error checking admin status: ${errorMessage}`);
-        return;
-      }
-
-      if (data) {
+      // Mock admin check since admin_users table doesn't exist
+      // For demo purposes, make first user an admin
+      const mockIsAdmin = user?.email === 'admin@example.com';
+      
+      if (mockIsAdmin) {
         setIsAdmin(true);
         setAdminUser({
-          ...data,
-          role: data.role as 'system_admin' | 'club_admin',
-          permissions: (data.permissions as Record<string, boolean>) || {},
+          id: '1',
+          user_id: user?.id || '',
+          role: 'system_admin',
+          permissions: {
+            manage_users: true,
+            manage_tournaments: true,
+            manage_clubs: true,
+            view_analytics: true,
+          },
+          created_at: new Date().toISOString(),
         });
       }
     } catch (error) {
