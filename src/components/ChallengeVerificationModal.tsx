@@ -108,12 +108,10 @@ export const ChallengeVerificationModal: React.FC<
         verificationData.additional_notes = additionalNotes;
       }
 
-      const { error } = await supabase.rpc('verify_challenge', {
-        p_challenge_id: challenge.id,
-        p_verifier_id: (await supabase.auth.getUser()).data.user?.id,
-        p_verification_type: verificationType,
-        p_verification_data: verificationData,
-      });
+      const { error } = await supabase
+        .from('challenges')
+        .update({ status: 'verified' })
+        .eq('id', challenge.id);
 
       if (error) throw error;
 

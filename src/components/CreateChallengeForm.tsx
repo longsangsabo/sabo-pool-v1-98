@@ -59,7 +59,7 @@ export const CreateChallengeForm: React.FC<CreateChallengeFormProps> = ({
       if (!user) return;
 
       const { data, error } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .select('*')
         .neq('user_id', user.id)
         .order('full_name');
