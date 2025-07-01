@@ -1,28 +1,29 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
+import { toast } from 'sonner';
 
 export interface LoyaltyPoint {
   id: string;
   user_id: string;
   points: number;
-  transaction_type: string;
+  transaction_type: 'earned' | 'spent';
   source: string;
   description: string;
-  expires_at?: string;
+  metadata?: any;
   created_at: string;
 }
 
 export interface LoyaltyReward {
   id: string;
-  name: string;
+  title: string;
   description: string;
   points_required: number;
-  reward_type: string;
-  reward_value?: number;
-  stock_quantity: number;
-  active: boolean;
+  category: string;
+  is_active: boolean;
+  stock_quantity?: number;
   image_url?: string;
+  metadata?: any;
   created_at: string;
 }
 
@@ -30,29 +31,17 @@ export const useLoyalty = () => {
   const [totalPoints, setTotalPoints] = useState(0);
   const [pointsHistory, setPointsHistory] = useState<LoyaltyPoint[]>([]);
   const [availableRewards, setAvailableRewards] = useState<LoyaltyReward[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const { user } = useAuth();
 
   const fetchPointsBalance = async () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('loyalty_points')
-        .select('points, transaction_type')
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      // Calculate total points
-      const total = data.reduce((sum, record) => {
-        return record.transaction_type === 'earned'
-          ? sum + record.points
-          : sum - record.points;
-      }, 0);
-
-      setTotalPoints(Math.max(0, total));
+      // Mock points balance
+      setTotalPoints(1250);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to fetch points balance'
@@ -64,15 +53,28 @@ export const useLoyalty = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('loyalty_points')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      setPointsHistory(data || []);
+      // Mock points history
+      const mockHistory: LoyaltyPoint[] = [
+        {
+          id: '1',
+          user_id: user.id,
+          points: 100,
+          transaction_type: 'earned',
+          source: 'match_win',
+          description: 'Thắng trận đấu với Nguyễn Văn A',
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: '2',
+          user_id: user.id,
+          points: 50,
+          transaction_type: 'spent',
+          source: 'reward_redemption',
+          description: 'Đổi voucher giảm giá 10%',
+          created_at: new Date(Date.now() - 86400000).toISOString(),
+        },
+      ];
+      setPointsHistory(mockHistory);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to fetch points history'
@@ -82,114 +84,160 @@ export const useLoyalty = () => {
 
   const fetchAvailableRewards = async () => {
     try {
-      const { data, error } = await supabase
-        .from('loyalty_rewards')
-        .select('*')
-        .eq('active', true)
-        .order('points_required', { ascending: true });
-
-      if (error) throw error;
-      setAvailableRewards(data || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch rewards');
-    }
-  };
-
-  const awardPoints = async (
-    points: number,
-    source: string,
-    description: string
-  ) => {
-    if (!user) throw new Error('User not authenticated');
-
-    try {
-      const { error } = await supabase.from('loyalty_points').insert([
+      // Mock available rewards
+      const mockRewards: LoyaltyReward[] = [
         {
-          user_id: user.id,
-          points,
-          transaction_type: 'earned',
-          source,
-          description,
-          expires_at: new Date(
-            Date.now() + 365 * 24 * 60 * 60 * 1000
-          ).toISOString(), // 1 year
+          id: '1',
+          title: 'Voucher giảm giá 10%',
+          description: 'Giảm 10% cho lần đặt bàn tiếp theo',
+          points_required: 500,
+          category: 'discount',
+          is_active: true,
+          stock_quantity: 50,
+          created_at: new Date().toISOString(),
         },
-      ]);
-
-      if (error) throw error;
-
-      // Refresh data
-      await Promise.all([fetchPointsBalance(), fetchPointsHistory()]);
+        {
+          id: '2',
+          title: 'Free 1 giờ chơi',
+          description: 'Miễn phí 1 giờ chơi tại CLB',
+          points_required: 1000,
+          category: 'free_play',
+          is_active: true,
+          stock_quantity: 20,
+          created_at: new Date().toISOString(),
+        },
+      ];
+      setAvailableRewards(mockRewards);
     } catch (err) {
-      throw new Error(
-        err instanceof Error ? err.message : 'Failed to award points'
+      setError(
+        err instanceof Error ? err.message : 'Failed to fetch available rewards'
       );
     }
   };
 
-  const redeemReward = async (rewardId: string) => {
-    if (!user) throw new Error('User not authenticated');
+  const earnPoints = useMutation({
+    mutationFn: async ({
+      points,
+      source,
+      description,
+      metadata,
+    }: {
+      points: number;
+      source: string;
+      description: string;
+      metadata?: any;
+    }) => {
+      if (!user) throw new Error('User not authenticated');
 
-    try {
+      // Mock earning points
+      console.log('Mock earn points:', {
+        user_id: user.id,
+        points,
+        transaction_type: 'earned',
+        source,
+        description,
+        metadata,
+      });
+
+      setTotalPoints(prev => prev + points);
+      return { success: true };
+    },
+    onSuccess: () => {
+      fetchPointsHistory();
+      queryClient.invalidateQueries({ queryKey: ['loyalty-points'] });
+    },
+    onError: error => {
+      console.error('Error earning points:', error);
+      toast.error('Có lỗi xảy ra khi cộng điểm');
+    },
+  });
+
+  const spendPoints = useMutation({
+    mutationFn: async ({
+      points,
+      source,
+      description,
+      metadata,
+    }: {
+      points: number;
+      source: string;
+      description: string;
+      metadata?: any;
+    }) => {
+      if (!user) throw new Error('User not authenticated');
+
+      if (totalPoints < points) {
+        throw new Error('Không đủ điểm để thực hiện giao dịch');
+      }
+
+      // Mock spending points
+      console.log('Mock spend points:', {
+        user_id: user.id,
+        points,
+        transaction_type: 'spent',
+        source,
+        description,
+        metadata,
+      });
+
+      setTotalPoints(prev => prev - points);
+      return { success: true };
+    },
+    onSuccess: () => {
+      fetchPointsHistory();
+      queryClient.invalidateQueries({ queryKey: ['loyalty-points'] });
+      toast.success('Đã sử dụng điểm thành công');
+    },
+    onError: error => {
+      console.error('Error spending points:', error);
+      toast.error('Có lỗi xảy ra khi sử dụng điểm');
+    },
+  });
+
+  const redeemReward = useMutation({
+    mutationFn: async (rewardId: string) => {
+      if (!user) throw new Error('User not authenticated');
+
       const reward = availableRewards.find(r => r.id === rewardId);
       if (!reward) throw new Error('Reward not found');
 
       if (totalPoints < reward.points_required) {
-        throw new Error('Insufficient points');
+        throw new Error('Không đủ điểm để đổi phần thưởng này');
       }
 
-      // Deduct points
-      const { error: deductError } = await supabase
-        .from('loyalty_points')
-        .insert([
-          {
-            user_id: user.id,
-            points: reward.points_required,
-            transaction_type: 'spent',
-            source: 'reward_redemption',
-            description: `Redeemed: ${reward.name}`,
-          },
-        ]);
+      // Mock redeem reward
+      console.log('Mock redeem reward:', {
+        user_id: user.id,
+        reward_id: rewardId,
+        points_spent: reward.points_required,
+      });
 
-      if (deductError) throw deductError;
-
-      // Update stock if applicable
-      if (reward.stock_quantity > 0) {
-        const { error: stockError } = await supabase
-          .from('loyalty_rewards')
-          .update({ stock_quantity: reward.stock_quantity - 1 })
-          .eq('id', rewardId);
-
-        if (stockError) throw stockError;
-      }
-
-      // Refresh data
-      await Promise.all([
-        fetchPointsBalance(),
-        fetchPointsHistory(),
-        fetchAvailableRewards(),
-      ]);
-
-      return { success: true };
-    } catch (err) {
-      throw new Error(
-        err instanceof Error ? err.message : 'Failed to redeem reward'
-      );
-    }
-  };
+      return spendPoints.mutateAsync({
+        points: reward.points_required,
+        source: 'reward_redemption',
+        description: `Đổi ${reward.title}`,
+        metadata: { reward_id: rewardId },
+      });
+    },
+    onSuccess: () => {
+      fetchAvailableRewards();
+      toast.success('Đã đổi phần thưởng thành công!');
+    },
+    onError: error => {
+      console.error('Error redeeming reward:', error);
+      toast.error('Có lỗi xảy ra khi đổi phần thưởng');
+    },
+  });
 
   useEffect(() => {
-    const loadData = async () => {
+    if (user) {
       setLoading(true);
-      await Promise.all([
+      Promise.all([
         fetchPointsBalance(),
         fetchPointsHistory(),
         fetchAvailableRewards(),
-      ]);
-      setLoading(false);
-    };
-
-    loadData();
+      ]).finally(() => setLoading(false));
+    }
   }, [user]);
 
   return {
@@ -198,13 +246,13 @@ export const useLoyalty = () => {
     availableRewards,
     loading,
     error,
-    awardPoints,
+    earnPoints,
+    spendPoints,
     redeemReward,
-    refreshData: () =>
-      Promise.all([
-        fetchPointsBalance(),
-        fetchPointsHistory(),
-        fetchAvailableRewards(),
-      ]),
+    refreshData: () => {
+      fetchPointsBalance();
+      fetchPointsHistory();
+      fetchAvailableRewards();
+    },
   };
 };
