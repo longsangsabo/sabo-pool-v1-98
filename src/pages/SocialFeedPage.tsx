@@ -31,35 +31,62 @@ const SocialFeedPage = () => {
   const { data: topPlayers = [] } = useQuery({
     queryKey: ['topPlayers'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(
-          'user_id, full_name, current_rank, avatar_url, ranking_points, matches_won, matches_played'
-        )
-        .order('ranking_points', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-      return data || [];
+      // Mock top players data since profiles table doesn't have ranking fields
+      const mockPlayers = [
+        {
+          user_id: 'user1',
+          full_name: 'Nguyễn Văn A',
+          current_rank: 'A1',
+          avatar_url: '',
+          ranking_points: 2800,
+          matches_won: 45,
+          matches_played: 50,
+        },
+        {
+          user_id: 'user2',
+          full_name: 'Trần Thị B',
+          current_rank: 'A2',
+          avatar_url: '',
+          ranking_points: 2650,
+          matches_won: 42,
+          matches_played: 48,
+        },
+      ];
+      return mockPlayers;
     },
   });
 
   const { data: recentActivities = [] } = useQuery({
     queryKey: ['recentActivities'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_activities')
-        .select(
-          `
-          *,
-          profile:profiles!user_activities_user_id_fkey(full_name, current_rank, avatar_url)
-        `
-        )
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      return data || [];
+      // Mock activities data since user_activities table doesn't exist
+      const mockActivities = [
+        {
+          id: '1',
+          type: 'tournament_join',
+          user_id: 'user1',
+          content: 'Joined tournament',
+          created_at: new Date().toISOString(),
+          profile: {
+            full_name: 'Nguyễn Văn A',
+            current_rank: 'A2',
+            avatar_url: '',
+          },
+        },
+        {
+          id: '2',
+          type: 'match_win',
+          user_id: 'user2',
+          content: 'Won match',
+          created_at: new Date(Date.now() - 3600000).toISOString(),
+          profile: {
+            full_name: 'Trần Thị B',
+            current_rank: 'B1',
+            avatar_url: '',
+          },
+        },
+      ];
+      return mockActivities;
     },
   });
 
