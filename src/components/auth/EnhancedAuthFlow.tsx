@@ -105,7 +105,7 @@ export const EnhancedAuthFlow: React.FC<EnhancedAuthFlowProps> = ({
     if (!validateForm(true)) return;
 
     try {      
-      const { error } = await signUp(authData.email, authData.password);
+      const { error } = await signUp(authData.phone || authData.email, authData.password, authData.fullName);
       if (error) {
         toast.error(error.message || 'Đăng ký thất bại');
       } else {

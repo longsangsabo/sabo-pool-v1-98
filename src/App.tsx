@@ -36,6 +36,8 @@ import ClubDetailPage from "./pages/ClubDetailPage";
 import ClubsPage from "./pages/ClubsPage";
 import CreateTournamentPage from "./pages/CreateTournamentPage";
 import Dashboard from "./pages/Dashboard";
+import DashboardPage from "./pages/DashboardPage";
+import AuthWrapper from "./components/AuthWrapper";
 import DashboardOverview from "./pages/DashboardOverview";
 import DiscoveryPage from "./pages/DiscoveryPage";
 import EnhancedChallengesPage from "./pages/EnhancedChallengesPage";
@@ -107,7 +109,7 @@ const App = () => {
                         {/* Routes with navigation */}
                         {/* Trang chính */}
                         <Route index element={<SimpleDashboard />} />
-                        <Route path="dashboard" element={<Dashboard />} />
+                        <Route path="dashboard" element={<AuthWrapper><DashboardPage /></AuthWrapper>} />
                         <Route path="dashboard-overview" element={<DashboardOverview />} />
                         <Route path="index" element={<Index />} />
                         

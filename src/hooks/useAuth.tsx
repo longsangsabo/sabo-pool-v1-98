@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (error) {
           console.error("AuthProvider: Error getting session:", error);
         }
-        console.log("AuthProvider: Initial session:", session?.user?.email || 'No user');
+        console.log("AuthProvider: Initial session:", session?.user?.phone || session?.user?.email || 'No user');
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("AuthProvider: Auth state changed:", event, session?.user?.email || 'No user');
+        console.log("AuthProvider: Auth state changed:", event, session?.user?.phone || session?.user?.email || 'No user');
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -51,11 +51,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (phone: string, password: string) => {
     try {
-      console.log("AuthProvider: Attempting sign in for:", email);
+      console.log("AuthProvider: Attempting sign in for:", phone);
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        phone,
         password,
       });
       return { error };
@@ -65,16 +65,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (phone: string, password: string, fullName: string) => {
     try {
-      console.log("AuthProvider: Attempting sign up for:", email);
-      const { error } = await supabase.auth.signUp({
-        email,
+      console.log("AuthProvider: Attempting sign up for:", phone);
+      const { data, error } = await supabase.auth.signUp({
+        phone,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            full_name: fullName,
+            phone: phone,
+          },
         },
       });
+
+      // Create profile after successful signup
+      if (data.user && !error) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: data.user.id,
+            full_name: fullName,
+            phone: phone,
+          });
+        
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+        }
+      }
+
       return { error };
     } catch (error: any) {
       console.error('AuthProvider: Sign up error:', error);

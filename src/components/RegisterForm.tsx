@@ -169,7 +169,7 @@ const RegisterForm = () => {
       // Check existing users first
       await checkExistingUser(data.email, data.phone);
 
-      const { error } = await signUp(data.email, data.password);
+      const { error } = await signUp(data.phone, data.password, data.fullName);
 
       if (error) {
         console.error('Registration error:', error);
