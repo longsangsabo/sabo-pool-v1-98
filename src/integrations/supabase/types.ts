@@ -966,6 +966,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      populate_initial_leaderboard_data: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      refresh_current_month_leaderboard: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       update_monthly_leaderboard: {
         Args: Record<PropertyKey, never>
         Returns: undefined
