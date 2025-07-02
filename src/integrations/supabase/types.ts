@@ -204,39 +204,54 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          city: string | null
           club_id: string | null
           created_at: string
+          display_name: string | null
+          district: string | null
           elo: number | null
           full_name: string | null
           id: string
+          member_since: string | null
           nickname: string | null
           phone: string | null
+          skill_level: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          city?: string | null
           club_id?: string | null
           created_at?: string
+          display_name?: string | null
+          district?: string | null
           elo?: number | null
           full_name?: string | null
           id?: string
+          member_since?: string | null
           nickname?: string | null
           phone?: string | null
+          skill_level?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          city?: string | null
           club_id?: string | null
           created_at?: string
+          display_name?: string | null
+          district?: string | null
           elo?: number | null
           full_name?: string | null
           id?: string
+          member_since?: string | null
           nickname?: string | null
           phone?: string | null
+          skill_level?: string | null
           updated_at?: string
           user_id?: string
         }

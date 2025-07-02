@@ -37,6 +37,7 @@ import ClubsPage from "./pages/ClubsPage";
 import CreateTournamentPage from "./pages/CreateTournamentPage";
 import Dashboard from "./pages/Dashboard";
 import DashboardPage from "./pages/DashboardPage";
+import PublicProfilePage from "./pages/PublicProfilePage";
 import AuthWrapper from "./components/AuthWrapper";
 import DashboardOverview from "./pages/DashboardOverview";
 import DiscoveryPage from "./pages/DiscoveryPage";
@@ -148,7 +149,8 @@ const App = () => {
                         <Route path="payment-success" element={<PaymentSuccessPage />} />
                         
                         {/* Profile & Settings */}
-                        <Route path="profile" element={<ProfilePage />} />
+                        <Route path="profile" element={<AuthWrapper><ProfilePage /></AuthWrapper>} />
+                        <Route path="players/:userId" element={<PublicProfilePage />} />
                         <Route path="settings" element={<SettingsPage />} />
                         <Route path="security" element={<SecurityPage />} />
                         

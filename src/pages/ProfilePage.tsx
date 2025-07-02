@@ -1,32 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Edit,
-  Settings,
-  Trophy,
-  Target,
-  Users,
-  Calendar,
-  MapPin,
-  Star,
-  TrendingUp,
-  Award,
-  MessageCircle,
-  Share2,
-  Bookmark,
-  MoreHorizontal,
-} from 'lucide-react';
-import { ProfileStats } from '@/components/profile/ProfileStats';
-import { ProfileTimeline } from '@/components/profile/ProfileTimeline';
-import { ProfileAchievements } from '@/components/profile/ProfileAchievements';
-import { ProfileMatches } from '@/components/profile/ProfileMatches';
-import { ProfileSettings } from '@/components/profile/ProfileSettings';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Camera, MapPin, User, Phone, Calendar, Trophy } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
+// Export types for other components
 export interface UserProfile {
   id: string;
   username: string;
@@ -41,8 +26,6 @@ export interface UserProfile {
   is_verified: boolean;
   is_online: boolean;
   last_seen: Date;
-
-  // Stats
   total_matches: number;
   wins: number;
   losses: number;
@@ -51,12 +34,8 @@ export interface UserProfile {
   achievements_count: number;
   followers_count: number;
   following_count: number;
-
-  // Social
   is_following: boolean;
   is_friend: boolean;
-
-  // Preferences
   privacy_level: 'public' | 'friends' | 'private';
   notifications_enabled: boolean;
 }
@@ -69,24 +48,18 @@ export interface ProfilePost {
   likes_count: number;
   comments_count: number;
   images?: string[];
-
-  // Achievement specific
   achievement?: {
     title: string;
     description: string;
     icon: string;
     points: number;
   };
-
-  // Match result specific
   match_result?: {
     opponent: string;
     result: 'win' | 'loss' | 'draw';
     score: string;
     rating_change: number;
   };
-
-  // Event specific
   event?: {
     title: string;
     date: Date;
@@ -94,287 +67,339 @@ export interface ProfilePost {
   };
 }
 
-const ProfilePage: React.FC = () => {
-  const { username } = useParams<{ username: string }>();
-  const navigate = useNavigate();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+interface ProfileData {
+  display_name: string;
+  phone: string;
+  bio: string;
+  skill_level: 'beginner' | 'intermediate' | 'advanced' | 'pro';
+  city: string;
+  district: string;
+  avatar_url: string;
+  member_since: string;
+}
 
-  // Mock data - replace with actual API call
+const ProfilePage = () => {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<ProfileData>({
+    display_name: '',
+    phone: '',
+    bio: '',
+    skill_level: 'beginner',
+    city: '',
+    district: '',
+    avatar_url: '',
+    member_since: '',
+  });
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+
+  const skillLevels = {
+    beginner: { label: 'Người mới', color: 'bg-green-100 text-green-800' },
+    intermediate: { label: 'Trung bình', color: 'bg-blue-100 text-blue-800' },
+    advanced: { label: 'Khá', color: 'bg-purple-100 text-purple-800' },
+    pro: { label: 'Chuyên nghiệp', color: 'bg-gold-100 text-gold-800' },
+  };
+
   useEffect(() => {
-    const fetchProfile = async () => {
-      setIsLoading(true);
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+    fetchProfile();
+  }, [user]);
 
-        setProfile({
-          id: '1',
-          username: username || 'player1',
-          email: 'player1@example.com',
-          avatar_url: '/avatars/player1.jpg',
-          cover_image_url: '/covers/player1-cover.jpg',
-          bio: 'Pool player passionate about the game. Always looking for new challenges and opportunities to improve my skills.',
-          location: 'Hà Nội, Việt Nam',
-          rank: 'A+',
-          rating: 1850,
-          join_date: new Date('2023-01-15'),
-          is_verified: true,
-          is_online: true,
-          last_seen: new Date(),
+  const fetchProfile = async () => {
+    if (!user) return;
 
-          total_matches: 156,
-          wins: 98,
-          losses: 58,
-          win_rate: 62.8,
-          total_earnings: 2500000,
-          achievements_count: 12,
-          followers_count: 245,
-          following_count: 89,
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
 
-          is_following: false,
-          is_friend: false,
-
-          privacy_level: 'public',
-          notifications_enabled: true,
-        });
-      } catch (error) {
-        console.error('Failed to fetch profile:', error);
-      } finally {
-        setIsLoading(false);
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching profile:', error);
+        return;
       }
-    };
 
-    if (username) {
-      fetchProfile();
-    }
-  }, [username]);
-
-  const handleFollow = () => {
-    if (profile) {
-      setProfile(prev =>
-        prev
-          ? {
-              ...prev,
-              is_following: !prev.is_following,
-              followers_count: prev.is_following
-                ? prev.followers_count - 1
-                : prev.followers_count + 1,
-            }
-          : null
-      );
+      if (data) {
+        setProfile({
+          display_name: data.display_name || data.full_name || '',
+          phone: data.phone || user.phone || '',
+          bio: data.bio || '',
+          skill_level: (data.skill_level || 'beginner') as 'beginner' | 'intermediate' | 'advanced' | 'pro',
+          city: data.city || '',
+          district: data.district || '',
+          avatar_url: data.avatar_url || '',
+          member_since: data.member_since || data.created_at || '',
+        });
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleMessage = () => {
-    // Navigate to chat with this user
-    navigate(`/chat/${profile?.id}`);
+  const updateProfile = async (field: string, value: string) => {
+    if (!user) return;
+
+    try {
+      const updateData = { [field]: value };
+      if (field === 'display_name') {
+        updateData.full_name = value; // Also update full_name for compatibility
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          ...updateData,
+        });
+
+      if (error) throw error;
+
+      toast.success('Đã lưu thay đổi!');
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast.error('Lỗi khi lưu: ' + error.message);
+    }
   };
 
-  const handleShare = () => {
-    // Share profile
-    navigator.clipboard.writeText(window.location.href);
+  const handleFieldBlur = (field: string, value: string) => {
+    if (profile[field as keyof ProfileData] !== value) {
+      updateProfile(field, value);
+    }
   };
 
-  if (isLoading) {
-    return (
-      <div className='flex items-center justify-center min-h-screen'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500'></div>
-      </div>
-    );
-  }
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
 
-  if (!profile) {
+    // Validate file size (500KB max)
+    if (file.size > 500 * 1024) {
+      toast.error('Ảnh phải nhỏ hơn 500KB');
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      const avatarUrl = urlData.publicUrl;
+
+      await updateProfile('avatar_url', avatarUrl);
+      setProfile(prev => ({ ...prev, avatar_url: avatarUrl }));
+
+      toast.success('Đã tải lên ảnh đại diện!');
+    } catch (error: any) {
+      console.error('Error uploading avatar:', error);
+      toast.error('Lỗi khi tải ảnh: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (loading) {
     return (
-      <div className='flex items-center justify-center min-h-screen'>
-        <div className='text-center'>
-          <h2 className='text-2xl font-bold text-gray-900 mb-2'>
-            Không tìm thấy người dùng
-          </h2>
-          <p className='text-gray-600 mb-4'>
-            Người dùng này không tồn tại hoặc đã bị xóa.
-          </p>
-          <Button onClick={() => navigate('/')}>Về trang chủ</Button>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải hồ sơ...</p>
         </div>
       </div>
     );
   }
-
-  const statsData = {
-    current_rank: profile.rank || 'K1',
-    ranking_points: profile.rating || 0,
-    total_matches: profile.total_matches,
-    wins: profile.wins,
-    losses: profile.losses,
-    win_rate: profile.total_matches ? (profile.wins / profile.total_matches) * 100 : 0,
-    current_streak: 0, // Default value since it's not in the profile
-  };
 
   return (
-    <div className='min-h-screen bg-gray-50'>
-      {/* Cover Image */}
-      <div className='relative h-48 md:h-64 bg-gradient-to-r from-blue-500 to-purple-600'>
-        {profile.cover_image_url && (
-          <img
-            src={profile.cover_image_url}
-            alt='Cover'
-            className='w-full h-full object-cover'
-          />
-        )}
-        <div className='absolute inset-0 bg-black bg-opacity-30'></div>
-
-        {/* Back Button */}
-        <Button
-          variant='ghost'
-          size='sm'
-          onClick={() => navigate(-1)}
-          className='absolute top-4 left-4 text-white hover:bg-white hover:bg-opacity-20'
-        >
-          ← Quay lại
-        </Button>
-      </div>
-
-      {/* Profile Header */}
-      <div className='relative px-4 md:px-6 lg:px-8 -mt-16'>
-        <div className='max-w-4xl mx-auto'>
-          <Card className='mb-6'>
-            <CardContent className='pt-6'>
-              <div className='flex flex-col md:flex-row items-start md:items-center gap-6'>
-                {/* Avatar */}
-                <div className='relative'>
-                  <Avatar className='h-24 w-24 md:h-32 md:w-32 border-4 border-white shadow-lg'>
-                    <AvatarImage src={profile.avatar_url} />
-                    <AvatarFallback className='text-2xl'>
-                      {profile.username[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  {profile.is_online && (
-                    <div className='absolute bottom-2 right-2 w-4 h-4 bg-green-500 border-2 border-white rounded-full'></div>
-                  )}
-                </div>
-
-                {/* Profile Info */}
-                <div className='flex-1 min-w-0'>
-                  <div className='flex items-center gap-3 mb-2'>
-                    <h1 className='text-2xl md:text-3xl font-bold text-gray-900'>
-                      {profile.username}
-                    </h1>
-                    {profile.is_verified && (
-                      <Badge
-                        variant='secondary'
-                        className='bg-blue-100 text-blue-800'
-                      >
-                        <Star className='h-3 w-3 mr-1' />
-                        Đã xác thực
-                      </Badge>
-                    )}
-                    <Badge
-                      variant='outline'
-                      className='bg-yellow-100 text-yellow-800'
-                    >
-                      {profile.rank}
-                    </Badge>
-                  </div>
-
-                  <div className='flex items-center gap-4 text-sm text-gray-600 mb-3'>
-                    <div className='flex items-center gap-1'>
-                      <MapPin className='h-4 w-4' />
-                      <span>{profile.location}</span>
-                    </div>
-                    <div className='flex items-center gap-1'>
-                      <Calendar className='h-4 w-4' />
-                      <span>
-                        Tham gia{' '}
-                        {new Date(profile.join_date).toLocaleDateString(
-                          'vi-VN'
-                        )}
-                      </span>
-                    </div>
-                  </div>
-
-                  {profile.bio && (
-                    <p className='text-gray-700 mb-4 max-w-2xl'>
-                      {profile.bio}
-                    </p>
-                  )}
-
-                  {/* Stats Section */}
-                  <ProfileStats profile={statsData} />
-
-                  {/* Action Buttons */}
-                  <div className='flex items-center gap-2'>
-                    <Button
-                      variant={profile.is_following ? 'outline' : 'default'}
-                      onClick={handleFollow}
-                      className='flex items-center gap-2'
-                    >
-                      <Users className='h-4 w-4' />
-                      {profile.is_following ? 'Đang theo dõi' : 'Theo dõi'}
-                    </Button>
-
-                    <Button
-                      variant='outline'
-                      onClick={handleMessage}
-                      className='flex items-center gap-2'
-                    >
-                      <MessageCircle className='h-4 w-4' />
-                      Nhắn tin
-                    </Button>
-
-                    <Button
-                      variant='outline'
-                      onClick={handleShare}
-                      className='flex items-center gap-2'
-                    >
-                      <Share2 className='h-4 w-4' />
-                      Chia sẻ
-                    </Button>
-
-                    <Button variant='ghost' size='sm'>
-                      <MoreHorizontal className='h-4 w-4' />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Tabs */}
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className='space-y-6'
-          >
-            <TabsList className='grid w-full grid-cols-5'>
-              <TabsTrigger value='overview'>Tổng quan</TabsTrigger>
-              <TabsTrigger value='timeline'>Dòng thời gian</TabsTrigger>
-              <TabsTrigger value='achievements'>Thành tích</TabsTrigger>
-              <TabsTrigger value='matches'>Trận đấu</TabsTrigger>
-              <TabsTrigger value='settings'>Cài đặt</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value='overview' className='space-y-6'>
-              <ProfileStats profile={statsData} />
-            </TabsContent>
-
-            <TabsContent value='timeline' className='space-y-6'>
-              <ProfileTimeline userId={profile.id} />
-            </TabsContent>
-
-            <TabsContent value='achievements' className='space-y-6'>
-              <ProfileAchievements userId={profile.id} />
-            </TabsContent>
-
-            <TabsContent value='matches' className='space-y-6'>
-              <ProfileMatches userId={profile.id} />
-            </TabsContent>
-
-            <TabsContent value='settings' className='space-y-6'>
-              <ProfileSettings profile={profile} onUpdate={setProfile} />
-            </TabsContent>
-          </Tabs>
+    <div className="min-h-screen bg-gray-50 pt-20 pb-8">
+      <div className="max-w-2xl mx-auto px-4">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Hồ sơ cá nhân</h1>
+          <p className="text-gray-600">Quản lý thông tin của bạn</p>
         </div>
+
+        {/* Avatar Section */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="relative">
+                <Avatar className="w-24 h-24">
+                  <AvatarImage src={profile.avatar_url} alt="Avatar" />
+                  <AvatarFallback className="text-xl">
+                    {profile.display_name?.charAt(0) || '👤'}
+                  </AvatarFallback>
+                </Avatar>
+                <label className="absolute bottom-0 right-0 bg-blue-600 rounded-full p-2 cursor-pointer hover:bg-blue-700">
+                  <Camera className="w-4 h-4 text-white" />
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    disabled={uploading}
+                  />
+                </label>
+              </div>
+              
+              <div className="text-center">
+                <h2 className="text-xl font-semibold">
+                  {profile.display_name || 'Chưa đặt tên'}
+                </h2>
+                <Badge className={skillLevels[profile.skill_level].color}>
+                  <Trophy className="w-3 h-3 mr-1" />
+                  {skillLevels[profile.skill_level].label}
+                </Badge>
+                {profile.member_since && (
+                  <p className="text-sm text-gray-500 mt-2 flex items-center justify-center">
+                    <Calendar className="w-4 h-4 mr-1" />
+                    Tham gia {new Date(profile.member_since).toLocaleDateString('vi-VN')}
+                  </p>
+                )}
+              </div>
+              
+              {uploading && (
+                <p className="text-sm text-blue-600">Đang tải ảnh...</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Profile Form */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <User className="w-5 h-5 mr-2" />
+              Thông tin cá nhân
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Display Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tên hiển thị *
+              </label>
+              <Input
+                value={profile.display_name}
+                onChange={(e) => setProfile(prev => ({ ...prev, display_name: e.target.value }))}
+                onBlur={(e) => handleFieldBlur('display_name', e.target.value)}
+                placeholder="Nhập tên hiển thị của bạn"
+                className="h-12 text-lg"
+              />
+            </div>
+
+            {/* Phone */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Phone className="w-4 h-4 inline mr-1" />
+                Số điện thoại
+              </label>
+              <Input
+                value={profile.phone}
+                onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
+                onBlur={(e) => handleFieldBlur('phone', e.target.value)}
+                placeholder="0987654321"
+                className="h-12 text-lg"
+                type="tel"
+                inputMode="numeric"
+              />
+            </div>
+
+            {/* Skill Level */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Trình độ chơi bida
+              </label>
+              <Select
+                value={profile.skill_level}
+                onValueChange={(value) => {
+                  setProfile(prev => ({ ...prev, skill_level: value as any }));
+                  updateProfile('skill_level', value);
+                }}
+              >
+                <SelectTrigger className="h-12 text-lg">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(skillLevels).map(([key, { label }]) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Location */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <MapPin className="w-4 h-4 inline mr-1" />
+                  Thành phố
+                </label>
+                <Input
+                  value={profile.city}
+                  onChange={(e) => setProfile(prev => ({ ...prev, city: e.target.value }))}
+                  onBlur={(e) => handleFieldBlur('city', e.target.value)}
+                  placeholder="TP. Hồ Chí Minh"
+                  className="h-12 text-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Quận/Huyện
+                </label>
+                <Input
+                  value={profile.district}
+                  onChange={(e) => setProfile(prev => ({ ...prev, district: e.target.value }))}
+                  onBlur={(e) => handleFieldBlur('district', e.target.value)}
+                  placeholder="Quận 1"
+                  className="h-12 text-lg"
+                />
+              </div>
+            </div>
+
+            {/* Bio */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Giới thiệu bản thân
+                <span className="text-sm text-gray-500 ml-2">
+                  ({profile.bio.length}/200)
+                </span>
+              </label>
+              <Textarea
+                value={profile.bio}
+                onChange={(e) => {
+                  if (e.target.value.length <= 200) {
+                    setProfile(prev => ({ ...prev, bio: e.target.value }));
+                  }
+                }}
+                onBlur={(e) => handleFieldBlur('bio', e.target.value)}
+                placeholder="Chia sẻ về sở thích chơi bida, thành tích hoặc mục tiêu của bạn..."
+                className="min-h-[100px] text-lg"
+                maxLength={200}
+              />
+            </div>
+
+            {/* Privacy Notice */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Quyền riêng tư:</strong> Số điện thoại của bạn sẽ không hiển thị công khai. 
+                Chỉ tên hiển thị, ảnh đại diện, trình độ và giới thiệu sẽ được hiển thị cho người khác.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
