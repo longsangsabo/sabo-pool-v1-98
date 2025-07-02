@@ -100,7 +100,15 @@ const MyChallengesTab = () => {
           
           return {
             ...challenge,
-            profiles: profile || { full_name: 'Unknown', avatar_url: '', current_rank: 'Unranked' }
+            profiles: profile ? { 
+              full_name: profile.full_name, 
+              avatar_url: profile.avatar_url,
+              current_rank: 'Unranked'
+            } : { 
+              full_name: 'Unknown', 
+              avatar_url: '', 
+              current_rank: 'Unranked' 
+            }
           };
         })
       );
@@ -118,13 +126,21 @@ const MyChallengesTab = () => {
         (outgoing || []).map(async (challenge) => {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name, avatar_url, current_rank')
+            .select('full_name, avatar_url')
             .eq('user_id', challenge.opponent_id)
             .single();
           
           return {
             ...challenge,
-            profiles: profile || { full_name: 'Unknown', avatar_url: '', current_rank: 'Unranked' }
+            profiles: profile ? { 
+              full_name: profile.full_name, 
+              avatar_url: profile.avatar_url,
+              current_rank: 'Unranked'
+            } : { 
+              full_name: 'Unknown', 
+              avatar_url: '', 
+              current_rank: 'Unranked' 
+            }
           };
         })
       );
