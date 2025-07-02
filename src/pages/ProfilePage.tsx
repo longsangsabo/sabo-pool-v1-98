@@ -10,6 +10,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Camera, MapPin, User, Phone, Calendar, Trophy } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import ClubRegistrationForm from '@/components/ClubRegistrationForm';
+import RankVerificationForm from '@/components/RankVerificationForm';
+import RankVerificationRequests from '@/components/RankVerificationRequests';
 
 // Export types for other components
 export interface UserProfile {
@@ -76,6 +80,9 @@ interface ProfileData {
   district: string;
   avatar_url: string;
   member_since: string;
+  role: 'player' | 'club_owner' | 'both';
+  active_role: 'player' | 'club_owner';
+  verified_rank: string | null;
 }
 
 const ProfilePage = () => {
@@ -89,6 +96,9 @@ const ProfilePage = () => {
     district: '',
     avatar_url: '',
     member_since: '',
+    role: 'player',
+    active_role: 'player',
+    verified_rank: null,
   });
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -129,6 +139,9 @@ const ProfilePage = () => {
           district: data.district || '',
           avatar_url: data.avatar_url || '',
           member_since: data.member_since || data.created_at || '',
+          role: (data.role || 'player') as 'player' | 'club_owner' | 'both',
+          active_role: (data.active_role || 'player') as 'player' | 'club_owner',
+          verified_rank: data.verified_rank || null,
         });
       }
     } catch (error) {
@@ -256,10 +269,18 @@ const ProfilePage = () => {
                 <h2 className="text-xl font-semibold">
                   {profile.display_name || 'Chưa đặt tên'}
                 </h2>
-                <Badge className={skillLevels[profile.skill_level].color}>
-                  <Trophy className="w-3 h-3 mr-1" />
-                  {skillLevels[profile.skill_level].label}
-                </Badge>
+                <div className="flex flex-col items-center space-y-2">
+                  <Badge className={skillLevels[profile.skill_level].color}>
+                    <Trophy className="w-3 h-3 mr-1" />
+                    {skillLevels[profile.skill_level].label}
+                  </Badge>
+                  {profile.verified_rank && (
+                    <Badge className="bg-blue-100 text-blue-800">
+                      <Trophy className="w-3 h-3 mr-1" />
+                      Hạng đã xác thực: {profile.verified_rank}
+                    </Badge>
+                  )}
+                </div>
                 {profile.member_since && (
                   <p className="text-sm text-gray-500 mt-2 flex items-center justify-center">
                     <Calendar className="w-4 h-4 mr-1" />
@@ -275,131 +296,168 @@ const ProfilePage = () => {
           </CardContent>
         </Card>
 
-        {/* Profile Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <User className="w-5 h-5 mr-2" />
-              Thông tin cá nhân
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Display Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tên hiển thị *
-              </label>
-              <Input
-                value={profile.display_name}
-                onChange={(e) => setProfile(prev => ({ ...prev, display_name: e.target.value }))}
-                onBlur={(e) => handleFieldBlur('display_name', e.target.value)}
-                placeholder="Nhập tên hiển thị của bạn"
-                className="h-12 text-lg"
-              />
-            </div>
+        {/* Profile Tabs */}
+        <Tabs defaultValue="profile" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="profile">Hồ sơ</TabsTrigger>
+            <TabsTrigger value="rank">Xác thực hạng</TabsTrigger>
+            <TabsTrigger value="club">Câu lạc bộ</TabsTrigger>
+            {profile.role === 'club_owner' || profile.role === 'both' ? (
+              <TabsTrigger value="requests">Yêu cầu xác thực</TabsTrigger>
+            ) : (
+              <TabsTrigger value="requests" disabled>Yêu cầu xác thực</TabsTrigger>
+            )}
+          </TabsList>
 
-            {/* Phone */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Phone className="w-4 h-4 inline mr-1" />
-                Số điện thoại
-              </label>
-              <Input
-                value={profile.phone}
-                onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
-                onBlur={(e) => handleFieldBlur('phone', e.target.value)}
-                placeholder="0987654321"
-                className="h-12 text-lg"
-                type="tel"
-                inputMode="numeric"
-              />
-            </div>
+          <TabsContent value="profile" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <User className="w-5 h-5 mr-2" />
+                  Thông tin cá nhân
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Display Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tên hiển thị *
+                  </label>
+                  <Input
+                    value={profile.display_name}
+                    onChange={(e) => setProfile(prev => ({ ...prev, display_name: e.target.value }))}
+                    onBlur={(e) => handleFieldBlur('display_name', e.target.value)}
+                    placeholder="Nhập tên hiển thị của bạn"
+                    className="h-12 text-lg"
+                  />
+                </div>
 
-            {/* Skill Level */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Trình độ chơi bida
-              </label>
-              <Select
-                value={profile.skill_level}
-                onValueChange={(value) => {
-                  setProfile(prev => ({ ...prev, skill_level: value as any }));
-                  updateProfile('skill_level', value);
-                }}
-              >
-                <SelectTrigger className="h-12 text-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(skillLevels).map(([key, { label }]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                {/* Phone */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Phone className="w-4 h-4 inline mr-1" />
+                    Số điện thoại
+                  </label>
+                  <Input
+                    value={profile.phone}
+                    onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
+                    onBlur={(e) => handleFieldBlur('phone', e.target.value)}
+                    placeholder="0987654321"
+                    className="h-12 text-lg"
+                    type="tel"
+                    inputMode="numeric"
+                  />
+                </div>
 
-            {/* Location */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <MapPin className="w-4 h-4 inline mr-1" />
-                  Thành phố
-                </label>
-                <Input
-                  value={profile.city}
-                  onChange={(e) => setProfile(prev => ({ ...prev, city: e.target.value }))}
-                  onBlur={(e) => handleFieldBlur('city', e.target.value)}
-                  placeholder="TP. Hồ Chí Minh"
-                  className="h-12 text-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Quận/Huyện
-                </label>
-                <Input
-                  value={profile.district}
-                  onChange={(e) => setProfile(prev => ({ ...prev, district: e.target.value }))}
-                  onBlur={(e) => handleFieldBlur('district', e.target.value)}
-                  placeholder="Quận 1"
-                  className="h-12 text-lg"
-                />
-              </div>
-            </div>
+                {/* Skill Level */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Trình độ chơi bida
+                  </label>
+                  <Select
+                    value={profile.skill_level}
+                    onValueChange={(value) => {
+                      setProfile(prev => ({ ...prev, skill_level: value as any }));
+                      updateProfile('skill_level', value);
+                    }}
+                  >
+                    <SelectTrigger className="h-12 text-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(skillLevels).map(([key, { label }]) => (
+                        <SelectItem key={key} value={key}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {/* Bio */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Giới thiệu bản thân
-                <span className="text-sm text-gray-500 ml-2">
-                  ({profile.bio.length}/200)
-                </span>
-              </label>
-              <Textarea
-                value={profile.bio}
-                onChange={(e) => {
-                  if (e.target.value.length <= 200) {
-                    setProfile(prev => ({ ...prev, bio: e.target.value }));
-                  }
-                }}
-                onBlur={(e) => handleFieldBlur('bio', e.target.value)}
-                placeholder="Chia sẻ về sở thích chơi bida, thành tích hoặc mục tiêu của bạn..."
-                className="min-h-[100px] text-lg"
-                maxLength={200}
-              />
-            </div>
+                {/* Location */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <MapPin className="w-4 h-4 inline mr-1" />
+                      Thành phố
+                    </label>
+                    <Input
+                      value={profile.city}
+                      onChange={(e) => setProfile(prev => ({ ...prev, city: e.target.value }))}
+                      onBlur={(e) => handleFieldBlur('city', e.target.value)}
+                      placeholder="TP. Hồ Chí Minh"
+                      className="h-12 text-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Quận/Huyện
+                    </label>
+                    <Input
+                      value={profile.district}
+                      onChange={(e) => setProfile(prev => ({ ...prev, district: e.target.value }))}
+                      onBlur={(e) => handleFieldBlur('district', e.target.value)}
+                      placeholder="Quận 1"
+                      className="h-12 text-lg"
+                    />
+                  </div>
+                </div>
 
-            {/* Privacy Notice */}
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>Quyền riêng tư:</strong> Số điện thoại của bạn sẽ không hiển thị công khai. 
-                Chỉ tên hiển thị, ảnh đại diện, trình độ và giới thiệu sẽ được hiển thị cho người khác.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+                {/* Bio */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Giới thiệu bản thân
+                    <span className="text-sm text-gray-500 ml-2">
+                      ({profile.bio.length}/200)
+                    </span>
+                  </label>
+                  <Textarea
+                    value={profile.bio}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 200) {
+                        setProfile(prev => ({ ...prev, bio: e.target.value }));
+                      }
+                    }}
+                    onBlur={(e) => handleFieldBlur('bio', e.target.value)}
+                    placeholder="Chia sẻ về sở thích chơi bida, thành tích hoặc mục tiêu của bạn..."
+                    className="min-h-[100px] text-lg"
+                    maxLength={200}
+                  />
+                </div>
+
+                {/* Privacy Notice */}
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Quyền riêng tư:</strong> Số điện thoại của bạn sẽ không hiển thị công khai. 
+                    Chỉ tên hiển thị, ảnh đại diện, trình độ và giới thiệu sẽ được hiển thị cho người khác.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="rank">
+            <RankVerificationForm />
+          </TabsContent>
+
+          <TabsContent value="club">
+            <ClubRegistrationForm />
+          </TabsContent>
+
+          <TabsContent value="requests">
+            {(profile.role === 'club_owner' || profile.role === 'both') ? (
+              <RankVerificationRequests />
+            ) : (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center text-gray-500">
+                    <p>Bạn cần đăng ký câu lạc bộ để xem mục này</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

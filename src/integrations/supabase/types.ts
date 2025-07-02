@@ -62,6 +62,54 @@ export type Database = {
           },
         ]
       }
+      club_profiles: {
+        Row: {
+          address: string
+          club_name: string
+          created_at: string
+          id: string
+          number_of_tables: number | null
+          operating_hours: Json | null
+          phone: string
+          updated_at: string
+          user_id: string
+          verification_notes: string | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          address: string
+          club_name: string
+          created_at?: string
+          id?: string
+          number_of_tables?: number | null
+          operating_hours?: Json | null
+          phone: string
+          updated_at?: string
+          user_id: string
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          address?: string
+          club_name?: string
+          created_at?: string
+          id?: string
+          number_of_tables?: number | null
+          operating_hours?: Json | null
+          phone?: string
+          updated_at?: string
+          user_id?: string
+          verification_notes?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       clubs: {
         Row: {
           address: string | null
@@ -202,7 +250,11 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active_role: string | null
           avatar_url: string | null
+          ban_expires_at: string | null
+          ban_reason: string | null
+          ban_status: string | null
           bio: string | null
           city: string | null
           club_id: string | null
@@ -215,12 +267,20 @@ export type Database = {
           member_since: string | null
           nickname: string | null
           phone: string | null
+          rank_verified_at: string | null
+          rank_verified_by: string | null
+          role: string | null
           skill_level: string | null
           updated_at: string
           user_id: string
+          verified_rank: string | null
         }
         Insert: {
+          active_role?: string | null
           avatar_url?: string | null
+          ban_expires_at?: string | null
+          ban_reason?: string | null
+          ban_status?: string | null
           bio?: string | null
           city?: string | null
           club_id?: string | null
@@ -233,12 +293,20 @@ export type Database = {
           member_since?: string | null
           nickname?: string | null
           phone?: string | null
+          rank_verified_at?: string | null
+          rank_verified_by?: string | null
+          role?: string | null
           skill_level?: string | null
           updated_at?: string
           user_id: string
+          verified_rank?: string | null
         }
         Update: {
+          active_role?: string | null
           avatar_url?: string | null
+          ban_expires_at?: string | null
+          ban_reason?: string | null
+          ban_status?: string | null
           bio?: string | null
           city?: string | null
           club_id?: string | null
@@ -251,11 +319,195 @@ export type Database = {
           member_since?: string | null
           nickname?: string | null
           phone?: string | null
+          rank_verified_at?: string | null
+          rank_verified_by?: string | null
+          role?: string | null
           skill_level?: string | null
           updated_at?: string
           user_id?: string
+          verified_rank?: string | null
         }
         Relationships: []
+      }
+      rank_adjustments: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          club_id: string
+          club_notes: string | null
+          created_at: string
+          current_rank: string
+          id: string
+          match_history: string | null
+          player_id: string
+          reason: string
+          rejection_reason: string | null
+          requested_rank: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          club_id: string
+          club_notes?: string | null
+          created_at?: string
+          current_rank: string
+          id?: string
+          match_history?: string | null
+          player_id: string
+          reason: string
+          rejection_reason?: string | null
+          requested_rank: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          club_id?: string
+          club_notes?: string | null
+          created_at?: string
+          current_rank?: string
+          id?: string
+          match_history?: string | null
+          player_id?: string
+          reason?: string
+          rejection_reason?: string | null
+          requested_rank?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rank_adjustments_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "club_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rank_reports: {
+        Row: {
+          actual_skill_assessment: string | null
+          admin_notes: string | null
+          created_at: string
+          description: string | null
+          evidence_photos: string[] | null
+          id: string
+          match_id: string | null
+          report_type: string | null
+          reported_player_id: string
+          reported_rank: string | null
+          reporter_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual_skill_assessment?: string | null
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          evidence_photos?: string[] | null
+          id?: string
+          match_id?: string | null
+          report_type?: string | null
+          reported_player_id: string
+          reported_rank?: string | null
+          reporter_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual_skill_assessment?: string | null
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          evidence_photos?: string[] | null
+          id?: string
+          match_id?: string | null
+          report_type?: string | null
+          reported_player_id?: string
+          reported_rank?: string | null
+          reporter_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rank_reports_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rank_verifications: {
+        Row: {
+          club_id: string
+          club_notes: string | null
+          created_at: string
+          current_rank: string | null
+          id: string
+          player_id: string
+          proof_photos: string[] | null
+          rejection_reason: string | null
+          requested_rank: string
+          status: string | null
+          test_result: string | null
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          club_id: string
+          club_notes?: string | null
+          created_at?: string
+          current_rank?: string | null
+          id?: string
+          player_id: string
+          proof_photos?: string[] | null
+          rejection_reason?: string | null
+          requested_rank: string
+          status?: string | null
+          test_result?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          club_id?: string
+          club_notes?: string | null
+          created_at?: string
+          current_rank?: string | null
+          id?: string
+          player_id?: string
+          proof_photos?: string[] | null
+          rejection_reason?: string | null
+          requested_rank?: string
+          status?: string | null
+          test_result?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rank_verifications_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "club_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tournaments: {
         Row: {
