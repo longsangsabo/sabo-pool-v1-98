@@ -184,6 +184,59 @@ export type Database = {
         }
         Relationships: []
       }
+      club_stats: {
+        Row: {
+          active_members: number | null
+          avg_trust_score: number | null
+          club_id: string
+          created_at: string | null
+          id: string
+          month: number
+          peak_hours: Json | null
+          total_matches_hosted: number | null
+          total_revenue: number | null
+          updated_at: string | null
+          verified_members: number | null
+          year: number
+        }
+        Insert: {
+          active_members?: number | null
+          avg_trust_score?: number | null
+          club_id: string
+          created_at?: string | null
+          id?: string
+          month: number
+          peak_hours?: Json | null
+          total_matches_hosted?: number | null
+          total_revenue?: number | null
+          updated_at?: string | null
+          verified_members?: number | null
+          year: number
+        }
+        Update: {
+          active_members?: number | null
+          avg_trust_score?: number | null
+          club_id?: string
+          created_at?: string | null
+          id?: string
+          month?: number
+          peak_hours?: Json | null
+          total_matches_hosted?: number | null
+          total_revenue?: number | null
+          updated_at?: string | null
+          verified_members?: number | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_stats_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "club_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clubs: {
         Row: {
           address: string | null
@@ -211,6 +264,93 @@ export type Database = {
           status?: string | null
           updated_at?: string
           verified?: boolean | null
+        }
+        Relationships: []
+      }
+      favorite_opponents: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_played: string | null
+          losses: number | null
+          matches_count: number | null
+          opponent_id: string
+          player_id: string
+          updated_at: string | null
+          wins: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_played?: string | null
+          losses?: number | null
+          matches_count?: number | null
+          opponent_id: string
+          player_id: string
+          updated_at?: string | null
+          wins?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_played?: string | null
+          losses?: number | null
+          matches_count?: number | null
+          opponent_id?: string
+          player_id?: string
+          updated_at?: string | null
+          wins?: number | null
+        }
+        Relationships: []
+      }
+      leaderboards: {
+        Row: {
+          city: string | null
+          created_at: string | null
+          district: string | null
+          id: string
+          month: number
+          player_id: string
+          position: number | null
+          rank_category: string | null
+          ranking_points: number | null
+          total_matches: number | null
+          total_wins: number | null
+          updated_at: string | null
+          win_rate: number | null
+          year: number
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string | null
+          district?: string | null
+          id?: string
+          month: number
+          player_id: string
+          position?: number | null
+          rank_category?: string | null
+          ranking_points?: number | null
+          total_matches?: number | null
+          total_wins?: number | null
+          updated_at?: string | null
+          win_rate?: number | null
+          year: number
+        }
+        Update: {
+          city?: string | null
+          created_at?: string | null
+          district?: string | null
+          id?: string
+          month?: number
+          player_id?: string
+          position?: number | null
+          rank_category?: string | null
+          ranking_points?: number | null
+          total_matches?: number | null
+          total_wins?: number | null
+          updated_at?: string | null
+          win_rate?: number | null
+          year?: number
         }
         Relationships: []
       }
@@ -359,6 +499,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      player_stats: {
+        Row: {
+          created_at: string | null
+          current_streak: number | null
+          id: string
+          last_match_date: string | null
+          longest_streak: number | null
+          matches_lost: number | null
+          matches_played: number | null
+          matches_won: number | null
+          player_id: string
+          total_points_lost: number | null
+          total_points_won: number | null
+          updated_at: string | null
+          win_rate: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_streak?: number | null
+          id?: string
+          last_match_date?: string | null
+          longest_streak?: number | null
+          matches_lost?: number | null
+          matches_played?: number | null
+          matches_won?: number | null
+          player_id: string
+          total_points_lost?: number | null
+          total_points_won?: number | null
+          updated_at?: string | null
+          win_rate?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          current_streak?: number | null
+          id?: string
+          last_match_date?: string | null
+          longest_streak?: number | null
+          matches_lost?: number | null
+          matches_played?: number | null
+          matches_won?: number | null
+          player_id?: string
+          total_points_lost?: number | null
+          total_points_won?: number | null
+          updated_at?: string | null
+          win_rate?: number | null
+        }
+        Relationships: []
       }
       player_trust_scores: {
         Row: {
@@ -775,6 +963,10 @@ export type Database = {
         Returns: undefined
       }
       expire_old_challenges: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_monthly_leaderboard: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }

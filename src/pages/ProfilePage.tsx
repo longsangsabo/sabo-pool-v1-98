@@ -16,6 +16,7 @@ import RankVerificationForm from '@/components/RankVerificationForm';
 import RankVerificationRequests from '@/components/RankVerificationRequests';
 import PenaltyManagement from '@/components/PenaltyManagement';
 import MyChallengesTab from '@/components/MyChallengesTab';
+import PlayerStatsComponent from '@/components/PlayerStatsComponent';
 import TrustScoreBadge from '@/components/TrustScoreBadge';
 
 // Export types for other components
@@ -310,10 +311,10 @@ const ProfilePage = () => {
         <Tabs defaultValue="profile" className="w-full">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="profile">Hồ sơ</TabsTrigger>
+            <TabsTrigger value="stats">Thống kê</TabsTrigger>
             <TabsTrigger value="rank">Xác thực hạng</TabsTrigger>
             <TabsTrigger value="challenges">Thách đấu</TabsTrigger>
             <TabsTrigger value="penalties">Hình phạt</TabsTrigger>
-            <TabsTrigger value="club">Câu lạc bộ</TabsTrigger>
             {profile.role === 'club_owner' || profile.role === 'both' ? (
               <TabsTrigger value="requests">Yêu cầu xác thực</TabsTrigger>
             ) : (
