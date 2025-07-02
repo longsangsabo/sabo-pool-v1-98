@@ -4,11 +4,67 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import EnhancedLeaderboard from '@/components/EnhancedLeaderboard';
+import { EnhancedLeaderboard } from '@/components/EnhancedLeaderboard';
 import ClubStatsDashboard from '@/components/ClubStatsDashboard';
 import { TrendingUp, Building2, Users } from 'lucide-react';
 
 const LeaderboardPage = () => {
+  // Mock data for now - in real implementation, this would come from useLeaderboard hook
+  const mockPlayers = [
+    {
+      id: '1',
+      user_id: '1',
+      username: 'Player 1',
+      current_rating: 2400,
+      matches_played: 120,
+      matches_won: 85,
+      matches_lost: 35,
+      wins: 85,
+      losses: 35,
+      draws: 0,
+      win_rate: 70.8,
+      current_streak: 5,
+      longest_streak: 12,
+      recent_form: 65,
+      consistency_score: 78,
+      rating_volatility: 45,
+      club_name: 'Elite Billiards Club',
+      peak_rating: 2450,
+      volatility: 45,
+      prediction_accuracy: 85,
+      total_games: 120,
+      best_streak: 12,
+      elo_rating: 2400,
+      rank: 'G+'
+    },
+    {
+      id: '2',
+      user_id: '2', 
+      username: 'Player 2',
+      current_rating: 2200,
+      matches_played: 98,
+      matches_won: 62,
+      matches_lost: 36,
+      wins: 62,
+      losses: 36,
+      draws: 0,
+      win_rate: 63.3,
+      current_streak: 2,
+      longest_streak: 8,
+      recent_form: 42,
+      consistency_score: 65,
+      rating_volatility: 55,
+      club_name: 'Pro Pool Arena',
+      peak_rating: 2250,
+      volatility: 55,
+      prediction_accuracy: 72,
+      total_games: 98,
+      best_streak: 8,
+      elo_rating: 2200,
+      rank: 'A+'
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
@@ -40,7 +96,7 @@ const LeaderboardPage = () => {
           </TabsList>
 
           <TabsContent value="leaderboard">
-            <EnhancedLeaderboard />
+            <EnhancedLeaderboard players={mockPlayers} />
           </TabsContent>
 
           <TabsContent value="club-stats">
