@@ -17,9 +17,11 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import NotificationCenter from './NotificationCenter';
+import { useCheckIn } from '@/hooks/useCheckIn';
 
 const Header = () => {
   const { user, signOut } = useAuth();
+  const { userStreak, hasCheckedInToday, performCheckIn, isCheckingIn } = useCheckIn();
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -125,6 +127,38 @@ const Header = () => {
 
           {/* User Menu or Auth Buttons */}
           <div className='flex items-center space-x-4'>
+            {user && (
+              <Button
+                onClick={performCheckIn}
+                disabled={hasCheckedInToday || isCheckingIn}
+                size="sm"
+                className={`${
+                  hasCheckedInToday 
+                    ? 'bg-green-100 text-green-800 border-green-200' 
+                    : 'bg-primary hover:bg-primary/90'
+                } transition-all duration-200 ${isCheckingIn ? 'animate-pulse' : ''}`}
+              >
+                {hasCheckedInToday ? (
+                  <>
+                    ✓ Đã check-in
+                    {userStreak && (
+                      <span className="ml-2 text-xs">
+                        🔥 {userStreak.current_streak} ngày
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {isCheckingIn ? 'Đang check-in...' : 'Check-in hôm nay'}
+                    {userStreak && userStreak.current_streak > 0 && (
+                      <span className="ml-2 text-xs">
+                        🔥 {userStreak.current_streak} ngày
+                      </span>
+                    )}
+                  </>
+                )}
+              </Button>
+            )}
             {user && <NotificationCenter />}
             {user ? (
               <div className='relative' ref={userMenuRef}>

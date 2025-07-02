@@ -73,6 +73,7 @@ import TournamentDiscoveryPage from "./pages/TournamentDiscoveryPage";
 import TournamentsPage from "./pages/TournamentsPage";
 import WalletPage from "./pages/WalletPage";
 import SiteMapPage from "./pages/SiteMapPage";
+import PracticeFinderPage from "./pages/PracticeFinderPage";
 
 // Simple loading fallback
 const LoadingFallback = () => (
@@ -177,6 +178,7 @@ const App = () => {
                         {/* Test page */}
                         <Route path="test" element={<TestPage />} />
                         <Route path="sitemap" element={<SiteMapPage />} />
+                        <Route path="practice" element={<AuthWrapper><PracticeFinderPage /></AuthWrapper>} />
                       </Route>
                       
                       {/* Auth routes - standalone without layout */}

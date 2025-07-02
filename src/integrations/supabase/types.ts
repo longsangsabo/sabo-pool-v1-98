@@ -1210,6 +1210,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_streaks: {
+        Row: {
+          created_at: string | null
+          current_streak: number | null
+          id: string
+          last_checkin_date: string | null
+          longest_streak: number | null
+          total_points: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_streak?: number | null
+          id?: string
+          last_checkin_date?: string | null
+          longest_streak?: number | null
+          total_points?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_streak?: number | null
+          id?: string
+          last_checkin_date?: string | null
+          longest_streak?: number | null
+          total_points?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1234,6 +1267,10 @@ export type Database = {
           notification_priority?: string
         }
         Returns: string
+      }
+      daily_checkin: {
+        Args: { user_uuid: string }
+        Returns: Json
       }
       expire_old_challenges: {
         Args: Record<PropertyKey, never>
