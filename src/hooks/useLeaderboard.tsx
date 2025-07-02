@@ -77,57 +77,85 @@ export const useLeaderboard = () => {
     setError('');
 
     try {
-      // Mock leaderboard data since profiles table doesn't have required fields
-      const mockLeaderboard: LeaderboardEntry[] = [
-        {
-          id: '1',
-          username: 'ProPlayer1',
-          full_name: 'Nguyễn Văn A',
-          current_rank: 'A+',
-          ranking_points: 1500,
-          total_matches: 45,
-          avatar_url: '',
-          elo: 1600,
-          wins: 35,
-          losses: 10,
-          matches_played: 45,
-          win_rate: 77.8,
-          rank: 1,
-          last_played: new Date().toISOString(),
-          streak: 5,
-          country: 'Vietnam',
-          city: 'Ho Chi Minh',
-          location: 'Ho Chi Minh City',
-          bio: 'Professional pool player',
-          user_id: 'user1',
-        },
-        {
-          id: '2',
-          username: 'PoolMaster',
-          full_name: 'Trần Văn B',
-          current_rank: 'A',
-          ranking_points: 1400,
-          total_matches: 38,
-          avatar_url: '',
-          elo: 1500,
-          wins: 28,
-          losses: 10,
-          matches_played: 38,
-          win_rate: 73.7,
-          rank: 2,
-          last_played: new Date().toISOString(),
-          streak: 3,
-          country: 'Vietnam',
-          city: 'Hanoi',
-          location: 'Hanoi',
-          bio: 'Pool enthusiast',
-          user_id: 'user2',
-        },
-      ];
+      // Build query for leaderboard data from our database tables
+      let query = supabase
+        .from('leaderboards')
+        .select(`
+          *,
+          profiles!inner(
+            user_id,
+            full_name,
+            display_name,
+            avatar_url,
+            city,
+            district,
+            verified_rank,
+            bio
+          ),
+          player_stats!inner(
+            matches_played,
+            matches_won,
+            matches_lost,
+            win_rate,
+            current_streak,
+            longest_streak,
+            last_match_date
+          )
+        `);
 
-      setLeaderboard(mockLeaderboard);
-      setTotalCount(mockLeaderboard.length);
+      // Apply filters
+      if (currentFilters.city) {
+        query = query.eq('city', currentFilters.city);
+      }
+      
+      if (currentFilters.searchTerm) {
+        query = query.or(`profiles.full_name.ilike.%${currentFilters.searchTerm}%,profiles.display_name.ilike.%${currentFilters.searchTerm}%`);
+      }
+
+      // Apply sorting
+      const sortColumn = currentFilters.sortBy === 'elo' ? 'ranking_points' : 
+                        currentFilters.sortBy === 'wins' ? 'total_wins' :
+                        currentFilters.sortBy === 'win_rate' ? 'win_rate' : 'total_matches';
+      
+      query = query.order(sortColumn, { ascending: currentFilters.sortOrder === 'asc' });
+
+      // Apply pagination
+      const from = (currentFilters.page - 1) * currentFilters.pageSize;
+      const to = from + currentFilters.pageSize - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
+
+      if (error) throw error;
+
+      // Transform data to match LeaderboardEntry interface
+      const transformedData: LeaderboardEntry[] = (data || []).map((item: any, index: number) => ({
+        id: item.id,
+        username: item.profiles?.display_name || item.profiles?.full_name || 'Unknown',
+        full_name: item.profiles?.full_name || '',
+        current_rank: item.rank_category || 'Unranked',
+        ranking_points: item.ranking_points || 0,
+        total_matches: item.total_matches || 0,
+        avatar_url: item.profiles?.avatar_url || '',
+        elo: item.ranking_points || 1000, // Use ranking_points as elo equivalent
+        wins: item.total_wins || 0,
+        losses: (item.total_matches || 0) - (item.total_wins || 0),
+        matches_played: item.total_matches || 0,
+        win_rate: item.win_rate || 0,
+        rank: from + index + 1,
+        last_played: item.player_stats?.last_match_date || new Date().toISOString(),
+        streak: item.player_stats?.current_streak || 0,
+        country: 'Vietnam',
+        city: item.city || '',
+        location: `${item.city || ''}, ${item.district || ''}`.trim().replace(/^,|,$/, ''),
+        bio: item.profiles?.bio || '',
+        user_id: item.player_id,
+      }));
+
+      setLeaderboard(transformedData);
+      setTotalCount(count || 0);
     } catch (err) {
+      console.error('Leaderboard fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch leaderboard');
       setLeaderboard([]);
       setTotalCount(0);
@@ -138,16 +166,37 @@ export const useLeaderboard = () => {
 
   const fetchLeaderboardStats = async () => {
     try {
-      // Mock implementation
-      const mockStats: LeaderboardStats = {
-        totalPlayers: 1500,
-        averageElo: 1450,
-        highestElo: 2500,
-        lowestElo: 800,
-        activePlayers: 875,
+      // Get current month/year
+      const currentMonth = new Date().getMonth() + 1;
+      const currentYear = new Date().getFullYear();
+
+      // Get total players from profiles
+      const { count: totalPlayers } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+
+      // Get stats from current month leaderboard
+      const { data: leaderboardData } = await supabase
+        .from('leaderboards')
+        .select('ranking_points')
+        .eq('month', currentMonth)
+        .eq('year', currentYear);
+
+      const rankingPoints = leaderboardData?.map(item => item.ranking_points || 0) || [];
+      
+      const calculatedStats: LeaderboardStats = {
+        totalPlayers: totalPlayers || 0,
+        averageElo: rankingPoints.length > 0 
+          ? rankingPoints.reduce((sum, points) => sum + points, 0) / rankingPoints.length 
+          : 1500,
+        highestElo: rankingPoints.length > 0 ? Math.max(...rankingPoints) : 2500,
+        lowestElo: rankingPoints.length > 0 ? Math.min(...rankingPoints) : 800,
+        activePlayers: leaderboardData?.length || 0,
       };
-      setStats(mockStats);
+      
+      setStats(calculatedStats);
     } catch (err) {
+      console.error('Leaderboard stats error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch leaderboard stats');
       setStats(initialStats);
     }

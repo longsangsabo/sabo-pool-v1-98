@@ -6,64 +6,41 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { EnhancedLeaderboard } from '@/components/EnhancedLeaderboard';
 import ClubStatsDashboard from '@/components/ClubStatsDashboard';
+import { useLeaderboard } from '@/hooks/useLeaderboard';
+import { useSystemStats } from '@/hooks/useSystemStats';
 import { TrendingUp, Building2, Users } from 'lucide-react';
 
 const LeaderboardPage = () => {
-  // Mock data for now - in real implementation, this would come from useLeaderboard hook
-  const mockPlayers = [
-    {
-      id: '1',
-      user_id: '1',
-      username: 'Player 1',
-      current_rating: 2400,
-      matches_played: 120,
-      matches_won: 85,
-      matches_lost: 35,
-      wins: 85,
-      losses: 35,
-      draws: 0,
-      win_rate: 70.8,
-      current_streak: 5,
-      longest_streak: 12,
-      recent_form: 65,
-      consistency_score: 78,
-      rating_volatility: 45,
-      club_name: 'Elite Billiards Club',
-      peak_rating: 2450,
-      volatility: 45,
-      prediction_accuracy: 85,
-      total_games: 120,
-      best_streak: 12,
-      elo_rating: 2400,
-      rank: 'G+'
-    },
-    {
-      id: '2',
-      user_id: '2', 
-      username: 'Player 2',
-      current_rating: 2200,
-      matches_played: 98,
-      matches_won: 62,
-      matches_lost: 36,
-      wins: 62,
-      losses: 36,
-      draws: 0,
-      win_rate: 63.3,
-      current_streak: 2,
-      longest_streak: 8,
-      recent_form: 42,
-      consistency_score: 65,
-      rating_volatility: 55,
-      club_name: 'Pro Pool Arena',
-      peak_rating: 2250,
-      volatility: 55,
-      prediction_accuracy: 72,
-      total_games: 98,
-      best_streak: 8,
-      elo_rating: 2200,
-      rank: 'A+'
-    }
-  ];
+  const { leaderboard, loading, error } = useLeaderboard();
+  const systemStats = useSystemStats();
+
+  // Transform leaderboard data to match EnhancedLeaderboard interface
+  const transformedPlayers = leaderboard.map(player => ({
+    id: player.id,
+    user_id: player.user_id,
+    username: player.username,
+    current_rating: player.elo,
+    matches_played: player.matches_played,
+    matches_won: player.wins,
+    matches_lost: player.losses,
+    wins: player.wins,
+    losses: player.losses,
+    draws: 0,
+    win_rate: player.win_rate,
+    current_streak: player.streak,
+    longest_streak: player.streak, // We'll use current streak for now
+    recent_form: Math.random() * 100 - 50, // Mock data for form
+    consistency_score: 50 + Math.random() * 40, // Mock data
+    rating_volatility: Math.random() * 100, // Mock data
+    club_name: '', // This would come from club data
+    peak_rating: player.elo + Math.floor(Math.random() * 100),
+    volatility: Math.random() * 100,
+    prediction_accuracy: 70 + Math.random() * 25,
+    total_games: player.matches_played,
+    best_streak: player.streak,
+    elo_rating: player.elo,
+    rank: player.current_rank
+  }));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -96,7 +73,15 @@ const LeaderboardPage = () => {
           </TabsList>
 
           <TabsContent value="leaderboard">
-            <EnhancedLeaderboard players={mockPlayers} />
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8 text-red-600">{error}</div>
+            ) : (
+              <EnhancedLeaderboard players={transformedPlayers} />
+            )}
           </TabsContent>
 
           <TabsContent value="club-stats">
@@ -109,20 +94,40 @@ const LeaderboardPage = () => {
                 <CardTitle>Thống kê tổng quan hệ thống</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-blue-600">1,247</div>
-                    <div className="text-gray-600">Người chơi tích cực</div>
+                {systemStats.loading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-green-600">3,892</div>
-                    <div className="text-gray-600">Trận đấu tháng này</div>
+                ) : systemStats.error ? (
+                  <div className="text-center py-8 text-red-600">{systemStats.error}</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="text-3xl font-bold text-blue-600">
+                        {systemStats.activePlayers.toLocaleString()}
+                      </div>
+                      <div className="text-gray-600">Người chơi tích cực</div>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="text-3xl font-bold text-green-600">
+                        {systemStats.totalMatches.toLocaleString()}
+                      </div>
+                      <div className="text-gray-600">Trận đấu tháng này</div>
+                    </div>
+                    <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <div className="text-3xl font-bold text-purple-600">
+                        {systemStats.totalClubs.toLocaleString()}
+                      </div>
+                      <div className="text-gray-600">Câu lạc bộ</div>
+                    </div>
+                    <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                      <div className="text-3xl font-bold text-yellow-600">
+                        {systemStats.avgTrustScore.toFixed(1)}%
+                      </div>
+                      <div className="text-gray-600">Điểm tin cậy trung bình</div>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-purple-600">156</div>
-                    <div className="text-gray-600">Câu lạc bộ</div>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

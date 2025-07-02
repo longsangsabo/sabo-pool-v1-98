@@ -449,6 +449,10 @@ const ProfilePage = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="stats">
+            <PlayerStatsComponent />
+          </TabsContent>
+
           <TabsContent value="rank">
             <RankVerificationForm />
           </TabsContent>
