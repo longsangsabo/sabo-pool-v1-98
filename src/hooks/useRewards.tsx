@@ -85,10 +85,11 @@ export const useRewards = () => {
       queryClient.invalidateQueries({ queryKey: ['reward-redemptions'] });
       queryClient.invalidateQueries({ queryKey: ['user-streak'] });
       
-      if (result.success) {
-        toast.success(result.message);
+      const resultData = result as any;
+      if (resultData?.success) {
+        toast.success(resultData.message);
       } else {
-        toast.error(result.message);
+        toast.error(resultData?.message || 'Có lỗi xảy ra');
       }
     },
     onError: (error) => {

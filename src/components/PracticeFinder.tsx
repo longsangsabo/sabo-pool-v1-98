@@ -42,7 +42,7 @@ const PracticeFinder = () => {
   };
 
   // Filter players based on selected criteria
-  const filteredPlayers = availablePlayers.filter((player: EnhancedPlayer) => {
+  const filteredPlayers = (availablePlayers as any[]).filter((player: any) => {
     if (selectedRank !== 'all' && player.profiles?.verified_rank !== selectedRank) {
       return false;
     }
@@ -151,7 +151,7 @@ const PracticeFinder = () => {
           </div>
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto">
-            {filteredPlayers.map((player: EnhancedPlayer) => {
+            {filteredPlayers.map((player: any) => {
               const profile = player.profiles;
               const getStatusDisplay = (status: string) => {
                 switch (status) {

@@ -60,7 +60,7 @@ export const usePlayerAvailability = () => {
         .from('player_availability')
         .select(`
           *,
-          profiles:user_id (
+          profiles!player_availability_user_id_fkey (
             user_id,
             full_name,
             avatar_url,
