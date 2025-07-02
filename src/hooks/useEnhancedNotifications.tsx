@@ -10,30 +10,13 @@ interface EnhancedNotification {
   title: string;
   message: string;
   type: string;
-  data?: any;
-  read_at?: string;
+  metadata?: any;
+  is_read: boolean;
   action_url?: string;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   expires_at?: string;
   created_at: string;
-  challenge?: {
-    id: string;
-    bet_points: number;
-    message?: string;
-    status: string;
-    challenger: {
-      user_id: string;
-      full_name: string;
-      avatar_url?: string;
-      current_rank: string;
-    };
-    challenged: {
-      user_id: string;
-      full_name: string;
-      avatar_url?: string;
-      current_rank: string;
-    };
-  };
+  updated_at: string;
 }
 
 export const useEnhancedNotifications = () => {
@@ -41,89 +24,92 @@ export const useEnhancedNotifications = () => {
   const queryClient = useQueryClient();
   const [isConnected, setIsConnected] = useState(false);
 
-  // Use mock notifications since notifications table doesn't exist
+  // Fetch notifications from database
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['enhanced-notifications', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // Mock notifications data
-      const mockNotifications = [
-        {
-          id: '1',
-          user_id: user.id,
-          title: 'Thách đấu mới',
-          message: 'Bạn có một thách đấu mới từ Nguyễn Văn A',
-          type: 'challenge',
-          read_at: null,
-          action_url: null,
-          priority: 'high' as const,
-          expires_at: null,
-          created_at: new Date().toISOString(),
-          challenge: {
-            id: '1',
-            bet_points: 300,
-            message: 'Thách đấu race to 8',
-            status: 'pending',
-            challenger: {
-              user_id: '1',
-              full_name: 'Nguyễn Văn A',
-              avatar_url: null,
-              current_rank: 'A1',
-            },
-            challenged: {
-              user_id: user.id,
-              full_name: 'Bạn',
-              avatar_url: null,
-              current_rank: 'A2',
-            },
-          },
-        },
-        {
-          id: '2',
-          user_id: user.id,
-          title: 'Giải đấu mới',
-          message: 'Giải đấu tháng 7 đã mở đăng ký',
-          type: 'tournament',
-          read_at: null,
-          action_url: null,
-          priority: 'normal' as const,
-          expires_at: null,
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-          challenge: null,
-        },
-      ];
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      return mockNotifications;
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        return [];
+      }
+
+      return data || [];
     },
     enabled: !!user,
     refetchInterval: 30000,
     staleTime: 10000,
   });
 
-  const unreadCount = notifications.filter(n => !n.read_at).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  // Simplified real-time subscription (the main one is in useRealtimeSubscriptions)
+  // Real-time subscription for notifications
   useEffect(() => {
     if (!user?.id) return;
 
-    // Simple connection status check
-    const channel = supabase.channel('notification-status-check');
+    const channel = supabase
+      .channel('user-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        payload => {
+          const notification = payload.new;
+          
+          // Show toast notification
+          toast.info(notification.title, {
+            description: notification.message,
+            duration: 5000,
+          });
 
-    channel.subscribe(status => {
-      setIsConnected(status === 'SUBSCRIBED');
-    });
+          // Refresh notifications
+          queryClient.invalidateQueries({ queryKey: ['enhanced-notifications'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          // Refresh notifications on update
+          queryClient.invalidateQueries({ queryKey: ['enhanced-notifications'] });
+        }
+      )
+      .subscribe(status => {
+        setIsConnected(status === 'SUBSCRIBED');
+      });
 
     return () => {
       supabase.removeChannel(channel);
       setIsConnected(false);
     };
-  }, [user]);
+  }, [user, queryClient]);
 
   const markAsRead = useMutation({
     mutationFn: async (notificationId: string) => {
-      // Mock mark as read since notifications table doesn't exist
-      console.log('Mock mark notification as read:', notificationId);
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['enhanced-notifications'] });
@@ -132,8 +118,15 @@ export const useEnhancedNotifications = () => {
 
   const markAllAsRead = useMutation({
     mutationFn: async () => {
-      // Mock mark all as read since notifications table doesn't exist
-      console.log('Mock mark all notifications as read for user:', user?.id);
+      if (!user?.id) return;
+
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['enhanced-notifications'] });

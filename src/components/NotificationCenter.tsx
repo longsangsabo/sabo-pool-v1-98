@@ -10,14 +10,12 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useEnhancedNotifications } from '@/hooks/useEnhancedNotifications';
 
 const NotificationCenter = () => {
-  const { notifications, loading, error, markAsRead, markAllAsRead, getUnreadCount } =
-    useNotifications();
+  const { notifications, isLoading, markAsRead, markAllAsRead, unreadCount } =
+    useEnhancedNotifications();
   const [isOpen, setIsOpen] = useState(false);
-  
-  const unreadCount = getUnreadCount();
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -69,7 +67,7 @@ const NotificationCenter = () => {
                   <Button
                     variant='ghost'
                     size='sm'
-                    onClick={() => markAllAsRead()}
+                    onClick={() => markAllAsRead.mutate()}
                     className='text-xs'
                   >
                     <CheckCheck className='h-3 w-3 mr-1' />
@@ -100,13 +98,13 @@ const NotificationCenter = () => {
                     <div
                       key={notification.id}
                       className={`p-4 hover:bg-gray-50 transition-colors ${
-                        !notification.read_at ? 'bg-blue-50' : ''
+                        !notification.is_read ? 'bg-blue-50' : ''
                       }`}
                     >
                       <div className='flex items-start gap-3'>
                         <div
                           className={`w-2 h-2 rounded-full mt-2 ${
-                            !notification.read_at
+                            !notification.is_read
                               ? 'bg-blue-500'
                               : 'bg-gray-300'
                           }`}
@@ -116,12 +114,12 @@ const NotificationCenter = () => {
                             <h4 className='font-medium text-sm leading-tight'>
                               {notification.title}
                             </h4>
-                            {!notification.read_at && (
+                            {!notification.is_read && (
                               <Button
                                 variant='ghost'
                                 size='icon'
                                 onClick={() =>
-                                  markAsRead(notification.id)
+                                  markAsRead.mutate(notification.id)
                                 }
                                 className='h-6 w-6 shrink-0'
                               >
@@ -164,6 +162,20 @@ const NotificationCenter = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+              {notifications.length > 0 && (
+                <div className='p-3 border-t text-center'>
+                  <Button 
+                    variant='link' 
+                    size='sm'
+                    onClick={() => {
+                      window.location.href = '/notifications';
+                      setIsOpen(false);
+                    }}
+                  >
+                    Xem tất cả thông báo →
+                  </Button>
                 </div>
               )}
             </ScrollArea>

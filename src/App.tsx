@@ -50,6 +50,7 @@ import FeedPage from "./pages/FeedPage";
 import HelpPage from "./pages/HelpPage";
 import Index from "./pages/Index";
 import LeaderboardPage from "./pages/LeaderboardPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import LiveStreamPage from "./pages/LiveStreamPage";
 import MarketplacePage from "./pages/MarketplacePage";
 import MatchHistoryPage from "./pages/MatchHistoryPage";
@@ -158,6 +159,7 @@ const App = () => {
                         <Route path="chat" element={<ChatPage />} />
                         <Route path="matches" element={<MatchHistoryPage />} />
                         <Route path="live-stream" element={<LiveStreamPage />} />
+                        <Route path="notifications" element={<AuthWrapper><NotificationsPage /></AuthWrapper>} />
                         
                         {/* Information pages */}
                         <Route path="about" element={<AboutPage />} />

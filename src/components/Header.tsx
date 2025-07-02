@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import NotificationCenter from './NotificationCenter';
 
 const Header = () => {
   const { user, signOut } = useAuth();
@@ -124,6 +125,7 @@ const Header = () => {
 
           {/* User Menu or Auth Buttons */}
           <div className='flex items-center space-x-4'>
+            {user && <NotificationCenter />}
             {user ? (
               <div className='relative' ref={userMenuRef}>
                 <button
