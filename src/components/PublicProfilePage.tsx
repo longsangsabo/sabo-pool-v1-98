@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { MapPin, Calendar, Trophy, User, MessageCircle, UserPlus, UserMinus } from 'lucide-react';
+import { MapPin, Calendar, Trophy, User, MessageCircle, UserPlus } from 'lucide-react';
 import TrustScoreBadge from '@/components/TrustScoreBadge';
 
 interface PublicProfile {
@@ -28,9 +28,6 @@ const PublicProfilePage = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followersCount, setFollowersCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
 
   const skillLevels = {
     beginner: { label: 'Người mới', color: 'bg-green-100 text-green-800' },
@@ -42,10 +39,8 @@ const PublicProfilePage = () => {
   useEffect(() => {
     if (userId) {
       fetchProfile();
-      checkFollowStatus();
-      fetchFollowCounts();
     }
-  }, [userId, user]);
+  }, [userId]);
 
   const fetchProfile = async () => {
     if (!userId) return;
@@ -59,7 +54,10 @@ const PublicProfilePage = () => {
 
       if (error) throw error;
 
-      setProfile(data);
+      setProfile({
+        ...data,
+        skill_level: (data.skill_level || 'beginner') as 'beginner' | 'intermediate' | 'advanced' | 'pro'
+      });
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast.error('Không thể tải hồ sơ');
@@ -68,81 +66,12 @@ const PublicProfilePage = () => {
     }
   };
 
-  const checkFollowStatus = async () => {
-    if (!user || !userId || user.id === userId) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('user_follows')
-        .select('id')
-        .eq('follower_id', user.id)
-        .eq('following_id', userId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      setIsFollowing(!!data);
-    } catch (error) {
-      console.error('Error checking follow status:', error);
-    }
+  const handleFollowClick = () => {
+    toast.info('Tính năng theo dõi sẽ được cập nhật sớm');
   };
 
-  const fetchFollowCounts = async () => {
-    if (!userId) return;
-
-    try {
-      const [followersResult, followingResult] = await Promise.all([
-        supabase
-          .from('user_follows')
-          .select('id', { count: 'exact' })
-          .eq('following_id', userId),
-        supabase
-          .from('user_follows')
-          .select('id', { count: 'exact' })
-          .eq('follower_id', userId)
-      ]);
-
-      setFollowersCount(followersResult.count || 0);
-      setFollowingCount(followingResult.count || 0);
-    } catch (error) {
-      console.error('Error fetching follow counts:', error);
-    }
-  };
-
-  const handleFollow = async () => {
-    if (!user || !userId) {
-      toast.error('Vui lòng đăng nhập');
-      return;
-    }
-
-    try {
-      if (isFollowing) {
-        const { error } = await supabase
-          .from('user_follows')
-          .delete()
-          .eq('follower_id', user.id)
-          .eq('following_id', userId);
-
-        if (error) throw error;
-        setIsFollowing(false);
-        setFollowersCount(prev => prev - 1);
-        toast.success('Đã bỏ theo dõi');
-      } else {
-        const { error } = await supabase
-          .from('user_follows')
-          .insert({
-            follower_id: user.id,
-            following_id: userId
-          });
-
-        if (error) throw error;
-        setIsFollowing(true);
-        setFollowersCount(prev => prev + 1);
-        toast.success('Đã theo dõi');
-      }
-    } catch (error: any) {
-      console.error('Error toggling follow:', error);
-      toast.error('Lỗi: ' + error.message);
-    }
+  const handleMessageClick = () => {
+    toast.info('Tính năng nhắn tin sẽ được cập nhật sớm');
   };
 
   if (loading) {
@@ -223,36 +152,24 @@ const PublicProfilePage = () => {
                     Tham gia {new Date(profile.member_since).toLocaleDateString('vi-VN')}
                   </p>
                 )}
-
-                {/* Follow Stats */}
-                <div className="flex items-center justify-center space-x-4 mt-3 text-sm text-gray-600">
-                  <span>{followersCount} người theo dõi</span>
-                  <span>•</span>
-                  <span>{followingCount} đang theo dõi</span>
-                </div>
               </div>
 
               {/* Action Buttons */}
               {!isOwnProfile && user && (
                 <div className="flex space-x-2">
                   <Button
-                    onClick={handleFollow}
-                    variant={isFollowing ? "outline" : "default"}
+                    onClick={handleFollowClick}
+                    variant="default"
                     size="sm"
                   >
-                    {isFollowing ? (
-                      <>
-                        <UserMinus className="w-4 h-4 mr-1" />
-                        Bỏ theo dõi
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus className="w-4 h-4 mr-1" />
-                        Theo dõi
-                      </>
-                    )}
+                    <UserPlus className="w-4 h-4 mr-1" />
+                    Theo dõi
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleMessageClick}
+                  >
                     <MessageCircle className="w-4 h-4 mr-1" />
                     Nhắn tin
                   </Button>
