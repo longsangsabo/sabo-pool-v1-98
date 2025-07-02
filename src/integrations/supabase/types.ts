@@ -62,6 +62,59 @@ export type Database = {
           },
         ]
       }
+      club_accountability: {
+        Row: {
+          accuracy_percentage: number | null
+          club_id: string
+          created_at: string
+          false_verification_reports: number | null
+          id: string
+          last_calculated_at: string | null
+          restriction_end_date: string | null
+          restriction_start_date: string | null
+          restriction_status: string | null
+          total_verifications: number | null
+          updated_at: string
+          warning_count: number | null
+        }
+        Insert: {
+          accuracy_percentage?: number | null
+          club_id: string
+          created_at?: string
+          false_verification_reports?: number | null
+          id?: string
+          last_calculated_at?: string | null
+          restriction_end_date?: string | null
+          restriction_start_date?: string | null
+          restriction_status?: string | null
+          total_verifications?: number | null
+          updated_at?: string
+          warning_count?: number | null
+        }
+        Update: {
+          accuracy_percentage?: number | null
+          club_id?: string
+          created_at?: string
+          false_verification_reports?: number | null
+          id?: string
+          last_calculated_at?: string | null
+          restriction_end_date?: string | null
+          restriction_start_date?: string | null
+          restriction_status?: string | null
+          total_verifications?: number | null
+          updated_at?: string
+          warning_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_accountability_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: true
+            referencedRelation: "club_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       club_profiles: {
         Row: {
           address: string
@@ -139,6 +192,44 @@ export type Database = {
           verified?: boolean | null
         }
         Relationships: []
+      }
+      match_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          match_id: string
+          rated_player_id: string
+          rater_id: string
+          skill_assessment: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          match_id: string
+          rated_player_id: string
+          rater_id: string
+          skill_assessment: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          match_id?: string
+          rated_player_id?: string
+          rater_id?: string
+          skill_assessment?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_ratings_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       matches: {
         Row: {
@@ -247,6 +338,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      player_trust_scores: {
+        Row: {
+          created_at: string
+          flag_status: string | null
+          id: string
+          last_calculated_at: string | null
+          negative_reports_count: number | null
+          player_id: string
+          positive_ratings: number | null
+          total_ratings: number | null
+          trust_percentage: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          flag_status?: string | null
+          id?: string
+          last_calculated_at?: string | null
+          negative_reports_count?: number | null
+          player_id: string
+          positive_ratings?: number | null
+          total_ratings?: number | null
+          trust_percentage?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          flag_status?: string | null
+          id?: string
+          last_calculated_at?: string | null
+          negative_reports_count?: number | null
+          player_id?: string
+          positive_ratings?: number | null
+          total_ratings?: number | null
+          trust_percentage?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -553,12 +683,76 @@ export type Database = {
           },
         ]
       }
+      user_penalties: {
+        Row: {
+          appeal_date: string | null
+          appeal_decision: string | null
+          appeal_decision_date: string | null
+          appeal_reason: string | null
+          appeal_reviewed_by: string | null
+          created_at: string
+          end_date: string | null
+          id: string
+          issued_by: string | null
+          penalty_type: string
+          reason: string
+          severity: string
+          start_date: string
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appeal_date?: string | null
+          appeal_decision?: string | null
+          appeal_decision_date?: string | null
+          appeal_reason?: string | null
+          appeal_reviewed_by?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          issued_by?: string | null
+          penalty_type: string
+          reason: string
+          severity: string
+          start_date?: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appeal_date?: string | null
+          appeal_decision?: string | null
+          appeal_decision_date?: string | null
+          appeal_reason?: string | null
+          appeal_reviewed_by?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          issued_by?: string | null
+          penalty_type?: string
+          reason?: string
+          severity?: string
+          start_date?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      apply_automatic_penalty: {
+        Args: { player_uuid: string }
+        Returns: undefined
+      }
+      calculate_trust_score: {
+        Args: { player_uuid: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

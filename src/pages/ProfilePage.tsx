@@ -14,6 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ClubRegistrationForm from '@/components/ClubRegistrationForm';
 import RankVerificationForm from '@/components/RankVerificationForm';
 import RankVerificationRequests from '@/components/RankVerificationRequests';
+import PenaltyManagement from '@/components/PenaltyManagement';
+import TrustScoreBadge from '@/components/TrustScoreBadge';
 
 // Export types for other components
 export interface UserProfile {
@@ -72,6 +74,7 @@ export interface ProfilePost {
 }
 
 interface ProfileData {
+  user_id: string;
   display_name: string;
   phone: string;
   bio: string;
@@ -88,6 +91,7 @@ interface ProfileData {
 const ProfilePage = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<ProfileData>({
+    user_id: '',
     display_name: '',
     phone: '',
     bio: '',
@@ -131,6 +135,7 @@ const ProfilePage = () => {
 
       if (data) {
         setProfile({
+          user_id: data.user_id || user.id,
           display_name: data.display_name || data.full_name || '',
           phone: data.phone || user.phone || '',
           bio: data.bio || '',
@@ -274,12 +279,16 @@ const ProfilePage = () => {
                     <Trophy className="w-3 h-3 mr-1" />
                     {skillLevels[profile.skill_level].label}
                   </Badge>
-                  {profile.verified_rank && (
-                    <Badge className="bg-blue-100 text-blue-800">
-                      <Trophy className="w-3 h-3 mr-1" />
-                      Hạng đã xác thực: {profile.verified_rank}
-                    </Badge>
-                  )}
+                   {profile.verified_rank && (
+                     <Badge className="bg-blue-100 text-blue-800">
+                       <Trophy className="w-3 h-3 mr-1" />
+                       Hạng đã xác thực: {profile.verified_rank}
+                     </Badge>
+                   )}
+                   <TrustScoreBadge 
+                     playerId={profile.user_id}
+                     showFullDetails={true}
+                   />
                 </div>
                 {profile.member_since && (
                   <p className="text-sm text-gray-500 mt-2 flex items-center justify-center">
@@ -298,9 +307,10 @@ const ProfilePage = () => {
 
         {/* Profile Tabs */}
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="profile">Hồ sơ</TabsTrigger>
             <TabsTrigger value="rank">Xác thực hạng</TabsTrigger>
+            <TabsTrigger value="penalties">Hình phạt</TabsTrigger>
             <TabsTrigger value="club">Câu lạc bộ</TabsTrigger>
             {profile.role === 'club_owner' || profile.role === 'both' ? (
               <TabsTrigger value="requests">Yêu cầu xác thực</TabsTrigger>
@@ -442,6 +452,10 @@ const ProfilePage = () => {
 
           <TabsContent value="club">
             <ClubRegistrationForm />
+          </TabsContent>
+
+          <TabsContent value="penalties">
+            <PenaltyManagement />
           </TabsContent>
 
           <TabsContent value="requests">
