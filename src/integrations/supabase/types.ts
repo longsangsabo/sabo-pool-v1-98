@@ -893,39 +893,255 @@ export type Database = {
           },
         ]
       }
-      tournaments: {
+      tournament_matches: {
         Row: {
-          club_id: string | null
-          created_at: string
-          description: string | null
-          end_date: string | null
+          actual_end_time: string | null
+          actual_start_time: string | null
+          created_at: string | null
           id: string
-          name: string
-          start_date: string | null
+          match_number: number
+          notes: string | null
+          player1_id: string | null
+          player2_id: string | null
+          round_number: number
+          scheduled_time: string | null
+          score_player1: number | null
+          score_player2: number | null
           status: string | null
-          updated_at: string
+          tournament_id: string | null
+          updated_at: string | null
+          winner_id: string | null
         }
         Insert: {
-          club_id?: string | null
-          created_at?: string
-          description?: string | null
-          end_date?: string | null
+          actual_end_time?: string | null
+          actual_start_time?: string | null
+          created_at?: string | null
           id?: string
-          name: string
-          start_date?: string | null
+          match_number: number
+          notes?: string | null
+          player1_id?: string | null
+          player2_id?: string | null
+          round_number: number
+          scheduled_time?: string | null
+          score_player1?: number | null
+          score_player2?: number | null
           status?: string | null
-          updated_at?: string
+          tournament_id?: string | null
+          updated_at?: string | null
+          winner_id?: string | null
         }
         Update: {
+          actual_end_time?: string | null
+          actual_start_time?: string | null
+          created_at?: string | null
+          id?: string
+          match_number?: number
+          notes?: string | null
+          player1_id?: string | null
+          player2_id?: string | null
+          round_number?: number
+          scheduled_time?: string | null
+          score_player1?: number | null
+          score_player2?: number | null
+          status?: string | null
+          tournament_id?: string | null
+          updated_at?: string | null
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_matches_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_registrations: {
+        Row: {
+          created_at: string | null
+          id: string
+          notes: string | null
+          payment_status: string | null
+          player_id: string | null
+          registration_date: string | null
+          registration_status: string | null
+          seed_number: number | null
+          tournament_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          payment_status?: string | null
+          player_id?: string | null
+          registration_date?: string | null
+          registration_status?: string | null
+          seed_number?: number | null
+          tournament_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          payment_status?: string | null
+          player_id?: string | null
+          registration_date?: string | null
+          registration_status?: string | null
+          seed_number?: number | null
+          tournament_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_registrations_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_results: {
+        Row: {
+          created_at: string | null
+          elo_points_earned: number | null
+          final_position: number
+          id: string
+          matches_lost: number | null
+          matches_played: number | null
+          matches_won: number | null
+          performance_rating: number | null
+          player_id: string | null
+          prize_money: number | null
+          tournament_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          elo_points_earned?: number | null
+          final_position: number
+          id?: string
+          matches_lost?: number | null
+          matches_played?: number | null
+          matches_won?: number | null
+          performance_rating?: number | null
+          player_id?: string | null
+          prize_money?: number | null
+          tournament_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          elo_points_earned?: number | null
+          final_position?: number
+          id?: string
+          matches_lost?: number | null
+          matches_played?: number | null
+          matches_won?: number | null
+          performance_rating?: number | null
+          player_id?: string | null
+          prize_money?: number | null
+          tournament_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_results_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          banner_image: string | null
+          club_id: string | null
+          contact_info: Json | null
+          created_at: string
+          created_by: string | null
+          current_participants: number | null
+          description: string | null
+          end_date: string | null
+          entry_fee: number | null
+          first_prize: number | null
+          game_format: string | null
+          id: string
+          max_participants: number | null
+          min_trust_score: number | null
+          name: string
+          prize_pool: number | null
+          rank_requirement: string[] | null
+          registration_deadline: string | null
+          registration_start: string | null
+          rules: string | null
+          second_prize: number | null
+          start_date: string | null
+          status: string | null
+          third_prize: number | null
+          tournament_type: string | null
+          updated_at: string
+          venue_address: string | null
+        }
+        Insert: {
+          banner_image?: string | null
           club_id?: string | null
+          contact_info?: Json | null
           created_at?: string
+          created_by?: string | null
+          current_participants?: number | null
           description?: string | null
           end_date?: string | null
+          entry_fee?: number | null
+          first_prize?: number | null
+          game_format?: string | null
           id?: string
-          name?: string
+          max_participants?: number | null
+          min_trust_score?: number | null
+          name: string
+          prize_pool?: number | null
+          rank_requirement?: string[] | null
+          registration_deadline?: string | null
+          registration_start?: string | null
+          rules?: string | null
+          second_prize?: number | null
           start_date?: string | null
           status?: string | null
+          third_prize?: number | null
+          tournament_type?: string | null
           updated_at?: string
+          venue_address?: string | null
+        }
+        Update: {
+          banner_image?: string | null
+          club_id?: string | null
+          contact_info?: Json | null
+          created_at?: string
+          created_by?: string | null
+          current_participants?: number | null
+          description?: string | null
+          end_date?: string | null
+          entry_fee?: number | null
+          first_prize?: number | null
+          game_format?: string | null
+          id?: string
+          max_participants?: number | null
+          min_trust_score?: number | null
+          name?: string
+          prize_pool?: number | null
+          rank_requirement?: string[] | null
+          registration_deadline?: string | null
+          registration_start?: string | null
+          rules?: string | null
+          second_prize?: number | null
+          start_date?: string | null
+          status?: string | null
+          third_prize?: number | null
+          tournament_type?: string | null
+          updated_at?: string
+          venue_address?: string | null
         }
         Relationships: [
           {

@@ -74,36 +74,26 @@ export const useTournaments = (userId?: string) => {
     setError(null);
 
     try {
-      // Mock tournaments data since tournaments table doesn't have all required fields
-      const mockTournaments: Tournament[] = [
-        {
-          id: '1',
-          name: 'Giải đấu Bi-a Hà Nội Open',
-          description: 'Giải đấu bi-a lớn nhất Hà Nội',
-          tournament_type: 'single_elimination',
-          game_format: '8_ball',
-          max_participants: 32,
-          current_participants: 12,
-          registration_start: new Date().toISOString(),
-          registration_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          tournament_start: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-          tournament_end: new Date(Date.now() + 16 * 24 * 60 * 60 * 1000).toISOString(),
-          club_id: 'club_1',
-          venue_address: 'Hà Nội',
-          entry_fee: 100,
-          prize_pool: 1000000,
-          first_prize: 500000,
-          second_prize: 300000,
-          third_prize: 200000,
-          status: 'registration_open',
-          rules: 'Luật chuẩn 8 ball',
-          organizer_id: userId || 'mock_user',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ];
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('*')
+        .order('start_date', { ascending: true });
 
-      setTournaments(mockTournaments);
+      if (error) throw error;
+      
+      // Map database response to Tournament type
+      const mappedTournaments = (data || []).map(tournament => ({
+        ...tournament,
+        tournament_start: tournament.start_date,
+        tournament_end: tournament.end_date,
+        registration_end: tournament.registration_deadline,
+        organizer_id: tournament.created_by,
+        tournament_type: tournament.tournament_type as Tournament['tournament_type'],
+        game_format: tournament.game_format as Tournament['game_format'],
+        status: tournament.status as Tournament['status'],
+      }));
+      
+      setTournaments(mappedTournaments as Tournament[]);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to fetch tournaments'
@@ -111,7 +101,7 @@ export const useTournaments = (userId?: string) => {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, []);
 
   const createTournament = useCallback(
     async (data: CreateTournamentData) => {
@@ -119,45 +109,50 @@ export const useTournaments = (userId?: string) => {
       setError(null);
 
       try {
-        // Mock create tournament since tournaments table doesn't have all required fields
-        const newTournament: Tournament = {
-          id: Date.now().toString(),
-          name: data.name,
-          description: data.description,
-          tournament_type: data.tournament_type,
-          game_format: data.game_format,
-          max_participants: data.max_participants,
-          current_participants: 0,
-          registration_start: data.registration_start,
-          registration_end: data.registration_end,
-          tournament_start: data.tournament_start,
-          tournament_end: data.tournament_end,
-          club_id: 'club_1',
-          venue_address: data.venue_address || '',
-          entry_fee: data.entry_fee,
-          prize_pool: data.prize_pool,
-          first_prize: Math.floor(data.prize_pool * 0.5),
-          second_prize: Math.floor(data.prize_pool * 0.3),
-          third_prize: Math.floor(data.prize_pool * 0.2),
-          status: 'upcoming',
-          rules: data.rules,
-          organizer_id: user?.id || 'mock_user',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
+        if (!user?.id) throw new Error('Must be logged in');
 
-        setTournaments(prev => [newTournament, ...prev]);
+        const { data: newTournament, error } = await supabase
+          .from('tournaments')
+          .insert({
+            name: data.name,
+            description: data.description,
+            tournament_type: data.tournament_type,
+            game_format: data.game_format,
+            max_participants: data.max_participants,
+            start_date: data.tournament_start,
+            end_date: data.tournament_end,
+            registration_start: data.registration_start,
+            registration_deadline: data.registration_end,
+            entry_fee: data.entry_fee,
+            prize_pool: data.prize_pool,
+            first_prize: Math.floor(data.prize_pool * 0.5),
+            second_prize: Math.floor(data.prize_pool * 0.3),
+            third_prize: Math.floor(data.prize_pool * 0.2),
+            venue_address: data.venue_address,
+            rules: data.rules,
+            created_by: user.id,
+            status: 'upcoming',
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Refresh tournaments list
+        await fetchTournaments();
+        toast.success('Giải đấu đã được tạo thành công!');
         return newTournament;
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Failed to create tournament'
         );
+        toast.error('Có lỗi xảy ra khi tạo giải đấu');
         throw err;
       } finally {
         setLoading(false);
       }
     },
-    [user?.id]
+    [user?.id, fetchTournaments]
   );
 
   const updateTournament = useCallback(
