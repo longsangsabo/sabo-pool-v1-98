@@ -545,6 +545,42 @@ export type Database = {
         }
         Relationships: []
       }
+      player_availability: {
+        Row: {
+          available_until: string | null
+          created_at: string | null
+          id: string
+          location: string | null
+          max_distance_km: number | null
+          preferred_time: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          available_until?: string | null
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          max_distance_km?: number | null
+          preferred_time?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          available_until?: string | null
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          max_distance_km?: number | null
+          preferred_time?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_stats: {
         Row: {
           created_at: string | null
@@ -629,6 +665,42 @@ export type Database = {
           total_ratings?: number | null
           trust_percentage?: number | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      practice_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          location: string | null
+          notes: string | null
+          player1_id: string
+          player2_id: string
+          scheduled_time: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          player1_id: string
+          player2_id: string
+          scheduled_time?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          player1_id?: string
+          player2_id?: string
+          scheduled_time?: string | null
+          status?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -892,6 +964,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      reward_redemptions: {
+        Row: {
+          id: string
+          points_cost: number
+          redeemed_at: string | null
+          reward_type: string
+          reward_value: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          points_cost: number
+          redeemed_at?: string | null
+          reward_type: string
+          reward_value: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          points_cost?: number
+          redeemed_at?: string | null
+          reward_type?: string
+          reward_value?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       tournament_matches: {
         Row: {
@@ -1217,6 +1319,9 @@ export type Database = {
           id: string
           last_checkin_date: string | null
           longest_streak: number | null
+          milestone_30_claimed: boolean | null
+          milestone_60_claimed: boolean | null
+          milestone_90_claimed: boolean | null
           total_points: number | null
           updated_at: string | null
           user_id: string | null
@@ -1227,6 +1332,9 @@ export type Database = {
           id?: string
           last_checkin_date?: string | null
           longest_streak?: number | null
+          milestone_30_claimed?: boolean | null
+          milestone_60_claimed?: boolean | null
+          milestone_90_claimed?: boolean | null
           total_points?: number | null
           updated_at?: string | null
           user_id?: string | null
@@ -1237,6 +1345,9 @@ export type Database = {
           id?: string
           last_checkin_date?: string | null
           longest_streak?: number | null
+          milestone_30_claimed?: boolean | null
+          milestone_60_claimed?: boolean | null
+          milestone_90_claimed?: boolean | null
           total_points?: number | null
           updated_at?: string | null
           user_id?: string | null
@@ -1279,6 +1390,15 @@ export type Database = {
       populate_initial_leaderboard_data: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      redeem_reward: {
+        Args: {
+          user_uuid: string
+          reward_type: string
+          reward_value: string
+          points_cost: number
+        }
+        Returns: Json
       }
       refresh_current_month_leaderboard: {
         Args: Record<PropertyKey, never>

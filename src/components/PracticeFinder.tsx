@@ -1,62 +1,64 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Users, Clock } from 'lucide-react';
-import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { usePlayerAvailability } from '@/hooks/usePlayerAvailability';
+import { useAuth } from '@/hooks/useAuth';
+import { MapPin, Users, Clock, Send } from 'lucide-react';
 
-interface AvailablePlayer {
+interface EnhancedPlayer {
+  id: string;
   user_id: string;
-  full_name: string;
-  avatar_url?: string;
-  verified_rank?: string;
-  city?: string;
-  district?: string;
-  bio?: string;
+  status: string;
+  location: string | null;
+  max_distance_km: number;
+  available_until: string | null;
+  profiles: {
+    user_id: string;
+    full_name: string;
+    avatar_url?: string;
+    verified_rank?: string;
+    city?: string;
+    district?: string;
+  } | null;
 }
 
 const PracticeFinder = () => {
   const { user } = useAuth();
+  const { availablePlayers, isLoadingPlayers, sendInvite, isSendingInvite } = usePlayerAvailability();
   const [selectedRank, setSelectedRank] = useState<string>('all');
-
-  const { data: availablePlayers = [], isLoading } = useQuery({
-    queryKey: ['available-players', selectedRank],
-    queryFn: async () => {
-      if (!user?.id) return [];
-
-      let query = supabase
-        .from('profiles')
-        .select('user_id, full_name, avatar_url, verified_rank, city, district, bio')
-        .neq('user_id', user.id)
-        .not('verified_rank', 'is', null);
-
-      // Filter by rank if selected
-      if (selectedRank !== 'all') {
-        query = query.eq('verified_rank', selectedRank);
-      }
-
-      const { data, error } = await query.limit(20);
-
-      if (error) {
-        console.error('Error fetching available players:', error);
-        return [];
-      }
-
-      return data || [];
-    },
-    enabled: !!user?.id,
-  });
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [inviteLocation, setInviteLocation] = useState<string>('');
 
   const handleInvitePlayer = (playerId: string, playerName: string) => {
-    // For now, just show a toast - later we can implement actual invitations
-    toast.success(`Đã gửi lời mời tập luyện đến ${playerName}!`);
+    if (!inviteLocation.trim()) {
+      alert('Vui lòng nhập địa điểm tập luyện');
+      return;
+    }
+    sendInvite(playerId, inviteLocation);
   };
 
+  // Filter players based on selected criteria
+  const filteredPlayers = availablePlayers.filter((player: EnhancedPlayer) => {
+    if (selectedRank !== 'all' && player.profiles?.verified_rank !== selectedRank) {
+      return false;
+    }
+    if (selectedStatus !== 'all' && player.status !== selectedStatus) {
+      return false;
+    }
+    return true;
+  });
+
   const ranks = ['K1', 'K2', 'K3', 'H1', 'H2', 'H3', 'G1', 'G2', 'G3'];
+  const statusOptions = [
+    { value: 'all', label: 'Tất cả' },
+    { value: 'available_now', label: 'Rảnh bây giờ' },
+    { value: 'available_tonight', label: 'Rảnh tối nay' },
+    { value: 'available_weekend', label: 'Rảnh cuối tuần' },
+  ];
 
   if (!user) {
     return (
@@ -77,29 +79,54 @@ const PracticeFinder = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Rank Filter */}
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant={selectedRank === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedRank('all')}
-          >
-            Tất cả
-          </Button>
-          {ranks.map(rank => (
+        {/* Filters */}
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
             <Button
-              key={rank}
-              variant={selectedRank === rank ? 'default' : 'outline'}
+              variant={selectedRank === 'all' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setSelectedRank(rank)}
+              onClick={() => setSelectedRank('all')}
             >
-              {rank}
+              Tất cả rank
             </Button>
-          ))}
+            {ranks.map(rank => (
+              <Button
+                key={rank}
+                variant={selectedRank === rank ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedRank(rank)}
+              >
+                {rank}
+              </Button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {statusOptions.map(status => (
+              <Button
+                key={status.value}
+                variant={selectedStatus === status.value ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedStatus(status.value)}
+              >
+                {status.label}
+              </Button>
+            ))}
+          </div>
+
+          {/* Invite Location */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="Địa điểm tập luyện (VD: CLB ABC, Quận 1)"
+              value={inviteLocation}
+              onChange={(e) => setInviteLocation(e.target.value)}
+              className="flex-1"
+            />
+          </div>
         </div>
 
         {/* Players List */}
-        {isLoading ? (
+        {isLoadingPlayers ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
               <div key={i} className="animate-pulse">
@@ -114,7 +141,7 @@ const PracticeFinder = () => {
               </div>
             ))}
           </div>
-        ) : availablePlayers.length === 0 ? (
+        ) : filteredPlayers.length === 0 ? (
           <div className="text-center py-8">
             <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">Không tìm thấy người chơi nào</p>
@@ -124,65 +151,96 @@ const PracticeFinder = () => {
           </div>
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto">
-            {availablePlayers.map(player => (
-              <div
-                key={player.user_id}
-                className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <Avatar className="w-10 h-10">
-                  <AvatarImage src={player.avatar_url} />
-                  <AvatarFallback>
-                    {player.full_name?.charAt(0)?.toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
+            {filteredPlayers.map((player: EnhancedPlayer) => {
+              const profile = player.profiles;
+              const getStatusDisplay = (status: string) => {
+                switch (status) {
+                  case 'available_now': return { text: 'Rảnh bây giờ', color: 'bg-green-100 text-green-800' };
+                  case 'available_tonight': return { text: 'Rảnh tối nay', color: 'bg-blue-100 text-blue-800' };
+                  case 'available_weekend': return { text: 'Rảnh cuối tuần', color: 'bg-purple-100 text-purple-800' };
+                  default: return { text: 'Có thể rảnh', color: 'bg-gray-100 text-gray-800' };
+                }
+              };
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-medium text-sm truncate">
-                      {player.full_name || 'Người chơi'}
-                    </p>
-                    <Badge variant="secondary" className="text-xs">
-                      {player.verified_rank || 'Chưa xác minh'}
-                    </Badge>
-                    {player.verified_rank && (
-                      <Badge variant="outline" className="text-xs">
-                        ✓ Verified
+              const statusDisplay = getStatusDisplay(player.status);
+
+              return (
+                <div
+                  key={player.id}
+                  className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={profile?.avatar_url} />
+                    <AvatarFallback>
+                      {profile?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-medium text-sm truncate">
+                        {profile?.full_name || 'Người chơi'}
+                      </p>
+                      <Badge variant="secondary" className="text-xs">
+                        {profile?.verified_rank || 'Chưa xác minh'}
                       </Badge>
+                      {profile?.verified_rank && (
+                        <Badge variant="outline" className="text-xs">
+                          ✓ Verified
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Badge className={`${statusDisplay.color} text-xs`}>
+                        {statusDisplay.text}
+                      </Badge>
+                      {player.available_until && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          Đến {new Date(player.available_until).toLocaleTimeString('vi-VN', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
+                      )}
+                    </div>
+
+                    {player.location && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                        <MapPin className="w-3 h-3" />
+                        <span>{player.location} (bán kính {player.max_distance_km}km)</span>
+                      </div>
                     )}
                   </div>
-                  
-                  {(player.city || player.district) && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <MapPin className="w-3 h-3" />
-                      <span>
-                        {[player.district, player.city].filter(Boolean).join(', ')}
-                      </span>
-                    </div>
-                  )}
-                </div>
 
-                <Button
-                  size="sm"
-                  onClick={() => handleInvitePlayer(player.user_id, player.full_name)}
-                  className="shrink-0"
-                >
-                  Mời tập
-                </Button>
-              </div>
-            ))}
+                  <Button
+                    size="sm"
+                    onClick={() => handleInvitePlayer(player.user_id, profile?.full_name || 'Người chơi')}
+                    disabled={isSendingInvite || !inviteLocation.trim()}
+                    className="shrink-0"
+                  >
+                    <Send className="w-4 h-4 mr-1" />
+                    Mời tập
+                  </Button>
+                </div>
+              );
+            })}
           </div>
         )}
 
         {/* Help Text */}
-        <div className="text-xs text-muted-foreground bg-gray-50 p-3 rounded-lg">
+        <div className="text-xs text-muted-foreground bg-blue-50 p-3 rounded-lg">
           <div className="flex items-center gap-1 mb-1">
             <Clock className="w-3 h-3" />
             <span className="font-medium">Gợi ý:</span>
           </div>
-          <p>
-            Tìm người chơi cùng rank để tập luyện hiệu quả. 
-            Lời mời sẽ được gửi qua thông báo.
-          </p>
+          <ul className="space-y-1">
+            <li>• Nhập địa điểm trước khi gửi lời mời</li>
+            <li>• Lọc theo trạng thái để tìm người đang rảnh</li>
+            <li>• Tìm người cùng rank để tập hiệu quả</li>
+            <li>• Lời mời sẽ được gửi qua hệ thống thông báo</li>
+          </ul>
         </div>
       </CardContent>
     </Card>
