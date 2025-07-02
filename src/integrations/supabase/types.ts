@@ -15,12 +15,19 @@ export type Database = {
           challenger_id: string
           club_id: string | null
           created_at: string
+          expires_at: string | null
           handicap_05_rank: number | null
           handicap_1_rank: number | null
           id: string
+          location: string | null
+          message: string | null
           opponent_id: string
           race_to: number | null
+          responded_at: string | null
+          response_message: string | null
           scheduled_time: string | null
+          stake_amount: number | null
+          stake_type: string | null
           status: string | null
           updated_at: string
         }
@@ -29,12 +36,19 @@ export type Database = {
           challenger_id: string
           club_id?: string | null
           created_at?: string
+          expires_at?: string | null
           handicap_05_rank?: number | null
           handicap_1_rank?: number | null
           id?: string
+          location?: string | null
+          message?: string | null
           opponent_id: string
           race_to?: number | null
+          responded_at?: string | null
+          response_message?: string | null
           scheduled_time?: string | null
+          stake_amount?: number | null
+          stake_type?: string | null
           status?: string | null
           updated_at?: string
         }
@@ -43,12 +57,19 @@ export type Database = {
           challenger_id?: string
           club_id?: string | null
           created_at?: string
+          expires_at?: string | null
           handicap_05_rank?: number | null
           handicap_1_rank?: number | null
           id?: string
+          location?: string | null
+          message?: string | null
           opponent_id?: string
           race_to?: number | null
+          responded_at?: string | null
+          response_message?: string | null
           scheduled_time?: string | null
+          stake_amount?: number | null
+          stake_type?: string | null
           status?: string | null
           updated_at?: string
         }
@@ -751,6 +772,10 @@ export type Database = {
       }
       calculate_trust_score: {
         Args: { player_uuid: string }
+        Returns: undefined
+      }
+      expire_old_challenges: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
     }
