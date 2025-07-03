@@ -86,6 +86,7 @@ const Header = () => {
 
   const navItems = [
     { name: 'Trang chủ', href: '/' },
+    { name: 'Tìm bạn tập', href: '/practice' },
     { name: 'Giải đấu', href: '/tournaments' },
     { name: 'Ranking', href: '/leaderboard' },
     { name: 'CLB', href: '/clubs' },

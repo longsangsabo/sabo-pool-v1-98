@@ -4,8 +4,11 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/hooks/useAuth';
+import CheckInWidget from '@/components/CheckInWidget';
 
 const SimpleDashboard = () => {
+  const { user } = useAuth();
   console.log("SimpleDashboard: Component is rendering");
 
   return (
@@ -66,7 +69,21 @@ const SimpleDashboard = () => {
                   📅 Đặt Bàn Ngay
                 </Button>
               </Link>
+              {user && (
+                <Link to="/practice">
+                  <Button size="lg" className="bg-blue-500 text-white hover:bg-blue-600 font-bold px-8 py-4 text-lg">
+                    👥 Tìm Bạn Tập
+                  </Button>
+                </Link>
+              )}
             </div>
+
+            {/* Check-in Widget for logged in users */}
+            {user && (
+              <div className="max-w-md mx-auto mb-12">
+                <CheckInWidget />
+              </div>
+            )}
           </div>
 
           {/* Các tính năng chính */}

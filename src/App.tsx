@@ -10,6 +10,7 @@ import { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/hooks/useAuth";
 import MainLayout from "@/components/MainLayout";
+import DailyNotificationSystem from "@/components/DailyNotificationSystem";
 
 // Import components directly instead of lazy loading to avoid loading issues
 import SimpleDashboard from "./pages/SimpleDashboard";
@@ -206,6 +207,7 @@ const App = () => {
                       } />
                     </Routes>
                   </Suspense>
+                  <DailyNotificationSystem />
                   <Toaster />
                   <Sonner />
                 </BrowserRouter>
