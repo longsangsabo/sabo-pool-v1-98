@@ -30,67 +30,78 @@ export const useRealtimeFeed = () => {
   const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Mock initial data
+  // Fetch initial feed data
   useEffect(() => {
-    const mockPosts: FeedPost[] = [
-      {
-        id: '1',
-        user: {
-          id: '1',
-          name: 'Nguyễn Văn A',
-          avatar: '/placeholder.svg',
-          rank: 'A+',
-        },
-        type: 'match_result',
-        content:
-          'Vừa có trận đấu tuyệt vời! Đối thủ rất mạnh nhưng mình đã chiến thắng 🎱',
-        stats: {
-          score: '8-6',
-          opponent: 'Trần Văn B',
-        },
-        timestamp: '2 giờ trước',
-        likes: 24,
-        comments: 5,
-        isLiked: false,
-      },
-      {
-        id: '2',
-        user: {
-          id: '2',
-          name: 'Lê Thị C',
-          avatar: '/placeholder.svg',
-          rank: 'B+',
-        },
-        type: 'achievement',
-        content:
-          'Cuối cùng cũng mở khóa được thành tích "Streak Master"! Cảm ơn mọi người đã ủng hộ 🔥',
-        stats: {
-          achievement: '10 trận thắng liên tiếp',
-        },
-        timestamp: '4 giờ trước',
-        likes: 56,
-        comments: 12,
-        isLiked: true,
-      },
-      {
-        id: '3',
-        user: {
-          id: '3',
-          name: 'Phạm Đức D',
-          avatar: '/placeholder.svg',
-          rank: 'A',
-        },
-        type: 'tournament_win',
-        content:
-          'Vô địch giải đấu hàng tuần! Cám ơn tất cả mọi người đã cổ vũ 👑',
-        timestamp: '6 giờ trước',
-        likes: 89,
-        comments: 23,
-        isLiked: false,
-      },
-    ];
-    setFeedPosts(mockPosts);
-  }, []);
+    const fetchFeedPosts = async () => {
+      if (!user?.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('posts')
+          .select(`
+            id,
+            content,
+            post_type,
+            metadata,
+            image_url,
+            likes_count,
+            comments_count,
+            created_at,
+            profiles(
+              user_id,
+              full_name,
+              avatar_url,
+              verified_rank
+            )
+          `)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (error) {
+          console.error('Error fetching feed:', error);
+          return;
+        }
+
+        // Check which posts current user has liked
+        const postIds = data?.map(post => post.id) || [];
+        const { data: likedPosts } = await supabase
+          .from('post_likes')
+          .select('post_id')
+          .eq('user_id', user.id)
+          .in('post_id', postIds);
+
+        const likedPostIds = new Set(likedPosts?.map(like => like.post_id) || []);
+
+        const formattedPosts: FeedPost[] = (data || []).map(post => {
+          const profile = post.profiles;
+          const metadata = post.metadata as any;
+          
+          return {
+            id: post.id,
+            user: {
+              id: profile?.user_id || '',
+              name: profile?.full_name || 'Người chơi',
+              avatar: profile?.avatar_url || '/placeholder.svg',
+              rank: profile?.verified_rank || 'K1',
+            },
+            type: post.post_type as any,
+            content: post.content,
+            stats: metadata || {},
+            timestamp: new Date(post.created_at).toLocaleString('vi-VN'),
+            likes: post.likes_count,
+            comments: post.comments_count,
+            isLiked: likedPostIds.has(post.id),
+          };
+        });
+
+        setFeedPosts(formattedPosts);
+      } catch (error) {
+        console.error('Error loading feed:', error);
+      }
+    };
+
+    fetchFeedPosts();
+  }, [user?.id]);
 
   // Real-time subscription setup
   useEffect(() => {
@@ -109,7 +120,13 @@ export const useRealtimeFeed = () => {
         },
         payload => {
           console.log('Feed update received:', payload);
-          handleFeedUpdate(payload);
+          // Handle real-time feed updates
+          if (payload.eventType === 'INSERT' && payload.new) {
+            // Add new post to feed
+            const newPost = payload.new;
+            // Fetch user profile for the new post
+            setTimeout(() => refreshFeed(), 1000);
+          }
         }
       )
       .on('system', {}, status => {
@@ -141,18 +158,45 @@ export const useRealtimeFeed = () => {
     }
   };
 
-  const handleLike = (postId: string) => {
-    setFeedPosts(posts =>
-      posts.map(post =>
-        post.id === postId
-          ? {
-              ...post,
-              isLiked: !post.isLiked,
-              likes: post.isLiked ? post.likes - 1 : post.likes + 1,
-            }
-          : post
-      )
-    );
+  const handleLike = async (postId: string) => {
+    if (!user?.id) return;
+
+    const post = feedPosts.find(p => p.id === postId);
+    if (!post) return;
+
+    try {
+      if (post.isLiked) {
+        // Unlike post
+        await supabase
+          .from('post_likes')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', user.id);
+      } else {
+        // Like post
+        await supabase
+          .from('post_likes')
+          .insert({
+            post_id: postId,
+            user_id: user.id
+          });
+      }
+
+      // Update local state immediately for better UX
+      setFeedPosts(posts =>
+        posts.map(p =>
+          p.id === postId
+            ? {
+                ...p,
+                isLiked: !p.isLiked,
+                likes: p.isLiked ? p.likes - 1 : p.likes + 1,
+              }
+            : p
+        )
+      );
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
   };
 
   const handleComment = (postId: string) => {
@@ -187,32 +231,68 @@ export const useRealtimeFeed = () => {
 
   const refreshFeed = async () => {
     console.log('Refreshing feed...');
-    try {
-      // Mock refresh since posts table doesn't exist
-      console.log('Mock refreshing feed...');
-      
-      const mockNewPosts: FeedPost[] = [
-        {
-          id: Date.now().toString(),
-          user: {
-            id: 'new_user',
-            name: 'Người chơi mới',
-            avatar: '/placeholder.svg',
-            rank: 'C',
-          },
-          type: 'match_result',
-          content: 'Vừa hoàn thành trận đấu mới!',
-          timestamp: 'Vừa xong',
-          likes: 1,
-          comments: 0,
-          isLiked: false,
-        },
-      ];
+    if (!user?.id) return;
 
-      setFeedPosts(prevPosts => [
-        ...mockNewPosts,
-        ...prevPosts,
-      ]);
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          id,
+          content,
+          post_type,
+          metadata,
+          image_url,
+          likes_count,
+          comments_count,
+          created_at,
+          profiles(
+            user_id,
+            full_name,
+            avatar_url,
+            verified_rank
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error('Error refreshing feed:', error);
+        return;
+      }
+
+      // Check likes again
+      const postIds = data?.map(post => post.id) || [];
+      const { data: likedPosts } = await supabase
+        .from('post_likes')
+        .select('post_id')
+        .eq('user_id', user.id)
+        .in('post_id', postIds);
+
+      const likedPostIds = new Set(likedPosts?.map(like => like.post_id) || []);
+
+      const formattedPosts: FeedPost[] = (data || []).map(post => {
+        const profile = post.profiles;
+        const metadata = post.metadata as any;
+        
+        return {
+          id: post.id,
+          user: {
+            id: profile?.user_id || '',
+            name: profile?.full_name || 'Người chơi',
+            avatar: profile?.avatar_url || '/placeholder.svg',
+            rank: profile?.verified_rank || 'K1',
+          },
+          type: post.post_type as any,
+          content: post.content,
+          stats: metadata || {},
+          timestamp: new Date(post.created_at).toLocaleString('vi-VN'),
+          likes: post.likes_count,
+          comments: post.comments_count,
+          isLiked: likedPostIds.has(post.id),
+        };
+      });
+
+      setFeedPosts(formattedPosts);
     } catch (error) {
       console.error('Error refreshing feed:', error);
     }
