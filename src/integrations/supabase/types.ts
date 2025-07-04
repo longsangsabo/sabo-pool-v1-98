@@ -383,6 +383,41 @@ export type Database = {
         }
         Relationships: []
       }
+      match_history: {
+        Row: {
+          action_data: Json | null
+          action_type: string
+          created_at: string | null
+          id: string
+          match_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_data?: Json | null
+          action_type: string
+          created_at?: string | null
+          id?: string
+          match_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_data?: Json | null
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          match_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_history_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_ratings: {
         Row: {
           comment: string | null
@@ -1804,6 +1839,45 @@ export type Database = {
           start_date?: string
           status?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string | null
+          language: string | null
+          notification_challenges: boolean | null
+          notification_marketing: boolean | null
+          notification_tournaments: boolean | null
+          privacy_show_phone: boolean | null
+          privacy_show_stats: boolean | null
+          theme: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          language?: string | null
+          notification_challenges?: boolean | null
+          notification_marketing?: boolean | null
+          notification_tournaments?: boolean | null
+          privacy_show_phone?: boolean | null
+          privacy_show_stats?: boolean | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          language?: string | null
+          notification_challenges?: boolean | null
+          notification_marketing?: boolean | null
+          notification_tournaments?: boolean | null
+          privacy_show_phone?: boolean | null
+          privacy_show_stats?: boolean | null
+          theme?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

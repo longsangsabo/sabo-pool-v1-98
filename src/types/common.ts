@@ -16,8 +16,13 @@ export interface AuthContextType {
   user: User | null;
   session: SupabaseSession | null;
   profile: UserProfile | null;
-  signIn: (phone: string, password: string) => Promise<{ error?: any }>;
-  signUp: (phone: string, password: string, fullName: string) => Promise<{ error?: any }>;
+  signIn: (email: string, password: string) => Promise<{ error?: any }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ data?: any; error?: any }>;
+  signInWithEmail: (email: string, password: string) => Promise<{ error?: any }>;
+  signInWithPhone: (phone: string, password: string) => Promise<{ error?: any }>;
+  signUpWithEmail: (email: string, password: string, fullName: string) => Promise<{ data?: any; error?: any }>;
+  signUpWithPhone: (phone: string, password: string, fullName: string) => Promise<{ data?: any; error?: any }>;
+  signInWithFacebook: () => Promise<{ data?: any; error?: any }>;
   signOut: () => Promise<void>;
   loading: boolean;
 }

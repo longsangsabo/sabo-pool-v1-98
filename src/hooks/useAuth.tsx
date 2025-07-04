@@ -51,23 +51,75 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const signIn = async (phone: string, password: string) => {
+  const signInWithEmail = async (email: string, password: string) => {
     try {
-      console.log("AuthProvider: Attempting sign in for:", phone);
+      console.log("AuthProvider: Attempting email sign in for:", email);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error };
+    } catch (error: any) {
+      console.error('AuthProvider: Email sign in error:', error);
+      return { error };
+    }
+  };
+
+  const signInWithPhone = async (phone: string, password: string) => {
+    try {
+      console.log("AuthProvider: Attempting phone sign in for:", phone);
       const { error } = await supabase.auth.signInWithPassword({
         phone,
         password,
       });
       return { error };
     } catch (error: any) {
-      console.error('AuthProvider: Sign in error:', error);
+      console.error('AuthProvider: Phone sign in error:', error);
       return { error };
     }
   };
 
-  const signUp = async (phone: string, password: string, fullName: string) => {
+  const signUpWithEmail = async (email: string, password: string, fullName: string) => {
     try {
-      console.log("AuthProvider: Attempting sign up for:", phone);
+      console.log("AuthProvider: Attempting email sign up for:", email);
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            full_name: fullName,
+            email: email,
+          },
+        },
+      });
+
+      // Create profile after successful signup
+      if (data.user && !error) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: data.user.id,
+            full_name: fullName,
+          });
+        
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+        }
+      }
+
+      return { data, error };
+    } catch (error: any) {
+      console.error('AuthProvider: Email sign up error:', error);
+      return { error };
+    }
+  };
+
+  const signUpWithPhone = async (phone: string, password: string, fullName: string) => {
+    try {
+      console.log("AuthProvider: Attempting phone sign up for:", phone);
       const { data, error } = await supabase.auth.signUp({
         phone,
         password,
@@ -94,12 +146,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      return { error };
+      return { data, error };
     } catch (error: any) {
-      console.error('AuthProvider: Sign up error:', error);
+      console.error('AuthProvider: Phone sign up error:', error);
       return { error };
     }
   };
+
+  const signInWithFacebook = async () => {
+    try {
+      console.log("AuthProvider: Attempting Facebook sign in");
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: 'email,public_profile',
+        },
+      });
+      return { data, error };
+    } catch (error: any) {
+      console.error('AuthProvider: Facebook sign in error:', error);
+      return { error };
+    }
+  };
+
+  // Legacy methods for backward compatibility
+  const signIn = signInWithEmail;
+  const signUp = signUpWithEmail;
 
   const signOut = async () => {
     try {
@@ -116,6 +189,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     profile,
     signIn,
     signUp,
+    signInWithEmail,
+    signInWithPhone,
+    signUpWithEmail,
+    signUpWithPhone,
+    signInWithFacebook,
     signOut,
     loading,
   };
