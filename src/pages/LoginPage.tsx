@@ -164,10 +164,10 @@ const LoginPage = () => {
               </TabsList>
 
               <TabsContent value="email" className="space-y-4">
-                <Alert className="border-amber-200 bg-amber-50 text-amber-800">
-                  <AlertTriangle className="h-4 w-4" />
+                <Alert className="border-blue-200 bg-blue-50 text-blue-800">
+                  <CheckCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Hiện tại email verification chưa được cấu hình. Vui lòng sử dụng đăng ký qua số điện thoại.
+                    Email đăng ký đã hoạt động! Kiểm tra email để xác thực sau khi đăng ký.
                   </AlertDescription>
                 </Alert>
                 
@@ -227,10 +227,10 @@ const LoginPage = () => {
               </TabsContent>
 
               <TabsContent value="phone" className="space-y-4">
-                <Alert className="border-green-200 bg-green-50 text-green-800">
-                  <CheckCircle className="h-4 w-4" />
+                <Alert className="border-amber-200 bg-amber-50 text-amber-800">
+                  <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    Khuyến khích sử dụng số điện thoại để đăng ký nhanh chóng và bảo mật.
+                    Phone authentication cần được bật trong Supabase Dashboard. Hiện tại chỉ hỗ trợ email.
                   </AlertDescription>
                 </Alert>
 
