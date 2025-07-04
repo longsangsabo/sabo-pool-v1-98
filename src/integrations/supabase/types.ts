@@ -383,6 +383,88 @@ export type Database = {
         }
         Relationships: []
       }
+      live_streams: {
+        Row: {
+          club_id: string | null
+          created_at: string | null
+          description: string | null
+          ended_at: string | null
+          id: string
+          is_featured: boolean | null
+          match_id: string | null
+          metadata: Json | null
+          started_at: string | null
+          status: string | null
+          stream_key: string
+          stream_url: string | null
+          streamer_id: string
+          title: string
+          tournament_id: string | null
+          updated_at: string | null
+          viewer_count: number | null
+        }
+        Insert: {
+          club_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          is_featured?: boolean | null
+          match_id?: string | null
+          metadata?: Json | null
+          started_at?: string | null
+          status?: string | null
+          stream_key: string
+          stream_url?: string | null
+          streamer_id: string
+          title: string
+          tournament_id?: string | null
+          updated_at?: string | null
+          viewer_count?: number | null
+        }
+        Update: {
+          club_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          is_featured?: boolean | null
+          match_id?: string | null
+          metadata?: Json | null
+          started_at?: string | null
+          status?: string | null
+          stream_key?: string
+          stream_url?: string | null
+          streamer_id?: string
+          title?: string
+          tournament_id?: string | null
+          updated_at?: string | null
+          viewer_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_streams_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_streams_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_streams_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_history: {
         Row: {
           action_data: Json | null
@@ -1505,6 +1587,115 @@ export type Database = {
           },
         ]
       }
+      table_bookings: {
+        Row: {
+          booking_date: string
+          check_in_time: string | null
+          check_out_time: string | null
+          club_id: string
+          created_at: string | null
+          duration_hours: number
+          end_time: string
+          hourly_rate: number
+          id: string
+          notes: string | null
+          payment_status: string | null
+          start_time: string
+          status: string | null
+          table_number: number
+          total_cost: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          booking_date: string
+          check_in_time?: string | null
+          check_out_time?: string | null
+          club_id: string
+          created_at?: string | null
+          duration_hours: number
+          end_time: string
+          hourly_rate: number
+          id?: string
+          notes?: string | null
+          payment_status?: string | null
+          start_time: string
+          status?: string | null
+          table_number: number
+          total_cost: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          booking_date?: string
+          check_in_time?: string | null
+          check_out_time?: string | null
+          club_id?: string
+          created_at?: string | null
+          duration_hours?: number
+          end_time?: string
+          hourly_rate?: number
+          id?: string
+          notes?: string | null
+          payment_status?: string | null
+          start_time?: string
+          status?: string | null
+          table_number?: number
+          total_cost?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_bookings_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_brackets: {
+        Row: {
+          bracket_data: Json
+          bracket_type: string | null
+          created_at: string | null
+          current_round: number | null
+          id: string
+          total_rounds: number
+          tournament_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          bracket_data: Json
+          bracket_type?: string | null
+          created_at?: string | null
+          current_round?: number | null
+          id?: string
+          total_rounds: number
+          tournament_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          bracket_data?: Json
+          bracket_type?: string | null
+          created_at?: string | null
+          current_round?: number | null
+          id?: string
+          total_rounds?: number
+          tournament_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_brackets_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_matches: {
         Row: {
           actual_end_time: string | null
@@ -1921,6 +2112,92 @@ export type Database = {
           total_points?: number | null
           updated_at?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          payment_method: string | null
+          points_amount: number | null
+          reference_id: string | null
+          status: string | null
+          transaction_type: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          points_amount?: number | null
+          reference_id?: string | null
+          status?: string | null
+          transaction_type: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          points_amount?: number | null
+          reference_id?: string | null
+          status?: string | null
+          transaction_type?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallets: {
+        Row: {
+          balance: number | null
+          created_at: string | null
+          id: string
+          points_balance: number | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          points_balance?: number | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          points_balance?: number | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
