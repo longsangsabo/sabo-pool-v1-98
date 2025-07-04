@@ -1,27 +1,42 @@
-
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 const AuthCallbackPage = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    console.log('AuthCallbackPage: Processing callback...');
-    
-    // Redirect to main page after a short delay
-    const timer = setTimeout(() => {
-      navigate('/');
-    }, 2000);
+    const handleAuthCallback = async () => {
+      // Wait for auth to load
+      if (loading) return;
 
-    return () => clearTimeout(timer);
-  }, [navigate]);
+      if (user) {
+        // Check if user needs to complete profile
+        if (!user.user_metadata?.full_name) {
+          toast.success('Đăng nhập thành công! Vui lòng hoàn thành thông tin cá nhân.');
+          navigate('/profile');
+        } else {
+          toast.success('Đăng nhập thành công!');
+          navigate('/dashboard');
+        }
+      } else {
+        // Auth failed, redirect to login
+        toast.error('Đăng nhập thất bại. Vui lòng thử lại.');
+        navigate('/auth/login');
+      }
+    };
+
+    handleAuthCallback();
+  }, [user, loading, navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-900 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 flex items-center justify-center">
       <div className="text-center text-white">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-        <h1 className="text-2xl font-bold mb-2">Đang xử lý...</h1>
-        <p>Vui lòng chờ trong giây lát...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
+        <p className="text-lg">Đang xử lý đăng nhập...</p>
+        <p className="text-sm text-gray-300 mt-2">Vui lòng đợi trong giây lát</p>
       </div>
     </div>
   );

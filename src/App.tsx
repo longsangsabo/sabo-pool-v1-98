@@ -25,6 +25,8 @@ import SimpleClubAboutPage from "./pages/SimpleClubAboutPage";
 import SimpleClubContactPage from "./pages/SimpleClubContactPage";
 import SystemAuditPage from "./pages/SystemAuditPage";
 import TestPage from "./pages/TestPage";
+import EnhancedLoginPage from "./pages/EnhancedLoginPage";
+import EnhancedRegisterPage from "./pages/EnhancedRegisterPage";
 
 // Import all other pages
 import AboutPage from "./pages/AboutPage";
@@ -185,6 +187,8 @@ const App = () => {
                       {/* Auth routes - standalone without layout */}
                       <Route path="/login" element={<LoginPage />} />
                       <Route path="/register" element={<RegisterPage />} />
+                      <Route path="/auth/login" element={<EnhancedLoginPage />} />
+                      <Route path="/auth/register" element={<EnhancedRegisterPage />} />
                       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                       <Route path="/reset-password" element={<ResetPasswordPage />} />
                       <Route path="/auth/callback" element={<AuthCallbackPage />} />
