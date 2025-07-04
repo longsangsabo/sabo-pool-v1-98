@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,7 +37,8 @@ export const useRealtimeFeed = () => {
       if (!user?.id) return;
 
       try {
-        const { data, error } = await supabase
+        // First get posts
+        const { data: postsData, error: postsError } = await supabase
           .from('posts')
           .select(`
             id,
@@ -47,23 +49,42 @@ export const useRealtimeFeed = () => {
             likes_count,
             comments_count,
             created_at,
-            profiles(
-              user_id,
-              full_name,
-              avatar_url,
-              verified_rank
-            )
+            user_id
           `)
           .order('created_at', { ascending: false })
           .limit(20);
 
-        if (error) {
-          console.error('Error fetching feed:', error);
+        if (postsError) {
+          console.error('Error fetching posts:', postsError);
+          return;
+        }
+
+        if (!postsData || postsData.length === 0) {
+          setFeedPosts([]);
+          return;
+        }
+
+        // Get user IDs from posts
+        const userIds = postsData.map(post => post.user_id);
+
+        // Get profiles for these users
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select(`
+            user_id,
+            full_name,
+            avatar_url,
+            verified_rank
+          `)
+          .in('user_id', userIds);
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
           return;
         }
 
         // Check which posts current user has liked
-        const postIds = data?.map(post => post.id) || [];
+        const postIds = postsData.map(post => post.id);
         const { data: likedPosts } = await supabase
           .from('post_likes')
           .select('post_id')
@@ -72,14 +93,20 @@ export const useRealtimeFeed = () => {
 
         const likedPostIds = new Set(likedPosts?.map(like => like.post_id) || []);
 
-        const formattedPosts: FeedPost[] = (data || []).map(post => {
-          const profile = post.profiles;
+        // Create a map of user profiles
+        const profilesMap = new Map();
+        profilesData?.forEach(profile => {
+          profilesMap.set(profile.user_id, profile);
+        });
+
+        const formattedPosts: FeedPost[] = postsData.map(post => {
+          const profile = profilesMap.get(post.user_id);
           const metadata = post.metadata as any;
           
           return {
             id: post.id,
             user: {
-              id: profile?.user_id || '',
+              id: post.user_id,
               name: profile?.full_name || 'Người chơi',
               avatar: profile?.avatar_url || '/placeholder.svg',
               rank: profile?.verified_rank || 'K1',
@@ -234,7 +261,8 @@ export const useRealtimeFeed = () => {
     if (!user?.id) return;
 
     try {
-      const { data, error } = await supabase
+      // First get posts
+      const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
           id,
@@ -245,23 +273,42 @@ export const useRealtimeFeed = () => {
           likes_count,
           comments_count,
           created_at,
-          profiles(
-            user_id,
-            full_name,
-            avatar_url,
-            verified_rank
-          )
+          user_id
         `)
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (error) {
-        console.error('Error refreshing feed:', error);
+      if (postsError) {
+        console.error('Error refreshing feed:', postsError);
+        return;
+      }
+
+      if (!postsData || postsData.length === 0) {
+        setFeedPosts([]);
+        return;
+      }
+
+      // Get user IDs from posts
+      const userIds = postsData.map(post => post.user_id);
+
+      // Get profiles for these users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select(`
+          user_id,
+          full_name,
+          avatar_url,
+          verified_rank
+        `)
+        .in('user_id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
         return;
       }
 
       // Check likes again
-      const postIds = data?.map(post => post.id) || [];
+      const postIds = postsData.map(post => post.id);
       const { data: likedPosts } = await supabase
         .from('post_likes')
         .select('post_id')
@@ -270,14 +317,20 @@ export const useRealtimeFeed = () => {
 
       const likedPostIds = new Set(likedPosts?.map(like => like.post_id) || []);
 
-      const formattedPosts: FeedPost[] = (data || []).map(post => {
-        const profile = post.profiles;
+      // Create a map of user profiles
+      const profilesMap = new Map();
+      profilesData?.forEach(profile => {
+        profilesMap.set(profile.user_id, profile);
+      });
+
+      const formattedPosts: FeedPost[] = postsData.map(post => {
+        const profile = profilesMap.get(post.user_id);
         const metadata = post.metadata as any;
         
         return {
           id: post.id,
           user: {
-            id: profile?.user_id || '',
+            id: post.user_id,
             name: profile?.full_name || 'Người chơi',
             avatar: profile?.avatar_url || '/placeholder.svg',
             rank: profile?.verified_rank || 'K1',
