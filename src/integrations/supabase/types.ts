@@ -184,6 +184,105 @@ export type Database = {
         }
         Relationships: []
       }
+      club_registrations: {
+        Row: {
+          address: string
+          amenities: Json | null
+          approved_at: string | null
+          approved_by: string | null
+          basic_price: number
+          business_license_url: string | null
+          city: string
+          closing_time: string
+          club_name: string
+          created_at: string | null
+          district: string
+          email: string | null
+          facebook_url: string | null
+          google_maps_url: string | null
+          id: string
+          manager_name: string | null
+          manager_phone: string | null
+          normal_hour_price: number | null
+          opening_time: string
+          peak_hour_price: number | null
+          phone: string
+          photos: string[] | null
+          rejection_reason: string | null
+          status: string | null
+          table_count: number
+          table_types: string[]
+          updated_at: string | null
+          user_id: string | null
+          vip_table_price: number | null
+          weekend_price: number | null
+        }
+        Insert: {
+          address: string
+          amenities?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
+          basic_price: number
+          business_license_url?: string | null
+          city: string
+          closing_time: string
+          club_name: string
+          created_at?: string | null
+          district: string
+          email?: string | null
+          facebook_url?: string | null
+          google_maps_url?: string | null
+          id?: string
+          manager_name?: string | null
+          manager_phone?: string | null
+          normal_hour_price?: number | null
+          opening_time: string
+          peak_hour_price?: number | null
+          phone: string
+          photos?: string[] | null
+          rejection_reason?: string | null
+          status?: string | null
+          table_count: number
+          table_types: string[]
+          updated_at?: string | null
+          user_id?: string | null
+          vip_table_price?: number | null
+          weekend_price?: number | null
+        }
+        Update: {
+          address?: string
+          amenities?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
+          basic_price?: number
+          business_license_url?: string | null
+          city?: string
+          closing_time?: string
+          club_name?: string
+          created_at?: string | null
+          district?: string
+          email?: string | null
+          facebook_url?: string | null
+          google_maps_url?: string | null
+          id?: string
+          manager_name?: string | null
+          manager_phone?: string | null
+          normal_hour_price?: number | null
+          opening_time?: string
+          peak_hour_price?: number | null
+          phone?: string
+          photos?: string[] | null
+          rejection_reason?: string | null
+          status?: string | null
+          table_count?: number
+          table_types?: string[]
+          updated_at?: string | null
+          user_id?: string | null
+          vip_table_price?: number | null
+          weekend_price?: number | null
+        }
+        Relationships: []
+      }
       club_stats: {
         Row: {
           active_members: number | null

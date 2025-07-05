@@ -9,10 +9,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Camera, MapPin, User, Phone, Calendar, Trophy, Save, RotateCcw } from 'lucide-react';
+import { Camera, MapPin, User, Phone, Calendar, Trophy, Save, RotateCcw, Building } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ClubRegistrationForm from '@/components/ClubRegistrationForm';
+import ClubRegistrationMultiStepForm from '@/components/ClubRegistrationMultiStepForm';
 import RankVerificationForm from '@/components/RankVerificationForm';
 import RankVerificationRequests from '@/components/RankVerificationRequests';
 import PenaltyManagement from '@/components/PenaltyManagement';
@@ -492,10 +493,14 @@ const ProfilePage = () => {
 
         {/* Profile Tabs */}
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="profile">Hồ sơ</TabsTrigger>
             <TabsTrigger value="stats">Thống kê</TabsTrigger>
             <TabsTrigger value="rank">Xác thực hạng</TabsTrigger>
+            <TabsTrigger value="club-registration">
+              <Building className="w-4 h-4 mr-1" />
+              Đăng ký CLB
+            </TabsTrigger>
             <TabsTrigger value="challenges">Thách đấu</TabsTrigger>
             <TabsTrigger value="penalties">Hình phạt</TabsTrigger>
             {profile.role === 'club_owner' || profile.role === 'both' ? (
@@ -680,6 +685,10 @@ const ProfilePage = () => {
 
           <TabsContent value="rank">
             <RankVerificationForm />
+          </TabsContent>
+
+          <TabsContent value="club-registration">
+            <ClubRegistrationMultiStepForm />
           </TabsContent>
 
           <TabsContent value="club">
