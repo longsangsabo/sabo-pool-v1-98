@@ -29,13 +29,17 @@ const ClubRegistrationForm = () => {
   const [formData, setFormData] = useState({
     club_name: '',
     address: '',
+    city: 'TP. Hồ Chí Minh',
+    district: '',
     phone: '',
-    operating_hours: {
-      open: '08:00',
-      close: '23:00',
-      days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-    },
-    number_of_tables: 1
+    opening_time: '08:00',
+    closing_time: '23:00',
+    table_count: 1,
+    table_types: ['Pool'],
+    basic_price: 0,
+    email: '',
+    manager_name: '',
+    manager_phone: ''
   });
 
   useEffect(() => {
@@ -46,29 +50,39 @@ const ClubRegistrationForm = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('club_profiles')
+      // Check existing registration first
+      const { data: regData, error: regError } = await supabase
+        .from('club_registrations')
         .select('*')
         .eq('user_id', user.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching club profile:', error);
-        return;
-      }
-
-      if (data) {
-        setClubProfile(data);
+      if (regData) {
         setFormData({
-          club_name: data.club_name,
-          address: data.address,
-          phone: data.phone,
-          operating_hours: (data.operating_hours as any) || {
-            open: '08:00',
-            close: '23:00',
-            days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-          },
-          number_of_tables: data.number_of_tables
+          club_name: regData.club_name,
+          address: regData.address,
+          city: regData.city,
+          district: regData.district,
+          phone: regData.phone,
+          opening_time: regData.opening_time,
+          closing_time: regData.closing_time,
+          table_count: regData.table_count,
+          table_types: regData.table_types,
+          basic_price: regData.basic_price,
+          email: regData.email || '',
+          manager_name: regData.manager_name || '',
+          manager_phone: regData.manager_phone || ''
+        });
+        setClubProfile({
+          id: regData.id,
+          club_name: regData.club_name,
+          address: regData.address,
+          phone: regData.phone,
+          operating_hours: null,
+          number_of_tables: regData.table_count,
+          verification_status: regData.status,
+          verification_notes: regData.rejection_reason,
+          created_at: regData.created_at
         });
       }
     } catch (error) {
@@ -82,35 +96,31 @@ const ClubRegistrationForm = () => {
     e.preventDefault();
     if (!user) return;
 
+    // Validate required fields
+    if (!formData.club_name.trim() || !formData.address.trim() || !formData.phone.trim()) {
+      toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
+      return;
+    }
+
     setSaving(true);
 
     try {
       const { error } = await supabase
-        .from('club_profiles')
+        .from('club_registrations')
         .upsert({
           user_id: user.id,
           ...formData,
-          verification_status: clubProfile ? clubProfile.verification_status : 'pending'
+          status: 'pending',
+          updated_at: new Date().toISOString()
         });
 
       if (error) throw error;
 
-      // Update user role to include club_owner
-      const { error: roleError } = await supabase
-        .from('profiles')
-        .update({
-          role: 'both',
-          active_role: 'club_owner'
-        })
-        .eq('user_id', user.id);
-
-      if (roleError) throw roleError;
-
-      toast.success('Đã lưu thông tin câu lạc bộ!');
+      toast.success('Đã gửi đăng ký thành công! Admin sẽ xem xét trong 1-3 ngày làm việc.');
       fetchClubProfile();
     } catch (error: any) {
-      console.error('Error saving club profile:', error);
-      toast.error('Lỗi khi lưu: ' + error.message);
+      console.error('Error saving club registration:', error);
+      toast.error('Lỗi khi gửi đăng ký: ' + error.message);
     } finally {
       setSaving(false);
     }
@@ -191,10 +201,38 @@ const ClubRegistrationForm = () => {
             <Textarea
               value={formData.address}
               onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-              placeholder="123 Đường ABC, Phường DEF, Quận GHI, TP.HCM"
+              placeholder="123 Đường ABC, Phường DEF"
               required
               className="min-h-[80px]"
             />
+          </div>
+
+          {/* City and District */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Thành phố *
+              </label>
+              <Input
+                value={formData.city}
+                onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                placeholder="TP. Hồ Chí Minh"
+                required
+                className="h-12"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Quận/Huyện *
+              </label>
+              <Input
+                value={formData.district}
+                onChange={(e) => setFormData(prev => ({ ...prev, district: e.target.value }))}
+                placeholder="Quận 1"
+                required
+                className="h-12"
+              />
+            </div>
           </div>
 
           {/* Phone */}
@@ -222,11 +260,8 @@ const ClubRegistrationForm = () => {
               </label>
               <Input
                 type="time"
-                value={formData.operating_hours.open}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  operating_hours: { ...prev.operating_hours, open: e.target.value }
-                }))}
+                value={formData.opening_time}
+                onChange={(e) => setFormData(prev => ({ ...prev, opening_time: e.target.value }))}
                 className="h-12"
               />
             </div>
@@ -236,30 +271,69 @@ const ClubRegistrationForm = () => {
               </label>
               <Input
                 type="time"
-                value={formData.operating_hours.close}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  operating_hours: { ...prev.operating_hours, close: e.target.value }
-                }))}
+                value={formData.closing_time}
+                onChange={(e) => setFormData(prev => ({ ...prev, closing_time: e.target.value }))}
                 className="h-12"
               />
             </div>
           </div>
 
-          {/* Number of Tables */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Users className="w-4 h-4 inline mr-1" />
-              Số bàn bida
-            </label>
-            <Input
-              type="number"
-              min="1"
-              max="50"
-              value={formData.number_of_tables}
-              onChange={(e) => setFormData(prev => ({ ...prev, number_of_tables: parseInt(e.target.value) || 1 }))}
-              className="h-12"
-            />
+          {/* Number of Tables and Price */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Users className="w-4 h-4 inline mr-1" />
+                Số bàn bida *
+              </label>
+              <Input
+                type="number"
+                min="1"
+                max="50"
+                value={formData.table_count}
+                onChange={(e) => setFormData(prev => ({ ...prev, table_count: parseInt(e.target.value) || 1 }))}
+                className="h-12"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Giá cơ bản (VNĐ/giờ) *
+              </label>
+              <Input
+                type="number"
+                min="0"
+                value={formData.basic_price}
+                onChange={(e) => setFormData(prev => ({ ...prev, basic_price: parseInt(e.target.value) || 0 }))}
+                placeholder="50000"
+                className="h-12"
+              />
+            </div>
+          </div>
+
+          {/* Contact Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email liên hệ
+              </label>
+              <Input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="contact@club.com"
+                className="h-12"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tên người quản lý
+              </label>
+              <Input
+                value={formData.manager_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, manager_name: e.target.value }))}
+                placeholder="Nguyễn Văn A"
+                className="h-12"
+              />
+            </div>
           </div>
 
           {/* Verification Notes */}
@@ -273,10 +347,10 @@ const ClubRegistrationForm = () => {
           {/* Submit Button */}
           <Button
             type="submit"
-            disabled={saving}
+            disabled={saving || !formData.club_name.trim() || !formData.address.trim() || !formData.phone.trim() || !formData.district.trim()}
             className="w-full h-12"
           >
-            {saving ? 'Đang lưu...' : clubProfile ? 'Cập nhật thông tin' : 'Đăng ký câu lạc bộ'}
+            {saving ? 'Đang gửi...' : clubProfile?.verification_status === 'pending' ? 'Đã gửi đăng ký' : clubProfile?.verification_status === 'approved' ? 'Đã được duyệt': clubProfile?.verification_status === 'rejected' ? 'Gửi lại đăng ký' : 'Gửi đăng ký'}
           </Button>
 
           {/* Info */}
