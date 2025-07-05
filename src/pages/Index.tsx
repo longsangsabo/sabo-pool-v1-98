@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Users, Calendar, Star, PlayCircle, Target } from "lucide-react";
 import { Link } from "react-router-dom";
+import saboClubBg from "@/assets/sabo-club-bg.jpg";
 
 const Index = () => {
   return (
@@ -22,10 +23,10 @@ const Index = () => {
       <div className="min-h-screen relative">
         {/* Background Image */}
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-90"
-          style={{ backgroundImage: `url(/lovable-uploads/815b29dd-72ff-41f7-b398-5386f712de37.png)` }}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${saboClubBg})` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-900/60 via-slate-800/70 to-slate-900/60"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900/70 via-slate-800/80 to-slate-900/70"></div>
         </div>
         {/* Header */}
         <header className="relative z-10 container mx-auto px-4 py-6 flex justify-between items-center backdrop-blur-sm bg-slate-900/20 rounded-lg mx-4 mt-4">
