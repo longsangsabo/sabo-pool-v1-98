@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Camera, MapPin, User, Phone, Calendar, Trophy } from 'lucide-react';
+import { Camera, MapPin, User, Phone, Calendar, Trophy, Save, RotateCcw } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ClubRegistrationForm from '@/components/ClubRegistrationForm';
@@ -106,8 +106,24 @@ const ProfilePage = () => {
     active_role: 'player',
     verified_rank: null,
   });
+  const [originalProfile, setOriginalProfile] = useState<ProfileData>({
+    user_id: '',
+    display_name: '',
+    phone: '',
+    bio: '',
+    skill_level: 'beginner',
+    city: '',
+    district: '',
+    avatar_url: '',
+    member_since: '',
+    role: 'player',
+    active_role: 'player',
+    verified_rank: null,
+  });
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
   const skillLevels = {
     beginner: { label: 'Người mới', color: 'bg-green-100 text-green-800' },
@@ -119,6 +135,12 @@ const ProfilePage = () => {
   useEffect(() => {
     fetchProfile();
   }, [user]);
+
+  // Track changes to enable/disable update button
+  useEffect(() => {
+    const hasProfileChanges = JSON.stringify(profile) !== JSON.stringify(originalProfile);
+    setHasChanges(hasProfileChanges);
+  }, [profile, originalProfile]);
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -136,7 +158,7 @@ const ProfilePage = () => {
       }
 
       if (data) {
-        setProfile({
+        const profileData = {
           user_id: data.user_id || user.id,
           display_name: data.display_name || data.full_name || '',
           phone: data.phone || user.phone || '',
@@ -149,7 +171,9 @@ const ProfilePage = () => {
           role: (data.role || 'player') as 'player' | 'club_owner' | 'both',
           active_role: (data.active_role || 'player') as 'player' | 'club_owner',
           verified_rank: data.verified_rank || null,
-        });
+        };
+        setProfile(profileData);
+        setOriginalProfile(profileData);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -187,6 +211,46 @@ const ProfilePage = () => {
     if (profile[field as keyof ProfileData] !== value) {
       updateProfile(field, value);
     }
+  };
+
+  // Update all profile information at once
+  const updateAllProfile = async () => {
+    if (!user || !hasChanges) return;
+
+    setUpdating(true);
+    try {
+      const updateData = {
+        user_id: user.id,
+        display_name: profile.display_name,
+        full_name: profile.display_name, // For compatibility
+        phone: profile.phone,
+        bio: profile.bio,
+        skill_level: profile.skill_level,
+        city: profile.city,
+        district: profile.district,
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert(updateData);
+
+      if (error) throw error;
+
+      // Update original profile to match current
+      setOriginalProfile(profile);
+      toast.success('🎉 Đã cập nhật thông tin thành công!');
+    } catch (error: any) {
+      console.error('Error updating all profile:', error);
+      toast.error('❌ Lỗi khi cập nhật: ' + error.message);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Reset changes to original values
+  const resetChanges = () => {
+    setProfile(originalProfile);
+    toast.info('Đã hủy thay đổi');
   };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -445,6 +509,48 @@ const ProfilePage = () => {
                     Chỉ tên hiển thị, ảnh đại diện, trình độ và giới thiệu sẽ được hiển thị cho người khác.
                   </p>
                 </div>
+
+                {/* Update Actions */}
+                {hasChanges && (
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+                    <Button 
+                      onClick={updateAllProfile}
+                      disabled={updating || !hasChanges}
+                      className="flex-1 h-12 text-lg bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {updating ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Đang cập nhật...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Cập nhật thông tin
+                        </>
+                      )}
+                    </Button>
+                    <Button 
+                      onClick={resetChanges}
+                      disabled={updating}
+                      variant="outline"
+                      className="flex-1 h-12 text-lg border-gray-300 hover:bg-gray-50"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Hủy thay đổi
+                    </Button>
+                  </div>
+                )}
+
+                {!hasChanges && (
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center justify-center p-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-600">
+                        💡 Thông tin sẽ được tự động lưu khi bạn nhấn ra ngoài ô nhập liệu, hoặc bạn có thể chỉnh sửa và nhấn "Cập nhật thông tin" để lưu tất cả cùng lúc.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
