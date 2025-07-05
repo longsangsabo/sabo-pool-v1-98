@@ -174,6 +174,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      console.log("AuthProvider: Attempting Google sign in");
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+      return { data, error };
+    } catch (error: any) {
+      console.error('AuthProvider: Google sign in error:', error);
+      return { error };
+    }
+  };
+
   // Legacy methods for backward compatibility
   const signIn = signInWithEmail;
   const signUp = signUpWithEmail;
@@ -198,6 +218,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signUpWithEmail,
     signUpWithPhone,
     signInWithFacebook,
+    signInWithGoogle,
     signOut,
     loading,
   };

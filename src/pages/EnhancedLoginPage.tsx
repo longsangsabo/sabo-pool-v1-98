@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { EnhancedAuthTabs, PhoneTabContent, EmailTabContent } from '@/components/auth/EnhancedAuthTabs';
 import { FacebookLoginButton } from '@/components/auth/FacebookLoginButton';
+import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton';
 import { AuthDivider } from '@/components/auth/AuthDivider';
 import { handleAuthError } from '@/utils/authHelpers';
 
@@ -121,8 +122,11 @@ const EnhancedLoginPage = () => {
             <p className="text-gray-600">SABO Pool Arena</p>
           </div>
 
-          {/* Facebook Login Button */}
-          <FacebookLoginButton />
+          {/* Social Login Buttons */}
+          <div className="space-y-3">
+            <FacebookLoginButton />
+            <GoogleLoginButton />
+          </div>
           
           <AuthDivider />
 

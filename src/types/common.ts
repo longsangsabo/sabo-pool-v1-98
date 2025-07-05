@@ -23,6 +23,7 @@ export interface AuthContextType {
   signUpWithEmail: (email: string, password: string, fullName: string) => Promise<{ data?: any; error?: any }>;
   signUpWithPhone: (phone: string, password: string, fullName: string) => Promise<{ data?: any; error?: any }>;
   signInWithFacebook: () => Promise<{ data?: any; error?: any }>;
+  signInWithGoogle: () => Promise<{ data?: any; error?: any }>;
   signOut: () => Promise<void>;
   loading: boolean;
 }
