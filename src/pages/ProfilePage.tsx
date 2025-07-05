@@ -277,25 +277,86 @@ const ProfilePage = () => {
     toast.info('Đã hủy thay đổi');
   };
 
+  // Function to compress image
+  const compressImage = (file: File, maxSizeKB: number = 500): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions to maintain aspect ratio
+        const maxDimension = 800; // Max width/height
+        let { width, height } = img;
+        
+        if (width > height) {
+          if (width > maxDimension) {
+            height = (height * maxDimension) / width;
+            width = maxDimension;
+          }
+        } else {
+          if (height > maxDimension) {
+            width = (width * maxDimension) / height;
+            height = maxDimension;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Try different quality levels until we get under maxSizeKB
+        let quality = 0.8;
+        const tryCompress = () => {
+          canvas.toBlob((blob) => {
+            if (blob && (blob.size <= maxSizeKB * 1024 || quality <= 0.1)) {
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else {
+              quality -= 0.1;
+              tryCompress();
+            }
+          }, 'image/jpeg', quality);
+        };
+        
+        tryCompress();
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
-    // Validate file size (500KB max)
-    if (file.size > 500 * 1024) {
-      toast.error('Ảnh phải nhỏ hơn 500KB');
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vui lòng chọn file hình ảnh');
       return;
     }
 
     setUploading(true);
 
     try {
-      const fileExt = file.name.split('.').pop();
+      // Compress image if it's larger than 500KB
+      let uploadFile = file;
+      if (file.size > 500 * 1024) {
+        toast.info('Đang nén ảnh để tối ưu...');
+        uploadFile = await compressImage(file);
+      }
+
+      const fileExt = 'jpg'; // Always use jpg after compression
       const fileName = `${user.id}/avatar.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, uploadFile, { upsert: true });
 
       if (uploadError) throw uploadError;
 
@@ -303,12 +364,30 @@ const ProfilePage = () => {
         .from('avatars')
         .getPublicUrl(fileName);
 
-      const avatarUrl = urlData.publicUrl;
+      const avatarUrl = urlData.publicUrl + '?t=' + new Date().getTime(); // Add timestamp to force refresh
 
+      // Update profiles table
       await updateProfile('avatar_url', avatarUrl);
+      
+      // Update user metadata to sync with header
+      const { error: updateUserError } = await supabase.auth.updateUser({
+        data: { avatar_url: avatarUrl }
+      });
+
+      if (updateUserError) {
+        console.error('Error updating user metadata:', updateUserError);
+      }
+
+      // Update local state
       setProfile(prev => ({ ...prev, avatar_url: avatarUrl }));
 
-      toast.success('Đã tải lên ảnh đại diện!');
+      toast.success('Đã cập nhật ảnh đại diện thành công!');
+      
+      // Force page refresh to update header avatar
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
       toast.error('Lỗi khi tải ảnh: ' + error.message);
