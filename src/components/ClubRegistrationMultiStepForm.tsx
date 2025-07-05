@@ -212,11 +212,38 @@ const ClubRegistrationMultiStepForm = () => {
 
       if (error) throw error;
 
-      toast.success('Đã gửi đăng ký thành công! Chờ admin xét duyệt.');
+      toast.success('🎉 Đã gửi đăng ký thành công!', {
+        description: 'Đăng ký CLB của bạn đang được xem xét. Chúng tôi sẽ gửi thông báo khi có kết quả xét duyệt.',
+        duration: 5000
+      });
       fetchExistingRegistration();
     } catch (error: any) {
       console.error('Error submitting registration:', error);
       toast.error('Lỗi khi gửi đăng ký: ' + error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetToEdit = async () => {
+    if (!user || !existingRegistration) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('club_registrations')
+        .update({
+          status: 'draft'
+        })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast.success('Đã chuyển về chế độ chỉnh sửa');
+      fetchExistingRegistration();
+    } catch (error: any) {
+      console.error('Error resetting to edit:', error);
+      toast.error('Lỗi khi chuyển về chế độ chỉnh sửa: ' + error.message);
     } finally {
       setSaving(false);
     }
@@ -934,19 +961,57 @@ const ClubRegistrationMultiStepForm = () => {
 
         {/* Status info */}
         {existingRegistration && existingRegistration.status !== 'draft' && (
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Trạng thái:</strong> {
-                existingRegistration.status === 'pending' ? 'Đang chờ admin xét duyệt' :
-                existingRegistration.status === 'approved' ? 'Đã được duyệt' :
-                'Bị từ chối'
-              }
-            </p>
-            {existingRegistration.rejection_reason && (
-              <p className="text-sm text-red-800 mt-2">
-                <strong>Lý do từ chối:</strong> {existingRegistration.rejection_reason}
-              </p>
-            )}
+          <div className={`mt-4 p-4 rounded-lg ${
+            existingRegistration.status === 'approved' ? 'bg-green-50' : 
+            existingRegistration.status === 'rejected' ? 'bg-red-50' : 'bg-blue-50'
+          }`}>
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <p className={`text-sm font-medium ${
+                  existingRegistration.status === 'approved' ? 'text-green-800' : 
+                  existingRegistration.status === 'rejected' ? 'text-red-800' : 'text-blue-800'
+                }`}>
+                  <strong>Trạng thái:</strong> {
+                    existingRegistration.status === 'pending' ? 'Đang chờ admin xét duyệt' :
+                    existingRegistration.status === 'approved' ? '🎉 Đã được duyệt thành công!' :
+                    '❌ Bị từ chối'
+                  }
+                </p>
+                
+                {existingRegistration.status === 'pending' && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    💡 Chúng tôi sẽ gửi thông báo khi có kết quả xét duyệt
+                  </p>
+                )}
+                
+                {existingRegistration.status === 'approved' && (
+                  <p className="text-xs text-green-600 mt-1">
+                    ✅ CLB của bạn đã được chấp thuận và có thể hoạt động
+                  </p>
+                )}
+                
+                {existingRegistration.rejection_reason && (
+                  <div className="mt-2 p-2 bg-red-100 rounded">
+                    <p className="text-sm text-red-800">
+                      <strong>Lý do từ chối:</strong> {existingRegistration.rejection_reason}
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Edit button for pending or rejected registrations */}
+              {(existingRegistration.status === 'pending' || existingRegistration.status === 'rejected') && (
+                <Button 
+                  onClick={resetToEdit}
+                  disabled={saving}
+                  variant="outline"
+                  size="sm"
+                  className="ml-4"
+                >
+                  {saving ? 'Đang xử lý...' : 'Chỉnh sửa đăng ký'}
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </CardContent>
