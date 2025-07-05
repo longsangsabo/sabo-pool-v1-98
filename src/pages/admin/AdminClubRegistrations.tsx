@@ -149,82 +149,117 @@ const AdminClubRegistrations = () => {
   };
 
   const approveRegistration = async (registration: ClubRegistration) => {
-    console.log('✅ Approving club:', registration.club_name);
+    console.log('✅ Starting approval for club:', registration.club_name);
+    console.log('📋 Registration data:', registration);
     setProcessing(true);
     
     try {
-      // Update registration status
-      const { error: updateError } = await supabase
+      // Step 1: Update registration status
+      console.log('📝 Step 1: Updating registration status...');
+      const { data: updatedReg, error: updateError } = await supabase
         .from('club_registrations')
         .update({
           status: 'approved',
           approved_at: new Date().toISOString(),
           approved_by: user?.id
         })
-        .eq('id', registration.id);
+        .eq('id', registration.id)
+        .select()
+        .single();
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ Update registration error:', updateError);
+        throw new Error(`Lỗi cập nhật đăng ký: ${updateError.message}`);
+      }
+      console.log('✅ Registration updated:', updatedReg);
 
-      // Create club profile
-      const { error: clubError } = await supabase
+      // Step 2: Create club profile
+      console.log('📝 Step 2: Creating club profile...');
+      const clubProfileData = {
+        user_id: registration.user_id,
+        club_name: registration.club_name,
+        address: registration.address,
+        phone: registration.phone,
+        operating_hours: {
+          open: registration.opening_time,
+          close: registration.closing_time,
+          days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+        },
+        number_of_tables: registration.table_count,
+        verification_status: 'approved',
+        verified_at: new Date().toISOString(),
+        verified_by: user?.id
+      };
+      
+      console.log('📋 Club profile data:', clubProfileData);
+      const { data: clubProfile, error: clubError } = await supabase
         .from('club_profiles')
-        .insert({
-          user_id: registration.user_id,
-          club_name: registration.club_name,
-          address: registration.address,
-          phone: registration.phone,
-          operating_hours: {
-            open: registration.opening_time,
-            close: registration.closing_time,
-            days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-          },
-          number_of_tables: registration.table_count,
-          verification_status: 'approved',
-          verified_at: new Date().toISOString(),
-          verified_by: user?.id
-        });
+        .insert(clubProfileData)
+        .select()
+        .single();
 
-      if (clubError) throw clubError;
+      if (clubError) {
+        console.error('❌ Club profile error:', clubError);
+        throw new Error(`Lỗi tạo hồ sơ CLB: ${clubError.message}`);
+      }
+      console.log('✅ Club profile created:', clubProfile);
 
-      // Update user role
-      const { error: roleError } = await supabase
+      // Step 3: Update user role
+      console.log('📝 Step 3: Updating user role...');
+      const { data: updatedProfile, error: roleError } = await supabase
         .from('profiles')
         .update({
           role: 'both',
           active_role: 'club_owner'
         })
-        .eq('user_id', registration.user_id);
+        .eq('user_id', registration.user_id)
+        .select()
+        .single();
 
-      if (roleError) throw roleError;
+      if (roleError) {
+        console.error('❌ Role update error:', roleError);
+        throw new Error(`Lỗi cập nhật vai trò: ${roleError.message}`);
+      }
+      console.log('✅ User role updated:', updatedProfile);
 
-      // Create notification for club owner
-      const { error: notificationError } = await supabase
+      // Step 4: Create notification for club owner
+      console.log('📝 Step 4: Creating notification...');
+      const notificationData = {
+        user_id: registration.user_id,
+        type: 'club_approved',
+        title: 'CLB được phê duyệt',
+        message: `Chúc mừng! Câu lạc bộ "${registration.club_name}" của bạn đã được phê duyệt thành công.`,
+        action_url: '/profile?tab=club',
+        metadata: {
+          club_name: registration.club_name,
+          registration_id: registration.id
+        },
+        priority: 'high'
+      };
+
+      const { data: notification, error: notificationError } = await supabase
         .from('notifications')
-        .insert({
-          user_id: registration.user_id,
-          type: 'club_approved',
-          title: 'CLB được phê duyệt',
-          message: `Chúc mừng! Câu lạc bộ "${registration.club_name}" của bạn đã được phê duyệt thành công.`,
-          action_url: '/profile?tab=club',
-          metadata: {
-            club_name: registration.club_name,
-            registration_id: registration.id
-          },
-          priority: 'high'
-        });
+        .insert(notificationData)
+        .select()
+        .single();
 
       if (notificationError) {
-        console.error('Error creating notification:', notificationError);
+        console.error('⚠️ Notification error (non-critical):', notificationError);
         // Don't fail the whole process for notification errors
+      } else {
+        console.log('✅ Notification created:', notification);
       }
 
-      console.log('✅ Club approved:', registration.club_name);
-      toast.success('Đã duyệt đăng ký câu lạc bộ thành công!');
-      fetchRegistrations();
+      console.log('🎉 Club approval completed successfully!');
+      toast.success(`Đã duyệt thành công câu lạc bộ "${registration.club_name}"!`);
+      
+      // Refresh the list to show updated status
+      await fetchRegistrations();
       setSelectedRegistration(null);
+      
     } catch (error: any) {
-      console.error('Error approving registration:', error);
-      toast.error('Lỗi khi duyệt đăng ký: ' + error.message);
+      console.error('💥 Error during club approval:', error);
+      toast.error(`Lỗi khi duyệt đăng ký: ${error.message || 'Unknown error'}`);
     } finally {
       setProcessing(false);
     }
