@@ -4,7 +4,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthContextType, UserProfile } from '@/types/common';
 import { useNavigate } from 'react-router-dom';
-import { isAdminUser } from '@/utils/adminHelpers';
+import { isAdminUser, updateUserAdminStatus } from '@/utils/adminHelpers';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -113,6 +113,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (profileError) {
           console.error('Profile creation error:', profileError);
+        } else {
+          // Force update admin status for existing users
+          await updateUserAdminStatus(data.user.id, email, undefined);
         }
       }
 

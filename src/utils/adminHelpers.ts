@@ -23,15 +23,25 @@ export function isAdminUser(email?: string, phone?: string): boolean {
 
 export async function checkUserAdminStatus(userId: string): Promise<boolean> {
   try {
-    const { data: profile, error } = await supabase
+    // First check in profiles table
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('is_admin')
       .eq('user_id', userId)
       .single();
 
-    if (error) {
-      console.error('Error checking admin status:', error);
-      return false;
+    if (!profileError && profile?.is_admin) {
+      return true;
+    }
+
+    // If no profile exists or is_admin is false, check auth.users email
+    const { data: authUser, error: authError } = await supabase.auth.getUser();
+    
+    if (!authError && authUser.user && authUser.user.id === userId) {
+      const userEmail = authUser.user.email;
+      const userPhone = authUser.user.phone;
+      
+      return isAdminUser(userEmail, userPhone);
     }
 
     return profile?.is_admin || false;
