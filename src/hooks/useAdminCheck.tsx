@@ -11,9 +11,19 @@ export const useAdminCheck = () => {
     queryFn: async () => {
       if (!user?.id) return false;
 
-      // Mock admin check since is_user_admin RPC doesn't exist
-      // For demo purposes, make first user an admin
-      return user?.email === 'admin@example.com';
+      // Check if user has admin status in profiles
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error checking admin status:', error);
+        return false;
+      }
+
+      return profile?.is_admin || false;
     },
     enabled: !!user?.id,
   });

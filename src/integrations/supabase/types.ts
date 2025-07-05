@@ -1313,6 +1313,7 @@ export type Database = {
           elo: number | null
           full_name: string | null
           id: string
+          is_admin: boolean | null
           member_since: string | null
           nickname: string | null
           phone: string | null
@@ -1339,6 +1340,7 @@ export type Database = {
           elo?: number | null
           full_name?: string | null
           id?: string
+          is_admin?: boolean | null
           member_since?: string | null
           nickname?: string | null
           phone?: string | null
@@ -1365,6 +1367,7 @@ export type Database = {
           elo?: number | null
           full_name?: string | null
           id?: string
+          is_admin?: boolean | null
           member_since?: string | null
           nickname?: string | null
           phone?: string | null

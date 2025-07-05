@@ -21,6 +21,7 @@ import MyChallengesTab from '@/components/MyChallengesTab';
 import PlayerStatsComponent from '@/components/PlayerStatsComponent';
 import TrustScoreBadge from '@/components/TrustScoreBadge';
 import ProfileHeader from '@/components/ProfileHeader';
+import { isAdminUser } from '@/utils/adminHelpers';
 
 // Export types for other components
 export interface UserProfile {
@@ -178,6 +179,15 @@ const ProfilePage = () => {
         };
         setProfile(profileData);
         setOriginalProfile(profileData);
+
+        // Update admin status if needed for existing users
+        const shouldBeAdmin = isAdminUser(user.email, data.phone);
+        if (shouldBeAdmin && !data.is_admin) {
+          await supabase
+            .from('profiles')
+            .update({ is_admin: true })
+            .eq('user_id', user.id);
+        }
       }
     } catch (error) {
       console.error('Error:', error);

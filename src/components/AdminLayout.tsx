@@ -18,7 +18,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     if (!authLoading && !adminLoading) {
       if (!user) {
         navigate('/login');
-      } else if (!isAdmin) {
+      } else if (isAdmin === false) {
         navigate('/dashboard');
       }
     }
@@ -32,7 +32,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     );
   }
 
-  if (!user || !isAdmin) {
+  if (!user || isAdmin === false) {
     return null;
   }
 

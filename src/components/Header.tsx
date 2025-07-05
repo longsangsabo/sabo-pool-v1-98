@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { useAdminCheck } from '@/hooks/useAdminCheck';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import {
   DropdownMenu,
@@ -32,6 +33,7 @@ import { Badge } from './ui/badge';
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { data: isAdmin } = useAdminCheck();
   const location = useLocation();
 
   const navigationItems = [
@@ -145,13 +147,17 @@ const Header = () => {
                       Thông báo
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/admin" className="flex items-center">
-                      <Shield className="w-4 h-4 mr-2" />
-                      Quản trị
-                    </Link>
-                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="flex items-center text-purple-600">
+                          <Shield className="w-4 h-4 mr-2" />
+                          Quản trị
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     Đăng xuất

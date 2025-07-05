@@ -4,6 +4,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthContextType, UserProfile } from '@/types/common';
 import { useNavigate } from 'react-router-dom';
+import { isAdminUser } from '@/utils/adminHelpers';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -100,11 +101,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Create profile after successful signup
       if (data.user && !error) {
+        const isAdmin = isAdminUser(email, undefined);
+        
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
             user_id: data.user.id,
             full_name: fullName,
+            is_admin: isAdmin,
           });
         
         if (profileError) {
@@ -137,12 +141,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Create profile after successful signup
       if (data.user && !error) {
+        const isAdmin = isAdminUser(undefined, phone);
+        
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
             user_id: data.user.id,
             full_name: fullName,
             phone: phone, // Store original format
+            is_admin: isAdmin,
           });
         
         if (profileError) {
