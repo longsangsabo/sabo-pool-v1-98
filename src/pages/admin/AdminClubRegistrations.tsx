@@ -71,12 +71,15 @@ const AdminClubRegistrations = () => {
   }, [statusFilter]);
 
   const fetchRegistrations = async () => {
+    console.log('🔍 Admin accessing club panel');
+    setLoading(true);
+    
     try {
       let query = supabase
         .from('club_registrations')
         .select(`
           *,
-          profiles!club_registrations_user_id_fkey(display_name, full_name, email)
+          profiles!club_registrations_user_id_fkey(display_name, full_name, phone)
         `)
         .order('created_at', { ascending: false });
 
@@ -86,8 +89,14 @@ const AdminClubRegistrations = () => {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('Club query error:', error);
+        toast.error('Không thể tải danh sách CLB: ' + error.message);
+        return;
+      }
 
+      console.log('📋 Found pending clubs:', data?.length || 0);
+      
       setRegistrations((data || []).map(item => ({
         ...item,
         amenities: (item.amenities as Record<string, boolean>) || {},
@@ -103,7 +112,9 @@ const AdminClubRegistrations = () => {
   };
 
   const approveRegistration = async (registration: ClubRegistration) => {
+    console.log('✅ Approving club:', registration.club_name);
     setProcessing(true);
+    
     try {
       // Update registration status
       const { error: updateError } = await supabase
@@ -149,6 +160,28 @@ const AdminClubRegistrations = () => {
 
       if (roleError) throw roleError;
 
+      // Create notification for club owner
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: registration.user_id,
+          type: 'club_approved',
+          title: 'CLB được phê duyệt',
+          message: `Chúc mừng! Câu lạc bộ "${registration.club_name}" của bạn đã được phê duyệt thành công.`,
+          action_url: '/profile?tab=club',
+          metadata: {
+            club_name: registration.club_name,
+            registration_id: registration.id
+          },
+          priority: 'high'
+        });
+
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError);
+        // Don't fail the whole process for notification errors
+      }
+
+      console.log('✅ Club approved:', registration.club_name);
       toast.success('Đã duyệt đăng ký câu lạc bộ thành công!');
       fetchRegistrations();
       setSelectedRegistration(null);
@@ -166,7 +199,9 @@ const AdminClubRegistrations = () => {
       return;
     }
 
+    console.log('❌ Rejecting club:', registration.club_name, 'Reason:', rejectionReason);
     setProcessing(true);
+    
     try {
       const { error } = await supabase
         .from('club_registrations')
@@ -178,6 +213,29 @@ const AdminClubRegistrations = () => {
 
       if (error) throw error;
 
+      // Create notification for club owner
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: registration.user_id,
+          type: 'club_rejected',
+          title: 'CLB bị từ chối',
+          message: `Đăng ký câu lạc bộ "${registration.club_name}" đã bị từ chối. Lý do: ${rejectionReason}`,
+          action_url: '/profile?tab=club-registration',
+          metadata: {
+            club_name: registration.club_name,
+            registration_id: registration.id,
+            rejection_reason: rejectionReason
+          },
+          priority: 'normal'
+        });
+
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError);
+        // Don't fail the whole process for notification errors
+      }
+
+      console.log('❌ Club rejected:', registration.club_name);
       toast.success('Đã từ chối đăng ký câu lạc bộ');
       setRejectionReason('');
       fetchRegistrations();
