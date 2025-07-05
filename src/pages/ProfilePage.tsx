@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useAvatar } from '@/contexts/AvatarContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -92,6 +93,7 @@ interface ProfileData {
 
 const ProfilePage = () => {
   const { user } = useAuth();
+  const { avatarUrl, updateAvatar } = useAvatar();
   const [profile, setProfile] = useState<ProfileData>({
     user_id: '',
     display_name: '',
@@ -277,7 +279,7 @@ const ProfilePage = () => {
     toast.info('Đã hủy thay đổi');
   };
 
-  // Function to compress image
+  // Function to compress image by cropping to square
   const compressImage = (file: File, maxSizeKB: number = 500): Promise<File> => {
     return new Promise((resolve) => {
       const canvas = document.createElement('canvas');
@@ -285,27 +287,23 @@ const ProfilePage = () => {
       const img = new Image();
       
       img.onload = () => {
-        // Calculate new dimensions to maintain aspect ratio
-        const maxDimension = 800; // Max width/height
-        let { width, height } = img;
+        // Set target size (square)
+        const targetSize = 400;
+        canvas.width = targetSize;
+        canvas.height = targetSize;
         
-        if (width > height) {
-          if (width > maxDimension) {
-            height = (height * maxDimension) / width;
-            width = maxDimension;
-          }
-        } else {
-          if (height > maxDimension) {
-            width = (width * maxDimension) / height;
-            height = maxDimension;
-          }
-        }
+        // Calculate crop dimensions (center crop to square)
+        const { width, height } = img;
+        const size = Math.min(width, height);
+        const offsetX = (width - size) / 2;
+        const offsetY = (height - size) / 2;
         
-        canvas.width = width;
-        canvas.height = height;
-        
-        // Draw and compress
-        ctx.drawImage(img, 0, 0, width, height);
+        // Draw cropped and resized image
+        ctx.drawImage(
+          img,
+          offsetX, offsetY, size, size, // Source crop
+          0, 0, targetSize, targetSize // Destination
+        );
         
         // Try different quality levels until we get under maxSizeKB
         let quality = 0.8;
@@ -378,15 +376,11 @@ const ProfilePage = () => {
         console.error('Error updating user metadata:', updateUserError);
       }
 
-      // Update local state
+      // Update local state and context
       setProfile(prev => ({ ...prev, avatar_url: avatarUrl }));
+      updateAvatar(avatarUrl);
 
       toast.success('Đã cập nhật ảnh đại diện thành công!');
-      
-      // Force page refresh to update header avatar
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
 
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
@@ -422,7 +416,7 @@ const ProfilePage = () => {
             <div className="flex flex-col items-center space-y-4">
               <div className="relative">
                 <Avatar className="w-24 h-24">
-                  <AvatarImage src={profile.avatar_url} alt="Avatar" />
+                  <AvatarImage src={avatarUrl || profile.avatar_url} alt="Avatar" />
                   <AvatarFallback className="text-xl">
                     {profile.display_name?.charAt(0) || '👤'}
                   </AvatarFallback>

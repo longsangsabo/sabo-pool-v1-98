@@ -4,9 +4,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+import { useAvatar } from '@/contexts/AvatarContext';
 
 const MobileHeader = () => {
   const { user } = useAuth();
+  const { avatarUrl } = useAvatar();
 
   return (
     <header className='fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white z-40 safe-area-padding-top'>
@@ -52,7 +54,7 @@ const MobileHeader = () => {
               {/* User Avatar */}
               <Link to='/profile'>
                 <Avatar className='h-10 w-10 border-2 border-white/20'>
-                  <AvatarImage src={user?.user_metadata?.avatar_url} />
+                  <AvatarImage src={avatarUrl || user?.user_metadata?.avatar_url} />
                   <AvatarFallback className='bg-white/20 text-white'>
                     {user?.user_metadata?.full_name?.charAt(0) ||
                       user?.email?.charAt(0).toUpperCase()}

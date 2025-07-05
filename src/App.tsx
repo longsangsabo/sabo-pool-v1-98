@@ -9,6 +9,7 @@ import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/hooks/useAuth";
+import { AvatarProvider } from "@/contexts/AvatarContext";
 import MainLayout from "@/components/MainLayout";
 import DailyNotificationSystem from "@/components/DailyNotificationSystem";
 
@@ -108,6 +109,7 @@ const App = () => {
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
             <TooltipProvider>
               <AuthProvider>
+                <AvatarProvider>
                 <BrowserRouter>
                   <Suspense fallback={<LoadingFallback />}>
                     <Routes>
@@ -215,6 +217,7 @@ const App = () => {
                   <Toaster />
                   <Sonner />
                 </BrowserRouter>
+                </AvatarProvider>
               </AuthProvider>
             </TooltipProvider>
           </ThemeProvider>
