@@ -55,52 +55,67 @@ export const useClubs = (userId?: string) => {
       setLoading(true);
       setError(null);
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Fetch approved clubs from club_profiles
+      const { data: clubProfiles, error } = await supabase
+        .from('club_profiles')
+        .select(`
+          id,
+          club_name,
+          address,
+          phone,
+          number_of_tables,
+          operating_hours,
+          user_id,
+          created_at,
+          updated_at,
+          verification_status
+        `)
+        .eq('verification_status', 'approved')
+        .order('created_at', { ascending: false });
 
-      // Mock clubs data using CommonClub interface
-      const mockClubs: CommonClub[] = [
-        {
-          id: '1',
-          name: 'Club Bida ABC',
-          address: '123 Đường ABC, Quận 1, TP.HCM',
-          phone: '+84 28 1234 5678',
-          description: 'Club bida cao cấp với 20 bàn chơi và dịch vụ đầy đủ. Môi trường chuyên nghiệp cho các tay cơ.',
-          email: 'info@clubabc.com',
-          logo_url: '/logos/club-abc.png',
-          table_count: 20,
-          latitude: 10.7769,
-          longitude: 106.7009,
-          available_tables: 18,
-          hourly_rate: 50000,
-          is_sabo_owned: true,
-          priority_score: 95,
-          owner_id: '1',
-          created_at: '2023-01-01T00:00:00Z',
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          name: 'Club Bida XYZ',
-          address: '456 Đường XYZ, Quận 3, TP.HCM',
-          phone: '+84 28 9876 5432',
-          description: 'Club bida hiện đại với thiết kế độc đáo và dịch vụ cao cấp.',
-          email: 'info@clubxyz.com',
-          logo_url: '/logos/club-xyz.png',
-          table_count: 15,
-          latitude: 10.7829,
-          longitude: 106.7009,
-          available_tables: 12,
-          hourly_rate: 45000,
-          is_sabo_owned: false,
-          priority_score: 88,
-          owner_id: '2',
-          created_at: '2023-03-15T00:00:00Z',
-          updated_at: new Date().toISOString(),
-        },
-      ];
+      if (error) throw error;
 
-      setClubs(mockClubs);
+      // Also get corresponding club registration data for more details
+      const clubIds = clubProfiles?.map(cp => cp.user_id) || [];
+      const { data: registrations } = await supabase
+        .from('club_registrations')
+        .select('*')
+        .in('user_id', clubIds)
+        .eq('status', 'approved');
+
+      const registrationMap = new Map(
+        registrations?.map(reg => [reg.user_id, reg]) || []
+      );
+
+      // Transform to CommonClub format
+      const transformedClubs: CommonClub[] = clubProfiles?.map(profile => {
+        const registration = registrationMap.get(profile.user_id);
+        const operatingHours = profile.operating_hours as any;
+        
+        return {
+          id: profile.id,
+          name: profile.club_name,
+          address: profile.address,
+          phone: profile.phone,
+          description: registration?.amenities ? 
+            `Câu lạc bộ bida chất lượng cao với ${profile.number_of_tables} bàn chơi. Tiện nghi: ${Object.values(registration.amenities || {}).join(', ')}.` : 
+            `Câu lạc bộ bida chuyên nghiệp với ${profile.number_of_tables} bàn chơi.`,
+          email: registration?.email,
+          logo_url: undefined,
+          table_count: profile.number_of_tables || 10,
+          latitude: undefined,
+          longitude: undefined,
+          available_tables: profile.number_of_tables || 10,
+          hourly_rate: registration?.basic_price || 50000,
+          is_sabo_owned: false, // Set based on your business logic
+          priority_score: 85, // Base score for approved clubs
+          owner_id: profile.user_id,
+          created_at: profile.created_at,
+          updated_at: profile.updated_at,
+        };
+      }) || [];
+
+      setClubs(transformedClubs);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Không thể tải danh sách club'
@@ -233,6 +248,33 @@ export const useClubs = (userId?: string) => {
 
   useEffect(() => {
     fetchClubs();
+
+    // Set up real-time subscription for club_profiles
+    console.log('Setting up clubs real-time subscription');
+    const channel = supabase
+      .channel('public-clubs')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'club_profiles',
+        filter: 'verification_status=eq.approved'
+      }, (payload) => {
+        console.log('Real-time club update:', payload);
+        
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          // Refresh the clubs list when a new club is approved
+          fetchClubs();
+        } else if (payload.eventType === 'DELETE') {
+          // Remove club from list
+          setClubs(prev => prev.filter(club => club.id !== payload.old.id));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up clubs subscription');
+      supabase.removeChannel(channel);
+    };
   }, [fetchClubs]);
 
   return {
