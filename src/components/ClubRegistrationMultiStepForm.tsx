@@ -352,6 +352,48 @@ const ClubRegistrationMultiStepForm = () => {
     }
   };
 
+  const handleBusinessLicenseUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || !user) return;
+
+    const file = files[0];
+    if (!file.type.startsWith('image/')) {
+      toast.error('Chỉ được tải lên file hình ảnh');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Compress image
+      const compressedFile = await compressImage(file);
+      
+      const fileExt = 'jpg';
+      const fileName = `${user.id}/business-license/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('club-photos')
+        .upload(fileName, compressedFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('club-photos')
+        .getPublicUrl(fileName);
+
+      setFormData(prev => ({
+        ...prev,
+        business_license_url: urlData.publicUrl
+      }));
+
+      toast.success('Đã tải lên ảnh giấy phép thành công!');
+    } catch (error: any) {
+      console.error('Error uploading business license:', error);
+      toast.error('Lỗi khi tải ảnh: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const removePhoto = (index: number) => {
     setFormData(prev => ({
       ...prev,
@@ -794,9 +836,61 @@ const ClubRegistrationMultiStepForm = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Ảnh giấy phép kinh doanh (không bắt buộc)
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                <Camera className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                <p className="text-sm text-gray-500">Tải lên ảnh giấy phép</p>
+              <div 
+                className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors cursor-pointer"
+                onClick={() => document.getElementById('business-license-upload')?.click()}
+              >
+                {formData.business_license_url ? (
+                  <div className="space-y-2">
+                    <img
+                      src={formData.business_license_url}
+                      alt="Business License"
+                      className="w-32 h-32 object-cover rounded-lg mx-auto border"
+                    />
+                    <div className="flex justify-center space-x-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          document.getElementById('business-license-upload')?.click();
+                        }}
+                      >
+                        Thay ảnh khác
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFormData(prev => ({ ...prev, business_license_url: '' }));
+                        }}
+                      >
+                        Xóa ảnh
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <Camera className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+                    <p className="text-sm text-gray-500">
+                      {uploading ? 'Đang tải lên...' : 'Tải lên ảnh giấy phép'}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Định dạng: JPG, PNG. Tối đa 5MB
+                    </p>
+                  </>
+                )}
+                <input
+                  id="business-license-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleBusinessLicenseUpload}
+                  className="hidden"
+                  disabled={uploading}
+                />
               </div>
             </div>
           </div>
