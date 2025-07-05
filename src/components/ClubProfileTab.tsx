@@ -201,9 +201,39 @@ const ClubProfileTab = ({ user, profile, onUpdate }: ClubProfileTabProps) => {
     if (!user?.id) return;
 
     try {
-      // Since we don't have club_registrations table, we'll simulate it
-      // In a real implementation, you would query the actual table
-      setClubData(null);
+      const { data, error } = await supabase
+        .from('club_registrations')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking club registration:', error);
+        return;
+      }
+
+      if (data) {
+        setClubData({
+          id: data.id,
+          club_name: data.club_name,
+          club_type: 'new',
+          province_id: '',
+          district_id: '',
+          ward_id: '',
+          address: data.address,
+          phone: data.phone,
+          email: data.email || '',
+          description: '',
+          table_count: data.table_count || 0,
+          hourly_rate: data.basic_price || 0,
+          status: data.status,
+          rejection_reason: data.rejection_reason
+        });
+      } else {
+        setClubData(null);
+      }
     } catch (error) {
       console.error('Error checking club registration:', error);
     }
@@ -224,37 +254,69 @@ const ClubProfileTab = ({ user, profile, onUpdate }: ClubProfileTabProps) => {
   const handleClubRegistration = async (formData: any) => {
     setRegistering(true);
     try {
-      // Simulate club registration - in real implementation,
-      // you would insert into a club_registrations table
+      // Insert club registration into database
       const registrationData = {
         user_id: user.id,
         club_name: formData.club_name,
-        club_type: formData.club_type,
-        province_id: formData.province_id,
-        district_id: formData.district_id,
-        ward_id: formData.ward_id,
         address: formData.address,
+        district: formData.district || 'Chưa chọn',
+        city: formData.city || 'Chưa chọn', 
         phone: formData.phone,
         email: formData.email,
-        description: formData.description,
-        table_count: parseInt(formData.table_count) || 0,
-        hourly_rate: parseInt(formData.hourly_rate) || 0,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        // Thêm thông tin Google Maps nếu có
-        google_place_id: selectedGooglePlace?.place_id,
-        google_lat: selectedGooglePlace?.geometry.location.lat,
-        google_lng: selectedGooglePlace?.geometry.location.lng,
+        opening_time: formData.opening_time || '08:00',
+        closing_time: formData.closing_time || '22:00',
+        table_count: parseInt(formData.table_count) || 1,
+        table_types: formData.table_types || ['Pool 8'],
+        basic_price: parseInt(formData.basic_price) || parseInt(formData.hourly_rate) || 50000,
+        normal_hour_price: parseInt(formData.normal_hour_price) || null,
+        peak_hour_price: parseInt(formData.peak_hour_price) || null,
+        weekend_price: parseInt(formData.weekend_price) || null,
+        vip_table_price: parseInt(formData.vip_table_price) || null,
+        amenities: formData.amenities || {},
+        photos: formData.photos || [],
+        facebook_url: formData.facebook_url || null,
+        google_maps_url: formData.google_maps_url || null,
+        business_license_url: formData.business_license_url || null,
+        manager_name: formData.manager_name || null,
+        manager_phone: formData.manager_phone || null,
+        status: 'pending'
       };
 
-      // ...removed console.log('Club registration data:', registrationData)
+      console.log('Submitting club registration:', registrationData);
 
-      toast.success('Đăng ký CLB thành công! Chờ xác minh từ admin.');
+      const { data, error } = await supabase
+        .from('club_registrations')
+        .insert([registrationData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+
+      console.log('Club registration inserted successfully:', data);
+
+      // Create success notification for user
+      await supabase.rpc('create_notification', {
+        target_user_id: user.id,
+        notification_type: 'club_registration_submitted',
+        notification_title: 'Đăng ký CLB thành công! 🏢',
+        notification_message: `Bạn đã gửi đăng ký câu lạc bộ "${registrationData.club_name}" thành công. Chúng tôi sẽ xem xét và thông báo kết quả trong thời gian sớm nhất.`,
+        notification_action_url: '/profile?tab=club',
+        notification_metadata: JSON.stringify({
+          club_name: registrationData.club_name,
+          registration_id: data.id
+        }),
+        notification_priority: 'medium'
+      });
+
+      toast.success('Đăng ký CLB thành công! Vui lòng chờ admin xét duyệt.');
       await checkClubRegistration();
       onUpdate();
     } catch (error: any) {
       console.error('Error registering club:', error);
-      toast.error('Có lỗi xảy ra khi đăng ký CLB');
+      toast.error('Có lỗi xảy ra khi đăng ký CLB: ' + (error.message || 'Unknown error'));
     } finally {
       setRegistering(false);
     }

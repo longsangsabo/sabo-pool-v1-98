@@ -133,16 +133,17 @@ const AdminClubRegistrations = () => {
   }, []);
 
   const fetchRegistrations = async () => {
-    console.log('🔍 Admin accessing club panel');
+    console.log('🔍 Admin accessing club panel, filtering by:', statusFilter);
     setLoading(true);
     
     try {
-      // Simple query without joins first
+      // Simple query without joins first  
       let query = supabase
         .from('club_registrations')
         .select('*')
         .order('created_at', { ascending: false });
 
+      // Apply status filter - only filter if not 'all'
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
       }
@@ -155,7 +156,8 @@ const AdminClubRegistrations = () => {
         return;
       }
 
-      console.log('📋 Found clubs:', clubs?.length || 0);
+      console.log('📋 Found clubs with filter:', statusFilter, 'Count:', clubs?.length || 0);
+      console.log('Club statuses:', clubs?.map(c => c.status));
 
       // If we have clubs, get user info separately
       let clubsWithUsers = clubs || [];

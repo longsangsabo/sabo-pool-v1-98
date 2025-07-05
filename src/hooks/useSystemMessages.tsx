@@ -110,6 +110,26 @@ export const useSystemMessages = () => {
     }
   };
 
+  // Club registration confirmation
+  const notifyClubRegistrationSubmitted = async (userId: string, clubName: string, registrationId: string) => {
+    try {
+      await createSystemMessage(
+        userId,
+        'club_registration_submitted',
+        'Đăng ký CLB thành công! 🏢',
+        `Bạn đã gửi đăng ký câu lạc bộ "${clubName}" thành công. Chúng tôi sẽ xem xét và thông báo kết quả trong thời gian sớm nhất. Cảm ơn bạn đã lựa chọn hệ thống SABO!`,
+        'medium',
+        '/profile?tab=club',
+        {
+          club_name: clubName,
+          registration_id: registrationId
+        }
+      );
+    } catch (error) {
+      console.error('Error sending club registration confirmation:', error);
+    }
+  };
+
   // Club status updates
   const notifyClubStatusUpdate = async (clubId: string, status: string, reason?: string) => {
     try {
@@ -243,6 +263,7 @@ export const useSystemMessages = () => {
     createSystemMessage,
     notifySystemMaintenance,
     notifyTournamentUpdate,
+    notifyClubRegistrationSubmitted,
     notifyClubStatusUpdate,
     notifyRankVerification,
     notifyAchievement,
