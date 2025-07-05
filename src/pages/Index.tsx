@@ -11,10 +11,10 @@ const Index = () => {
   return (
     <>
       <Helmet>
-        <title>SABO Pool Arena Hub - Nền tảng Billiards Việt Nam</title>
+        <title>SABO Pool Arena - CLB Billiards Chuyên Nghiệp</title>
         <meta 
           name="description" 
-          content="Nền tảng quản lý arena bi-a hàng đầu Việt Nam với hệ thống xếp hạng ELO, giải đấu trực tuyến và thanh toán VNPay"
+          content="SABO Pool Arena - Câu lạc bộ billiards chuyên nghiệp với hệ thống xếp hạng ELO, giải đấu và không gian chơi đẳng cấp"
         />
         <meta name="keywords" content="billiards, pool, vietnam, tournament, ranking, arena" />
       </Helmet>
@@ -22,10 +22,10 @@ const Index = () => {
       <div className="min-h-screen relative">
         {/* Background Image */}
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-90"
           style={{ backgroundImage: `url(/lovable-uploads/815b29dd-72ff-41f7-b398-5386f712de37.png)` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-900/85 via-slate-800/90 to-slate-900/85"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900/60 via-slate-800/70 to-slate-900/60"></div>
         </div>
         {/* Header */}
         <header className="relative z-10 container mx-auto px-4 py-6 flex justify-between items-center backdrop-blur-sm bg-slate-900/20 rounded-lg mx-4 mt-4">
@@ -50,16 +50,16 @@ const Index = () => {
         {/* Hero Section */}
         <section className="relative z-10 container mx-auto px-4 py-20 text-center">
           <Badge className="mb-4 bg-yellow-400 text-slate-900">
-            Nền tảng Billiards #1 Việt Nam
+            CLB Billiards Chuyên Nghiệp
           </Badge>
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
-            Nơi Hội Tụ
+            Chào Mừng Đến
             <br />
-            <span className="text-yellow-400">Tay Cơ Việt</span>
+            <span className="text-yellow-400">SABO Pool Arena</span>
           </h1>
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            Tham gia cộng đồng billiards lớn nhất Việt Nam. Thách đấu, xếp hạng, 
-            và trở thành cao thủ với hệ thống ELO chuyên nghiệp.
+            Hệ thống quản lý và đặt bàn billiards hiện đại. Không gian chơi đẳng cấp, 
+            trang thiết bị chuyên nghiệp và dịch vụ tận tâm.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
