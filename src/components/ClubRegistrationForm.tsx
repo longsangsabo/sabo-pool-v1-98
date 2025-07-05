@@ -347,7 +347,7 @@ const ClubRegistrationForm = () => {
           {/* Submit Button */}
           <Button
             type="submit"
-            disabled={saving || !formData.club_name.trim() || !formData.address.trim() || !formData.phone.trim() || !formData.district.trim()}
+            disabled={saving || !formData.club_name.trim() || !formData.address.trim() || !formData.phone.trim() || !formData.district.trim() || (clubProfile?.verification_status === 'approved')}
             className="w-full h-12"
           >
             {saving ? 'Đang gửi...' : clubProfile?.verification_status === 'pending' ? 'Đã gửi đăng ký' : clubProfile?.verification_status === 'approved' ? 'Đã được duyệt': clubProfile?.verification_status === 'rejected' ? 'Gửi lại đăng ký' : 'Gửi đăng ký'}

@@ -76,7 +76,7 @@ const AdminClubRegistrations = () => {
         .from('club_registrations')
         .select(`
           *,
-          profiles!inner(display_name, full_name, email)
+          profiles!club_registrations_user_id_fkey(display_name, full_name, email)
         `)
         .order('created_at', { ascending: false });
 
