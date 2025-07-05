@@ -329,7 +329,14 @@ const AdminClubRegistrations = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Quản lý đăng ký câu lạc bộ</h1>
-          <p className="text-gray-600">Xét duyệt các yêu cầu đăng ký câu lạc bộ</p>
+          <p className="text-gray-600">Xét duyệt các yêu cầu đăng ký câu lạc bộ ({registrations.length} đăng ký)</p>
+          {statusFilter !== 'all' && (
+            <p className="text-sm text-blue-600">Đang lọc: {
+              statusFilter === 'pending' ? 'Chờ duyệt' :
+              statusFilter === 'approved' ? 'Đã duyệt' :
+              statusFilter === 'rejected' ? 'Bị từ chối' : 'Bản nháp'
+            }</p>
+          )}
         </div>
         <div className="flex gap-3 items-center">
           <Button onClick={fetchRegistrations} variant="outline" disabled={loading}>
@@ -340,11 +347,11 @@ const AdminClubRegistrations = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả</SelectItem>
-              <SelectItem value="pending">Chờ duyệt</SelectItem>
-              <SelectItem value="approved">Đã duyệt</SelectItem>
-              <SelectItem value="rejected">Bị từ chối</SelectItem>
-              <SelectItem value="draft">Bản nháp</SelectItem>
+              <SelectItem value="all">Tất cả ({registrations.length})</SelectItem>
+              <SelectItem value="pending">Chờ duyệt ({registrations.filter(r => r.status === 'pending').length})</SelectItem>
+              <SelectItem value="approved">Đã duyệt ({registrations.filter(r => r.status === 'approved').length})</SelectItem>
+              <SelectItem value="rejected">Bị từ chối ({registrations.filter(r => r.status === 'rejected').length})</SelectItem>
+              <SelectItem value="draft">Bản nháp ({registrations.filter(r => r.status === 'draft').length})</SelectItem>
             </SelectContent>
           </Select>
         </div>
