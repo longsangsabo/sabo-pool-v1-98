@@ -2427,6 +2427,10 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: Json
       }
+      delete_club_completely: {
+        Args: { club_profile_id: string; admin_id: string }
+        Returns: Json
+      }
       expire_old_challenges: {
         Args: Record<PropertyKey, never>
         Returns: undefined

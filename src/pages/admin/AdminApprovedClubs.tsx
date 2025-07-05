@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +18,9 @@ import {
   Users,
   Calendar,
   ExternalLink,
-  CheckCircle
+  CheckCircle,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 
 interface ApprovedClub {
@@ -63,6 +66,7 @@ const AdminApprovedClubs = () => {
   const [loading, setLoading] = useState(true);
   const [selectedClub, setSelectedClub] = useState<ApprovedClub | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     fetchApprovedClubs();
@@ -96,6 +100,44 @@ const AdminApprovedClubs = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const deleteClub = async (club: ApprovedClub) => {
+    if (!user?.id) {
+      toast.error('Không thể xác thực người dùng');
+      return;
+    }
+
+    setDeleting(club.id);
+    
+    try {
+      const { data, error } = await supabase.rpc('delete_club_completely', {
+        club_profile_id: club.id,
+        admin_id: user.id
+      });
+
+      if (error) {
+        console.error('Delete club error:', error);
+        throw new Error(`Lỗi xóa CLB: ${error.message}`);
+      }
+
+      const result = data as { success: boolean; error?: string; club_name?: string; message?: string };
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Xóa CLB thất bại');
+      }
+
+      toast.success(`Đã xóa thành công CLB "${result.club_name}"`);
+      
+      // Remove from local state
+      setClubs(prev => prev.filter(c => c.id !== club.id));
+      
+    } catch (error: any) {
+      console.error('Error deleting club:', error);
+      toast.error(error.message || 'Có lỗi xảy ra khi xóa CLB');
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const fetchApprovedClubs = async () => {
     console.log('🔍 Fetching approved clubs...');
@@ -431,6 +473,51 @@ const AdminApprovedClubs = () => {
                           )}
                         </DialogContent>
                       </Dialog>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            disabled={deleting === club.id}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            {deleting === club.id ? 'Đang xóa...' : 'Xóa CLB'}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="flex items-center gap-2">
+                              <AlertTriangle className="w-5 h-5 text-red-600" />
+                              Xác nhận xóa CLB
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              <div className="space-y-2">
+                                <p>Bạn có chắc chắn muốn xóa CLB <strong>"{club.club_name}"</strong>?</p>
+                                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                                  <p className="text-sm text-red-800 font-medium mb-1">⚠️ Cảnh báo:</p>
+                                  <ul className="text-sm text-red-700 space-y-1">
+                                    <li>• Tất cả dữ liệu của CLB sẽ bị xóa vĩnh viễn</li>
+                                    <li>• Bao gồm: thống kê, thành viên, giải đấu, trận đấu</li>
+                                    <li>• Không thể hoàn tác sau khi xóa</li>
+                                    <li>• Tài khoản chủ CLB sẽ được đặt lại về vai trò người chơi</li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Hủy</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => deleteClub(club)}
+                              className="bg-red-600 hover:bg-red-700"
+                              disabled={deleting === club.id}
+                            >
+                              {deleting === club.id ? 'Đang xóa...' : 'Xóa vĩnh viễn'}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </div>
