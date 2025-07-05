@@ -123,36 +123,54 @@ const AdminApprovedClubs = () => {
       return;
     }
 
+    console.log('🗑️ Starting to delete club:', club.id, club.club_name);
     setDeleting(club.id);
     
     try {
       // Remove from local state immediately for better UX
-      setClubs(prev => prev.filter(c => c.id !== club.id));
+      const clubsBeforeDelete = clubs.length;
+      setClubs(prev => {
+        const filtered = prev.filter(c => c.id !== club.id);
+        console.log('🔄 Removed from UI. Before:', clubsBeforeDelete, 'After:', filtered.length);
+        return filtered;
+      });
       
+      console.log('🚀 Calling delete_club_completely function...');
       const { data, error } = await supabase.rpc('delete_club_completely', {
         club_profile_id: club.id,
         admin_id: user.id
       });
 
       if (error) {
-        console.error('Delete club error:', error);
+        console.error('❌ Delete club RPC error:', error);
         // Restore the club to list if deletion failed
+        console.log('🔄 Restoring club to list due to error');
         await fetchApprovedClubs();
         throw new Error(`Lỗi xóa CLB: ${error.message}`);
       }
 
       const result = data as { success: boolean; error?: string; club_name?: string; message?: string };
+      console.log('✅ Delete function result:', result);
       
       if (!result.success) {
+        console.error('❌ Delete function returned failure:', result.error);
         // Restore the club to list if deletion failed
+        console.log('🔄 Restoring club to list due to function failure');
         await fetchApprovedClubs();
         throw new Error(result.error || 'Xóa CLB thất bại');
       }
 
+      console.log('🎉 Club deleted successfully:', result.club_name);
       toast.success(`Đã xóa thành công CLB "${result.club_name}"`);
       
+      // Double check by refreshing the list
+      console.log('🔄 Refreshing approved clubs list to confirm deletion...');
+      setTimeout(() => {
+        fetchApprovedClubs();
+      }, 1000);
+      
     } catch (error: any) {
-      console.error('Error deleting club:', error);
+      console.error('💥 Error deleting club:', error);
       toast.error(error.message || 'Có lỗi xảy ra khi xóa CLB');
     } finally {
       setDeleting(null);
@@ -171,12 +189,12 @@ const AdminApprovedClubs = () => {
         .order('approved_at', { ascending: false });
 
       if (error) {
-        console.error('Club query error:', error);
+        console.error('❌ Club query error:', error);
         toast.error('Không thể tải danh sách CLB đã duyệt: ' + error.message);
         return;
       }
 
-      console.log('📋 Found approved clubs:', clubs?.length || 0);
+      console.log('📋 Raw approved clubs from DB:', clubs?.map(c => ({id: c.id, name: c.club_name, status: c.status})));
 
       // Get user info for approved clubs
       let clubsWithUsers = clubs || [];
@@ -190,7 +208,7 @@ const AdminApprovedClubs = () => {
             .in('user_id', userIds);
 
           if (usersError) {
-            console.error('Users query error:', usersError);
+            console.error('❌ Users query error:', usersError);
           } else {
             clubsWithUsers = clubs.map(club => ({
               ...club,
@@ -200,13 +218,16 @@ const AdminApprovedClubs = () => {
         }
       }
       
-      setClubs(clubsWithUsers.map(item => ({
+      const finalClubs = clubsWithUsers.map(item => ({
         ...item,
         amenities: (item.amenities as Record<string, boolean>) || {},
         status: 'approved' as const
-      })));
+      }));
+      
+      console.log('📋 Final approved clubs to display:', finalClubs.map(c => ({id: c.id, name: c.club_name})));
+      setClubs(finalClubs);
     } catch (error: any) {
-      console.error('Error fetching approved clubs:', error);
+      console.error('💥 Error fetching approved clubs:', error);
       toast.error('Lỗi khi tải danh sách CLB đã duyệt: ' + error.message);
     } finally {
       setLoading(false);
