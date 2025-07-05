@@ -91,6 +91,10 @@ const AdminApprovedClubs = () => {
         } else if (payload.eventType === 'UPDATE' && payload.old.status === 'approved' && payload.new.status !== 'approved') {
           // Remove club from approved list if status changed
           setClubs(prev => prev.filter(club => club.id !== payload.new.id));
+        } else if (payload.eventType === 'DELETE' && payload.old.status === 'approved') {
+          // Remove deleted club from list
+          setClubs(prev => prev.filter(club => club.id !== payload.old.id));
+          toast.info(`CLB "${payload.old.club_name}" đã được xóa khỏi hệ thống`);
         }
       })
       .subscribe();
@@ -376,84 +380,163 @@ const AdminApprovedClubs = () => {
                               {/* Basic Info */}
                               <div>
                                 <h4 className="font-semibold mb-3">Thông tin cơ bản</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-700">Tên câu lạc bộ</label>
-                                    <p className="text-sm">{selectedClub.club_name}</p>
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-700">Số điện thoại</label>
-                                    <p className="text-sm">{selectedClub.phone}</p>
-                                  </div>
-                                  <div className="md:col-span-2">
-                                    <label className="text-sm font-medium text-gray-700">Địa chỉ</label>
-                                    <p className="text-sm">{selectedClub.address}, {selectedClub.district}, {selectedClub.city}</p>
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-700">Giờ hoạt động</label>
-                                    <p className="text-sm">{selectedClub.opening_time} - {selectedClub.closing_time}</p>
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-700">Số bàn & loại</label>
-                                    <p className="text-sm">{selectedClub.table_count} bàn ({selectedClub.table_types.join(', ')})</p>
-                                  </div>
-                                </div>
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                   <div>
+                                     <label className="text-sm font-medium text-gray-700">Tên câu lạc bộ</label>
+                                     <p className="text-sm">{selectedClub.club_name}</p>
+                                   </div>
+                                   <div>
+                                     <label className="text-sm font-medium text-gray-700">Số điện thoại</label>
+                                     <p className="text-sm">{selectedClub.phone}</p>
+                                   </div>
+                                   <div>
+                                     <label className="text-sm font-medium text-gray-700">Email</label>
+                                     <p className="text-sm">{selectedClub.email || 'Không có'}</p>
+                                   </div>
+                                   <div>
+                                     <label className="text-sm font-medium text-gray-700">Người quản lý</label>
+                                     <p className="text-sm">{selectedClub.manager_name || 'Không có'}</p>
+                                   </div>
+                                   <div>
+                                     <label className="text-sm font-medium text-gray-700">SĐT người quản lý</label>
+                                     <p className="text-sm">{selectedClub.manager_phone || 'Không có'}</p>
+                                   </div>
+                                   <div className="md:col-span-2">
+                                     <label className="text-sm font-medium text-gray-700">Địa chỉ đầy đủ</label>
+                                     <p className="text-sm">{selectedClub.address}, {selectedClub.district}, {selectedClub.city}</p>
+                                   </div>
+                                   <div>
+                                     <label className="text-sm font-medium text-gray-700">Giờ hoạt động</label>
+                                     <p className="text-sm">{selectedClub.opening_time} - {selectedClub.closing_time}</p>
+                                   </div>
+                                   <div>
+                                     <label className="text-sm font-medium text-gray-700">Số bàn & loại bàn</label>
+                                     <p className="text-sm">{selectedClub.table_count} bàn ({selectedClub.table_types.join(', ')})</p>
+                                   </div>
+                                 </div>
                               </div>
 
-                              {/* Pricing */}
-                              <div>
-                                <h4 className="font-semibold mb-3">Bảng giá</h4>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-700">Giá cơ bản</label>
-                                    <p className="text-sm">{formatPrice(selectedClub.basic_price)}</p>
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-700">Giờ thường</label>
-                                    <p className="text-sm">{formatPrice(selectedClub.normal_hour_price)}</p>
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-700">Giờ vàng</label>
-                                    <p className="text-sm">{formatPrice(selectedClub.peak_hour_price)}</p>
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-700">Cuối tuần</label>
-                                    <p className="text-sm">{formatPrice(selectedClub.weekend_price)}</p>
-                                  </div>
-                                </div>
-                              </div>
+                               {/* Pricing */}
+                               <div>
+                                 <h4 className="font-semibold mb-3">Bảng giá</h4>
+                                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                                   <div>
+                                     <label className="text-sm font-medium text-gray-700">Giá cơ bản</label>
+                                     <p className="text-sm">{formatPrice(selectedClub.basic_price)}</p>
+                                   </div>
+                                   <div>
+                                     <label className="text-sm font-medium text-gray-700">Giờ thường</label>
+                                     <p className="text-sm">{formatPrice(selectedClub.normal_hour_price)}</p>
+                                   </div>
+                                   <div>
+                                     <label className="text-sm font-medium text-gray-700">Giờ vàng</label>
+                                     <p className="text-sm">{formatPrice(selectedClub.peak_hour_price)}</p>
+                                   </div>
+                                   <div>
+                                     <label className="text-sm font-medium text-gray-700">Cuối tuần</label>
+                                     <p className="text-sm">{formatPrice(selectedClub.weekend_price)}</p>
+                                   </div>
+                                   <div>
+                                     <label className="text-sm font-medium text-gray-700">Bàn VIP</label>
+                                     <p className="text-sm">{formatPrice(selectedClub.vip_table_price)}</p>
+                                   </div>
+                                 </div>
+                               </div>
 
-                              {/* Amenities */}
-                              <div>
-                                <h4 className="font-semibold mb-3">Tiện ích</h4>
-                                <div className="flex flex-wrap gap-2">
-                                  {getAmenityLabels(selectedClub.amenities).map((amenity) => (
-                                    <Badge key={amenity} variant="outline">{amenity}</Badge>
-                                  ))}
-                                </div>
-                              </div>
+                               {/* Links & Documents */}
+                               <div>
+                                 <h4 className="font-semibold mb-3">Liên kết & Tài liệu</h4>
+                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                   <div>
+                                     <label className="text-sm font-medium text-gray-700">Facebook</label>
+                                     {selectedClub.facebook_url ? (
+                                       <a 
+                                         href={selectedClub.facebook_url} 
+                                         target="_blank" 
+                                         rel="noopener noreferrer"
+                                         className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                                       >
+                                         <ExternalLink className="w-3 h-3" />
+                                         Xem trang Facebook
+                                       </a>
+                                     ) : (
+                                       <p className="text-sm text-gray-500">Không có</p>
+                                     )}
+                                   </div>
+                                   <div>
+                                     <label className="text-sm font-medium text-gray-700">Google Maps</label>
+                                     {selectedClub.google_maps_url ? (
+                                       <a 
+                                         href={selectedClub.google_maps_url} 
+                                         target="_blank" 
+                                         rel="noopener noreferrer"
+                                         className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                                       >
+                                         <ExternalLink className="w-3 h-3" />
+                                         Xem trên Google Maps
+                                       </a>
+                                     ) : (
+                                       <p className="text-sm text-gray-500">Không có</p>
+                                     )}
+                                   </div>
+                                   <div>
+                                     <label className="text-sm font-medium text-gray-700">Giấy phép kinh doanh</label>
+                                     {selectedClub.business_license_url ? (
+                                       <a 
+                                         href={selectedClub.business_license_url} 
+                                         target="_blank" 
+                                         rel="noopener noreferrer"
+                                         className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                                       >
+                                         <ExternalLink className="w-3 h-3" />
+                                         Xem giấy phép
+                                       </a>
+                                     ) : (
+                                       <p className="text-sm text-gray-500">Không có</p>
+                                     )}
+                                   </div>
+                                 </div>
+                               </div>
 
-                              {/* Photos */}
-                              {selectedClub.photos.length > 0 && (
-                                <div>
-                                  <h4 className="font-semibold mb-3">Hình ảnh câu lạc bộ</h4>
-                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                    {selectedClub.photos.map((photo, index) => (
-                                      <div key={index} className="relative">
-                                        <img
-                                          src={photo}
-                                          alt={`Club photo ${index + 1}`}
-                                          className="w-full h-32 object-cover rounded-lg border hover:scale-105 transition-transform cursor-pointer"
-                                          onClick={() => window.open(photo, '_blank')}
-                                        />
-                                        <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                                          {index + 1}/{selectedClub.photos.length}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
+                               {/* Amenities */}
+                               <div>
+                                 <h4 className="font-semibold mb-3">Tiện ích</h4>
+                                 <div className="flex flex-wrap gap-2">
+                                   {getAmenityLabels(selectedClub.amenities).length > 0 ? (
+                                     getAmenityLabels(selectedClub.amenities).map((amenity) => (
+                                       <Badge key={amenity} variant="outline">{amenity}</Badge>
+                                     ))
+                                   ) : (
+                                     <p className="text-sm text-gray-500">Không có tiện ích nào được đăng ký</p>
+                                   )}
+                                 </div>
+                               </div>
+
+                               {/* Photos */}
+                               <div>
+                                 <h4 className="font-semibold mb-3">Hình ảnh câu lạc bộ</h4>
+                                 {selectedClub.photos && selectedClub.photos.length > 0 ? (
+                                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                     {selectedClub.photos.map((photo, index) => (
+                                       <div key={index} className="relative">
+                                         <img
+                                           src={photo}
+                                           alt={`Club photo ${index + 1}`}
+                                           className="w-full h-32 object-cover rounded-lg border hover:scale-105 transition-transform cursor-pointer"
+                                           onClick={() => window.open(photo, '_blank')}
+                                         />
+                                         <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                                           {index + 1}/{selectedClub.photos.length}
+                                         </div>
+                                       </div>
+                                     ))}
+                                   </div>
+                                 ) : (
+                                   <p className="text-sm text-gray-500 p-4 bg-gray-50 rounded-lg text-center">
+                                     Không có hình ảnh nào được tải lên
+                                   </p>
+                                 )}
+                               </div>
 
                               {/* Approval Info */}
                               <div className="p-4 bg-green-50 rounded-lg">
