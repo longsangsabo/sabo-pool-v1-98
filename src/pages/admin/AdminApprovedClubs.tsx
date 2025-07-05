@@ -78,8 +78,7 @@ const AdminApprovedClubs = () => {
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'club_registrations',
-        filter: 'status=eq.approved'
+        table: 'club_registrations'
       }, (payload) => {
         console.log('Real-time approved club update:', payload);
         
@@ -90,11 +89,24 @@ const AdminApprovedClubs = () => {
           toast.success(`CLB "${approvedClub.club_name}" vừa được duyệt!`);
         } else if (payload.eventType === 'UPDATE' && payload.old.status === 'approved' && payload.new.status !== 'approved') {
           // Remove club from approved list if status changed
-          setClubs(prev => prev.filter(club => club.id !== payload.new.id));
+          setClubs(prev => prev.filter(club => club.user_id !== payload.new.user_id));
         } else if (payload.eventType === 'DELETE' && payload.old.status === 'approved') {
           // Remove deleted club from list
-          setClubs(prev => prev.filter(club => club.id !== payload.old.id));
+          setClubs(prev => prev.filter(club => club.user_id !== payload.old.user_id));
           toast.info(`CLB "${payload.old.club_name}" đã được xóa khỏi hệ thống`);
+        }
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'club_profiles'
+      }, (payload) => {
+        console.log('Real-time club_profiles update:', payload);
+        
+        if (payload.eventType === 'DELETE') {
+          // Remove deleted club from list
+          setClubs(prev => prev.filter(club => club.id !== payload.old.id));
+          toast.info(`CLB đã được xóa khỏi hệ thống`);
         }
       })
       .subscribe();
@@ -114,6 +126,9 @@ const AdminApprovedClubs = () => {
     setDeleting(club.id);
     
     try {
+      // Remove from local state immediately for better UX
+      setClubs(prev => prev.filter(c => c.id !== club.id));
+      
       const { data, error } = await supabase.rpc('delete_club_completely', {
         club_profile_id: club.id,
         admin_id: user.id
@@ -121,19 +136,20 @@ const AdminApprovedClubs = () => {
 
       if (error) {
         console.error('Delete club error:', error);
+        // Restore the club to list if deletion failed
+        await fetchApprovedClubs();
         throw new Error(`Lỗi xóa CLB: ${error.message}`);
       }
 
       const result = data as { success: boolean; error?: string; club_name?: string; message?: string };
       
       if (!result.success) {
+        // Restore the club to list if deletion failed
+        await fetchApprovedClubs();
         throw new Error(result.error || 'Xóa CLB thất bại');
       }
 
       toast.success(`Đã xóa thành công CLB "${result.club_name}"`);
-      
-      // Remove from local state
-      setClubs(prev => prev.filter(c => c.id !== club.id));
       
     } catch (error: any) {
       console.error('Error deleting club:', error);
