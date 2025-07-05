@@ -10,6 +10,7 @@ import { FacebookLoginButton } from '@/components/auth/FacebookLoginButton';
 import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton';
 import { AuthDivider } from '@/components/auth/AuthDivider';
 import { TermsCheckbox } from '@/components/auth/TermsCheckbox';
+import { OAuthSetupGuide } from '@/components/auth/OAuthSetupGuide';
 import { handleAuthError } from '@/utils/authHelpers';
 
 const EnhancedRegisterPage = () => {
@@ -141,6 +142,7 @@ const EnhancedRegisterPage = () => {
             <FacebookLoginButton />
             <GoogleLoginButton />
           </div>
+          <OAuthSetupGuide />
           <AuthDivider />
 
           <EnhancedAuthTabs defaultTab="phone">

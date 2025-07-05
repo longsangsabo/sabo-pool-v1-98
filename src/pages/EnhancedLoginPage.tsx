@@ -9,6 +9,7 @@ import { EnhancedAuthTabs, PhoneTabContent, EmailTabContent } from '@/components
 import { FacebookLoginButton } from '@/components/auth/FacebookLoginButton';
 import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton';
 import { AuthDivider } from '@/components/auth/AuthDivider';
+import { OAuthSetupGuide } from '@/components/auth/OAuthSetupGuide';
 import { handleAuthError } from '@/utils/authHelpers';
 
 const EnhancedLoginPage = () => {
@@ -127,6 +128,8 @@ const EnhancedLoginPage = () => {
             <FacebookLoginButton />
             <GoogleLoginButton />
           </div>
+          
+          <OAuthSetupGuide />
           
           <AuthDivider />
 

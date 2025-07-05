@@ -11,21 +11,30 @@ export const FacebookLoginButton = () => {
   const handleFacebookLogin = async () => {
     setLoading(true);
     try {
+      console.log('Initiating Facebook login...');
       const { error } = await signInWithFacebook();
       
       if (error) {
-        console.error('Facebook login error:', error);
+        console.error('Facebook login error details:', {
+          message: error.message,
+          code: error.code || 'No code',
+          status: error.status || 'No status'
+        });
         
         if (error.message.includes('provider is not enabled')) {
-          toast.error('Tính năng đăng nhập Facebook đang được cấu hình. Vui lòng sử dụng email hoặc số điện thoại.');
+          toast.error('❌ Facebook OAuth chưa được kích hoạt trong Supabase Dashboard. Vui lòng kích hoạt tại Authentication > Providers.');
+        } else if (error.message.includes('Invalid login credentials') || error.message.includes('OAuth')) {
+          toast.error('❌ Facebook OAuth chưa được cấu hình đúng. Cần tạo Facebook App và thêm App ID/Secret vào Supabase.');
         } else {
-          toast.error(error.message || 'Không thể đăng nhập với Facebook. Vui lòng thử lại.');
+          toast.error(`❌ Lỗi Facebook Login: ${error.message}`);
         }
+      } else {
+        console.log('Facebook login initiated successfully');
       }
     } catch (error) {
-      console.error('Facebook login error:', error);
+      console.error('Facebook login catch error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Đã xảy ra lỗi không xác định';
-      toast.error(`Không thể đăng nhập với Facebook: ${errorMessage}`);
+      toast.error(`❌ Không thể đăng nhập với Facebook: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
