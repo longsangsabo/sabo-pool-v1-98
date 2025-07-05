@@ -78,6 +78,14 @@ import TournamentsPage from "./pages/TournamentsPage";
 import WalletPage from "./pages/WalletPage";
 import SiteMapPage from "./pages/SiteMapPage";
 import PracticeFinderPage from "./pages/PracticeFinderPage";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminTournaments from "./pages/admin/AdminTournaments";
+import AdminTransactions from "./pages/admin/AdminTransactions";
+import AdminClubs from "./pages/admin/AdminClubs";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminSettings from "./pages/admin/AdminSettings";
+import AdminLayout from "./components/AdminLayout";
 
 // Simple loading fallback
 const LoadingFallback = () => (
@@ -185,6 +193,15 @@ const App = () => {
                         <Route path="sitemap" element={<SiteMapPage />} />
                         <Route path="practice" element={<AuthWrapper><PracticeFinderPage /></AuthWrapper>} />
                       </Route>
+                      
+                      {/* Admin routes - standalone with AdminLayout */}
+                      <Route path="/admin" element={<AdminDashboard />} />
+                      <Route path="/admin/users" element={<AdminUsers />} />
+                      <Route path="/admin/tournaments" element={<AdminTournaments />} />
+                      <Route path="/admin/transactions" element={<AdminTransactions />} />
+                      <Route path="/admin/clubs" element={<AdminClubs />} />
+                      <Route path="/admin/analytics" element={<AdminAnalytics />} />
+                      <Route path="/admin/settings" element={<AdminSettings />} />
                       
                       {/* Auth routes - standalone without layout */}
                       <Route path="/login" element={<LoginPage />} />

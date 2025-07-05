@@ -33,8 +33,11 @@ import { Badge } from './ui/badge';
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
-  const { data: isAdmin } = useAdminCheck();
-  console.log('Header: isAdmin value:', isAdmin);
+  console.log('Header: user:', user?.id, user?.phone);
+  
+  const { data: isAdmin, isLoading, error } = useAdminCheck();
+  console.log('Header: isAdmin value:', isAdmin, 'isLoading:', isLoading, 'error:', error);
+  
   const location = useLocation();
 
   const navigationItems = [
