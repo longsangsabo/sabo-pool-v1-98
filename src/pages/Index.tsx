@@ -19,9 +19,16 @@ const Index = () => {
         <meta name="keywords" content="billiards, pool, vietnam, tournament, ranking, arena" />
       </Helmet>
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen relative">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(/lovable-uploads/815b29dd-72ff-41f7-b398-5386f712de37.png)` }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900/85 via-slate-800/90 to-slate-900/85"></div>
+        </div>
         {/* Header */}
-        <header className="container mx-auto px-4 py-6 flex justify-between items-center">
+        <header className="relative z-10 container mx-auto px-4 py-6 flex justify-between items-center backdrop-blur-sm bg-slate-900/20 rounded-lg mx-4 mt-4">
           <div className="flex items-center space-x-2">
             <Target className="h-8 w-8 text-yellow-400" />
             <h1 className="text-2xl font-bold text-white">SABO Pool Arena</h1>
@@ -41,7 +48,7 @@ const Index = () => {
         </header>
 
         {/* Hero Section */}
-        <section className="container mx-auto px-4 py-20 text-center">
+        <section className="relative z-10 container mx-auto px-4 py-20 text-center">
           <Badge className="mb-4 bg-yellow-400 text-slate-900">
             Nền tảng Billiards #1 Việt Nam
           </Badge>
@@ -72,7 +79,7 @@ const Index = () => {
         </section>
 
         {/* Features Section */}
-        <section className="container mx-auto px-4 py-20">
+        <section className="relative z-10 container mx-auto px-4 py-20">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-4">
               Tại sao chọn SABO Pool Arena?
@@ -83,7 +90,7 @@ const Index = () => {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700/50">
               <CardHeader>
                 <Trophy className="h-12 w-12 text-yellow-400 mb-4" />
                 <CardTitle className="text-white">Hệ thống ELO chuyên nghiệp</CardTitle>
@@ -100,7 +107,7 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700/50">
               <CardHeader>
                 <Users className="h-12 w-12 text-blue-400 mb-4" />
                 <CardTitle className="text-white">Cộng đồng sôi động</CardTitle>
@@ -117,7 +124,7 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700/50">
               <CardHeader>
                 <Calendar className="h-12 w-12 text-green-400 mb-4" />
                 <CardTitle className="text-white">Giải đấu thường xuyên</CardTitle>
@@ -137,7 +144,7 @@ const Index = () => {
         </section>
 
         {/* Stats Section */}
-        <section className="container mx-auto px-4 py-20">
+        <section className="relative z-10 container mx-auto px-4 py-20">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
               <div className="text-4xl font-bold text-yellow-400 mb-2">5,000+</div>
@@ -159,8 +166,8 @@ const Index = () => {
         </section>
 
         {/* CTA Section */}
-        <section className="container mx-auto px-4 py-20 text-center">
-          <Card className="bg-gradient-to-r from-yellow-400 to-orange-500 border-0 max-w-4xl mx-auto">
+        <section className="relative z-10 container mx-auto px-4 py-20 text-center">
+          <Card className="bg-gradient-to-r from-yellow-400/90 to-orange-500/90 backdrop-blur-sm border-0 max-w-4xl mx-auto">
             <CardHeader>
               <CardTitle className="text-3xl font-bold text-slate-900 mb-4">
                 Sẵn sàng thể hiện kỹ năng?
@@ -183,7 +190,7 @@ const Index = () => {
         </section>
 
         {/* Footer */}
-        <footer className="container mx-auto px-4 py-8 border-t border-slate-700">
+        <footer className="relative z-10 container mx-auto px-4 py-8 border-t border-slate-700/50 backdrop-blur-sm bg-slate-900/20">
           <div className="text-center text-gray-400">
             <p>&copy; 2024 SABO Pool Arena Hub. Tất cả quyền được bảo lưu.</p>
             <p className="mt-2">Nền tảng billiards hàng đầu Việt Nam</p>
