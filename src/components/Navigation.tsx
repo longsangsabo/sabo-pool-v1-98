@@ -17,10 +17,14 @@ import {
   Crown,
   History,
   Shield,
+  Mail,
+  Bell,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
+import { useNotifications } from '@/hooks/useNotifications';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -33,10 +37,13 @@ import {
 const Navigation = () => {
   const { user, signOut } = useAuth();
   const { data: isAdmin } = useAdminCheck();
+  const { getUnreadCount } = useNotifications();
   console.log('Navigation: user admin status:', isAdmin);
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const unreadCount = getUnreadCount();
 
   const handleLogout = async () => {
     await signOut();
@@ -114,6 +121,30 @@ const Navigation = () => {
                 {item.name}
               </Link>
             ))}
+            
+            {/* Inbox Icon - Only show when logged in */}
+            {user && (
+              <Link
+                to="/inbox"
+                className={`relative px-3 py-2 text-sm font-medium transition-colors ${
+                  location.pathname === '/inbox'
+                    ? 'text-yellow-600 border-b-2 border-yellow-600'
+                    : 'text-gray-700 hover:text-yellow-600 hover:border-b-2 hover:border-yellow-300'
+                }`}
+              >
+                <div className="relative">
+                  <Mail className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <Badge 
+                      className="absolute -top-2 -right-2 h-4 w-4 p-0 text-xs bg-red-500 hover:bg-red-500 flex items-center justify-center"
+                      variant="destructive"
+                    >
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </Badge>
+                  )}
+                </div>
+              </Link>
+            )}
           </div>
 
           {/* User Menu & Auth Buttons */}
@@ -219,6 +250,33 @@ const Navigation = () => {
                   {item.name}
                 </Link>
               ))}
+              
+              {/* Mobile Inbox Link */}
+              {user && (
+                <Link
+                  to="/inbox"
+                  className={`flex items-center justify-between px-3 py-2 text-base font-medium rounded-md ${
+                    location.pathname === '/inbox'
+                      ? 'text-yellow-600 bg-yellow-50'
+                      : 'text-gray-700 hover:text-yellow-600 hover:bg-gray-50'
+                  }`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <div className="flex items-center">
+                    <Mail className="w-5 h-5 mr-2" />
+                    Hộp thư
+                  </div>
+                  {unreadCount > 0 && (
+                    <Badge 
+                      className="h-5 w-5 p-0 text-xs bg-red-500 hover:bg-red-500 flex items-center justify-center"
+                      variant="destructive"
+                    >
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </Badge>
+                  )}
+                </Link>
+              )}
+              
               {!user && (
                 <div className='pt-4 border-t border-gray-200'>
                   <Link
