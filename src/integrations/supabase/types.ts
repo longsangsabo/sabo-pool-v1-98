@@ -785,6 +785,7 @@ export type Database = {
           message: string
           metadata: Json | null
           priority: string | null
+          sender_id: string | null
           title: string
           type: string
           updated_at: string | null
@@ -799,6 +800,7 @@ export type Database = {
           message: string
           metadata?: Json | null
           priority?: string | null
+          sender_id?: string | null
           title: string
           type: string
           updated_at?: string | null
@@ -813,12 +815,21 @@ export type Database = {
           message?: string
           metadata?: Json | null
           priority?: string | null
+          sender_id?: string | null
           title?: string
           type?: string
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       order_items: {
         Row: {
