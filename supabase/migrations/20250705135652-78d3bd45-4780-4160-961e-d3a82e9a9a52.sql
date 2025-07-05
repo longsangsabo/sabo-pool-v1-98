@@ -90,6 +90,21 @@ BEGIN
     updated_at = now()
   WHERE user_id = club_record.user_id;
   
+  -- Create notification for club user
+  PERFORM public.create_notification(
+    club_record.user_id,
+    'club_deleted',
+    'CLB của bạn đã bị xóa',
+    format('CLB "%s" của bạn đã bị xóa bởi quản trị viên. Tài khoản của bạn đã được chuyển về vai trò người chơi.', club_record.club_name),
+    '/profile',
+    jsonb_build_object(
+      'club_name', club_record.club_name,
+      'club_id', club_profile_id,
+      'deleted_at', now()
+    ),
+    'high'
+  );
+  
   -- Log admin action
   INSERT INTO public.admin_actions (
     admin_id, 
