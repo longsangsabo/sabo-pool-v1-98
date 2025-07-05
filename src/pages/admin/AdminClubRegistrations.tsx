@@ -43,6 +43,7 @@ interface ClubRegistration {
   photos: string[];
   facebook_url?: string;
   google_maps_url?: string;
+  business_license_url?: string;
   manager_name?: string;
   manager_phone?: string;
   email?: string;
@@ -164,8 +165,7 @@ const AdminClubRegistrations = () => {
           approved_by: user?.id
         })
         .eq('id', registration.id)
-        .select()
-        .single();
+        .select();
 
       if (updateError) {
         console.error('❌ Update registration error:', updateError);
@@ -173,36 +173,47 @@ const AdminClubRegistrations = () => {
       }
       console.log('✅ Registration updated:', updatedReg);
 
-      // Step 2: Create club profile
-      console.log('📝 Step 2: Creating club profile...');
-      const clubProfileData = {
-        user_id: registration.user_id,
-        club_name: registration.club_name,
-        address: registration.address,
-        phone: registration.phone,
-        operating_hours: {
-          open: registration.opening_time,
-          close: registration.closing_time,
-          days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-        },
-        number_of_tables: registration.table_count,
-        verification_status: 'approved',
-        verified_at: new Date().toISOString(),
-        verified_by: user?.id
-      };
-      
-      console.log('📋 Club profile data:', clubProfileData);
-      const { data: clubProfile, error: clubError } = await supabase
+      // Step 2: Check if club profile already exists
+      console.log('📝 Step 2: Checking existing club profile...');
+      const { data: existingClub } = await supabase
         .from('club_profiles')
-        .insert(clubProfileData)
-        .select()
-        .single();
+        .select('id')
+        .eq('user_id', registration.user_id)
+        .maybeSingle();
 
-      if (clubError) {
-        console.error('❌ Club profile error:', clubError);
-        throw new Error(`Lỗi tạo hồ sơ CLB: ${clubError.message}`);
+      if (!existingClub) {
+        // Create club profile only if it doesn't exist
+        console.log('📝 Creating new club profile...');
+        const clubProfileData = {
+          user_id: registration.user_id,
+          club_name: registration.club_name,
+          address: registration.address,
+          phone: registration.phone,
+          operating_hours: {
+            open: registration.opening_time,
+            close: registration.closing_time,
+            days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+          },
+          number_of_tables: registration.table_count,
+          verification_status: 'approved',
+          verified_at: new Date().toISOString(),
+          verified_by: user?.id
+        };
+        
+        console.log('📋 Club profile data:', clubProfileData);
+        const { data: clubProfile, error: clubError } = await supabase
+          .from('club_profiles')
+          .insert(clubProfileData)
+          .select();
+
+        if (clubError) {
+          console.error('❌ Club profile error:', clubError);
+          throw new Error(`Lỗi tạo hồ sơ CLB: ${clubError.message}`);
+        }
+        console.log('✅ Club profile created:', clubProfile);
+      } else {
+        console.log('✅ Club profile already exists, skipping creation');
       }
-      console.log('✅ Club profile created:', clubProfile);
 
       // Step 3: Update user role
       console.log('📝 Step 3: Updating user role...');
@@ -213,8 +224,7 @@ const AdminClubRegistrations = () => {
           active_role: 'club_owner'
         })
         .eq('user_id', registration.user_id)
-        .select()
-        .single();
+        .select();
 
       if (roleError) {
         console.error('❌ Role update error:', roleError);
@@ -240,8 +250,7 @@ const AdminClubRegistrations = () => {
       const { data: notification, error: notificationError } = await supabase
         .from('notifications')
         .insert(notificationData)
-        .select()
-        .single();
+        .select();
 
       if (notificationError) {
         console.error('⚠️ Notification error (non-critical):', notificationError);
@@ -535,13 +544,77 @@ const AdminClubRegistrations = () => {
                                   <h4 className="font-semibold mb-3">Hình ảnh câu lạc bộ</h4>
                                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                     {selectedRegistration.photos.map((photo, index) => (
-                                      <img
-                                        key={index}
-                                        src={photo}
-                                        alt={`Club photo ${index + 1}`}
-                                        className="w-full h-32 object-cover rounded-lg border"
-                                      />
+                                      <div key={index} className="relative">
+                                        <img
+                                          src={photo}
+                                          alt={`Club photo ${index + 1}`}
+                                          className="w-full h-32 object-cover rounded-lg border hover:scale-105 transition-transform cursor-pointer"
+                                          onClick={() => window.open(photo, '_blank')}
+                                        />
+                                        <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                                          {index + 1}/{selectedRegistration.photos.length}
+                                        </div>
+                                      </div>
                                     ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Business License */}
+                              {selectedRegistration.business_license_url && (
+                                <div>
+                                  <h4 className="font-semibold mb-3">Giấy phép kinh doanh</h4>
+                                  <div className="border rounded-lg p-4 bg-blue-50">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                      </div>
+                                      <div className="flex-1">
+                                        <p className="font-medium text-blue-900">Giấy phép kinh doanh</p>
+                                        <p className="text-sm text-blue-700">Nhấn để xem giấy phép</p>
+                                      </div>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => window.open(selectedRegistration.business_license_url, '_blank')}
+                                        className="shrink-0"
+                                      >
+                                        <ExternalLink className="w-4 h-4 mr-2" />
+                                        Xem file
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Google Maps URL */}
+                              {selectedRegistration.google_maps_url && (
+                                <div>
+                                  <h4 className="font-semibold mb-3">Vị trí trên bản đồ</h4>
+                                  <div className="border rounded-lg p-4 bg-green-50">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-16 h-16 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                      </div>
+                                      <div className="flex-1">
+                                        <p className="font-medium text-green-900">Vị trí Google Maps</p>
+                                        <p className="text-sm text-green-700">Xem vị trí chính xác của câu lạc bộ</p>
+                                      </div>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => window.open(selectedRegistration.google_maps_url, '_blank')}
+                                        className="shrink-0"
+                                      >
+                                        <ExternalLink className="w-4 h-4 mr-2" />
+                                        Mở Maps
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
                               )}
