@@ -20,6 +20,7 @@ import PenaltyManagement from '@/components/PenaltyManagement';
 import MyChallengesTab from '@/components/MyChallengesTab';
 import PlayerStatsComponent from '@/components/PlayerStatsComponent';
 import TrustScoreBadge from '@/components/TrustScoreBadge';
+import ProfileHeader from '@/components/ProfileHeader';
 
 // Export types for other components
 export interface UserProfile {
@@ -433,69 +434,19 @@ const ProfilePage = () => {
           <p className="text-gray-600">Quản lý thông tin của bạn</p>
         </div>
 
-        {/* Avatar Section */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="relative">
-                <Avatar className="w-24 h-24">
-                  <AvatarImage src={avatarUrl || profile.avatar_url} alt="Avatar" />
-                  <AvatarFallback className="text-xl">
-                    {profile.display_name?.charAt(0) || '👤'}
-                  </AvatarFallback>
-                </Avatar>
-                <label className="absolute bottom-0 right-0 bg-blue-600 rounded-full p-2 cursor-pointer hover:bg-blue-700">
-                  <Camera className="w-4 h-4 text-white" />
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleAvatarUpload}
-                    disabled={uploading}
-                  />
-                </label>
-              </div>
-              
-              <div className="text-center">
-                <h2 className="text-xl font-semibold">
-                  {profile.display_name || 'Chưa đặt tên'}
-                </h2>
-                <div className="flex flex-col items-center space-y-2">
-                  <Badge className={skillLevels[profile.skill_level].color}>
-                    <Trophy className="w-3 h-3 mr-1" />
-                    {skillLevels[profile.skill_level].label}
-                  </Badge>
-                   {profile.verified_rank && (
-                     <Badge className="bg-blue-100 text-blue-800">
-                       <Trophy className="w-3 h-3 mr-1" />
-                       Hạng đã xác thực: {profile.verified_rank}
-                     </Badge>
-                   )}
-                   <TrustScoreBadge 
-                     playerId={profile.user_id}
-                     showFullDetails={true}
-                   />
-                </div>
-                {profile.member_since && (
-                  <p className="text-sm text-gray-500 mt-2 flex items-center justify-center">
-                    <Calendar className="w-4 h-4 mr-1" />
-                    Tham gia {new Date(profile.member_since).toLocaleDateString('vi-VN')}
-                  </p>
-                )}
-              </div>
-              
-              {uploading && (
-                <p className="text-sm text-blue-600">Đang tải ảnh...</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Profile Header with Stats */}
+        <ProfileHeader 
+          profile={profile}
+          avatarUrl={avatarUrl}
+          uploading={uploading}
+          onAvatarUpload={handleAvatarUpload}
+          skillLevels={skillLevels}
+        />
 
         {/* Profile Tabs */}
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="profile">Hồ sơ</TabsTrigger>
-            <TabsTrigger value="stats">Thống kê</TabsTrigger>
             <TabsTrigger value="rank">Xác thực hạng</TabsTrigger>
             <TabsTrigger value="club-registration">
               <Building className="w-4 h-4 mr-1" />
@@ -679,9 +630,6 @@ const ProfilePage = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="stats">
-            <PlayerStatsComponent />
-          </TabsContent>
 
           <TabsContent value="rank">
             <RankVerificationForm />
