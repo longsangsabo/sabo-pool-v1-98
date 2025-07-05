@@ -62,6 +62,7 @@ const ClubRegistrationMultiStepForm = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [existingRegistration, setExistingRegistration] = useState<any>(null);
   
   const [formData, setFormData] = useState<ClubRegistrationData>({
@@ -227,7 +228,7 @@ const ClubRegistrationMultiStepForm = () => {
         return formData.club_name && formData.address && formData.district && 
                formData.city && formData.phone && formData.table_types.length > 0;
       case 2:
-        return true;
+        return formData.photos.length >= 3;
       case 3:
         return formData.manager_name;
       default:
@@ -245,6 +246,117 @@ const ClubRegistrationMultiStepForm = () => {
 
   const prevStep = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  // Function to compress and upload image
+  const compressImage = (file: File, maxSizeKB: number = 500): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+      
+      img.onload = () => {
+        // Set target size (crop to square)
+        const targetSize = 800;
+        canvas.width = targetSize;
+        canvas.height = targetSize;
+        
+        // Calculate crop dimensions (center crop to square)
+        const { width, height } = img;
+        const size = Math.min(width, height);
+        const offsetX = (width - size) / 2;
+        const offsetY = (height - size) / 2;
+        
+        // Draw cropped image
+        ctx.drawImage(
+          img,
+          offsetX, offsetY, size, size, // Source crop
+          0, 0, targetSize, targetSize // Destination
+        );
+        
+        // Try different quality levels
+        let quality = 0.8;
+        const tryCompress = () => {
+          canvas.toBlob((blob) => {
+            if (blob && (blob.size <= maxSizeKB * 1024 || quality <= 0.1)) {
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else {
+              quality -= 0.1;
+              tryCompress();
+            }
+          }, 'image/jpeg', quality);
+        };
+        
+        tryCompress();
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || !user) return;
+
+    if (files.length + formData.photos.length > 10) {
+      toast.error('Tối đa 10 ảnh');
+      return;
+    }
+
+    setUploading(true);
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        if (!file.type.startsWith('image/')) {
+          toast.error('Chỉ được tải lên file hình ảnh');
+          continue;
+        }
+
+        // Compress image
+        const compressedFile = await compressImage(file);
+        
+        const fileExt = 'jpg';
+        const fileName = `${user.id}/club-photos/${Date.now()}-${i}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('club-photos')
+          .upload(fileName, compressedFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('club-photos')
+          .getPublicUrl(fileName);
+
+        uploadedUrls.push(urlData.publicUrl);
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        photos: [...prev.photos, ...uploadedUrls]
+      }));
+
+      toast.success(`Đã tải lên ${uploadedUrls.length} ảnh thành công!`);
+    } catch (error: any) {
+      console.error('Error uploading photos:', error);
+      toast.error('Lỗi khi tải ảnh: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      photos: prev.photos.filter((_, i) => i !== index)
+    }));
   };
 
   const getStatusBadge = (status: string) => {
@@ -555,10 +667,61 @@ const ClubRegistrationMultiStepForm = () => {
                 <Camera className="w-4 h-4 inline mr-1" />
                 Ảnh câu lạc bộ (3-10 ảnh)
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <Camera className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                <p className="text-sm text-gray-500">Tải lên ảnh của câu lạc bộ</p>
-                <p className="text-xs text-gray-400">Tối thiểu 3 ảnh, tối đa 10 ảnh</p>
+              
+              {/* Photo upload area */}
+              <div className="space-y-4">
+                <div 
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors cursor-pointer"
+                  onClick={() => document.getElementById('photo-upload')?.click()}
+                >
+                  <Camera className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm text-gray-500">
+                    {uploading ? 'Đang tải lên...' : 'Nhấn để tải lên ảnh câu lạc bộ'}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Tối thiểu 3 ảnh, tối đa 10 ảnh. Định dạng: JPG, PNG
+                  </p>
+                  <input
+                    id="photo-upload"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                    disabled={uploading}
+                  />
+                </div>
+
+                {/* Photo preview grid */}
+                {formData.photos.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {formData.photos.map((photo, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={photo}
+                          alt={`Club photo ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg border"
+                        />
+                        <button
+                          onClick={() => removePhoto(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Photo count indicator */}
+                <div className="text-sm text-gray-500">
+                  Đã tải: {formData.photos.length}/10 ảnh
+                  {formData.photos.length < 3 && (
+                    <span className="text-red-500 ml-2">
+                      (Cần tối thiểu 3 ảnh)
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
