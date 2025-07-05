@@ -78,7 +78,7 @@ const EnhancedMarketplacePage = () => {
   return (
     <>
       <Helmet>
-        <title>Marketplace - CLB Bi-a Sài Gòn</title>
+        <title>Marketplace - SABO Billiards</title>
         <meta name="description" content="Mua bán thiết bị bi-a chính hãng, chất lượng cao" />
       </Helmet>
 

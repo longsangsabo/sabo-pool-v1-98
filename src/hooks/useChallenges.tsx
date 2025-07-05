@@ -90,11 +90,11 @@ export const useChallenges = () => {
           },
           club: { 
             id: 'club1',
-            name: 'CLB Bi-a Sài Gòn',
+            name: 'SABO Billiards',
             address: '123 Nguyễn Huệ, Q1, TP.HCM',
             phone: '0123456789',
             email: 'info@biasgn.com',
-            description: 'Câu lạc bộ bi-a hàng đầu Sài Gòn',
+            description: 'Câu lạc bộ billiards hàng đầu với chất lượng chuyên nghiệp',
             established_year: 2010,
             total_tables: 12,
             facilities: ['WiFi', 'Parking', 'Restaurant'],

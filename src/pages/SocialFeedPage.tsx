@@ -38,7 +38,7 @@ const SocialFeedPage = () => {
   return (
     <>
       <Helmet>
-        <title>Feed Cộng Đồng - CLB Bi-a Sài Gòn</title>
+        <title>Feed Cộng Đồng - SABO Billiards</title>
         <meta name="description" content="Chia sẻ và theo dõi thành tích của cộng đồng bi-a" />
       </Helmet>
 

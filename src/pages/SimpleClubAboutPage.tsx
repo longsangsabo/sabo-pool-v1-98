@@ -10,8 +10,8 @@ const SimpleClubAboutPage = () => {
   return (
     <>
       <Helmet>
-        <title>Giới thiệu - CLB Bi-a Sài Gòn</title>
-        <meta name="description" content="Tìm hiểu về CLB Bi-a Sài Gòn - câu lạc bộ bi-a uy tín và chuyên nghiệp" />
+        <title>Giới thiệu - SABO Billiards</title>
+        <meta name="description" content="Tìm hiểu về SABO Billiards - câu lạc bộ billiards uy tín và chuyên nghiệp" />
       </Helmet>
 
       <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-900">
@@ -37,9 +37,9 @@ const SimpleClubAboutPage = () => {
             {/* Hero Section */}
             <Card className="bg-green-800 border-green-700">
               <CardHeader className="text-center">
-                <CardTitle className="text-white text-3xl mb-4">CLB Bi-a Sài Gòn</CardTitle>
+                <CardTitle className="text-white text-3xl mb-4">SABO Billiards</CardTitle>
                 <p className="text-green-200 text-lg">
-                  Hơn 10 năm phục vụ đam mê bi-a của người Sài Gòn
+                  Hơn 10 năm phục vụ đam mê billiards với chất lượng hàng đầu
                 </p>
               </CardHeader>
               <CardContent className="text-center">
@@ -56,8 +56,8 @@ const SimpleClubAboutPage = () => {
                   </div>
                   <div className="text-center">
                     <Award className="h-8 w-8 text-yellow-400 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-white">12</p>
-                    <p className="text-green-200">Bàn bi-a cao cấp</p>
+                     <p className="text-2xl font-bold text-white">12</p>
+                     <p className="text-green-200">Bàn billiards cao cấp</p>
                   </div>
                   <div className="text-center">
                     <Star className="h-8 w-8 text-yellow-400 mx-auto mb-2" />
@@ -75,16 +75,16 @@ const SimpleClubAboutPage = () => {
               </CardHeader>
               <CardContent className="text-green-200 space-y-4 text-lg leading-relaxed">
                 <p>
-                  CLB Bi-a Sài Gòn được thành lập vào năm 2014 với mong muốn tạo ra một không gian 
-                  chơi bi-a chuyên nghiệp và thân thiện cho cộng đồng yêu thích môn thể thao này.
+                  SABO Billiards được thành lập vào năm 2014 với mong muốn tạo ra một không gian 
+                  chơi billiards chuyên nghiệp và thân thiện cho cộng đồng yêu thích môn thể thao này.
                 </p>
                 <p>
-                  Từ một quán bi-a nhỏ với 4 bàn, chúng tôi đã không ngừng phát triển và hiện tại 
-                  sở hữu 12 bàn bi-a cao cấp với trang thiết bị hiện đại nhất.
+                  Từ một quán billiards nhỏ với 4 bàn, chúng tôi đã không ngừng phát triển và hiện tại 
+                  sở hữu 12 bàn billiards cao cấp với trang thiết bị hiện đại nhất.
                 </p>
                 <p>
-                  Chúng tôi tự hào là nơi quy tụ những tay cơ giỏi nhất Sài Gòn và thường xuyên 
-                  tổ chức các giải đấu bi-a lớn nhỏ trong khu vực.
+                  Chúng tôi tự hào là nơi quy tụ những tay cơ giỏi nhất và thường xuyên 
+                  tổ chức các giải đấu billiards lớn nhỏ trong khu vực.
                 </p>
               </CardContent>
             </Card>
@@ -97,12 +97,12 @@ const SimpleClubAboutPage = () => {
               <CardContent>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-4">
-                    <h3 className="text-yellow-400 font-semibold text-lg">Bàn bi-a chất lượng cao</h3>
+                    <h3 className="text-yellow-400 font-semibold text-lg">Bàn billiards chất lượng cao</h3>
                     <ul className="text-green-200 space-y-2">
-                      <li>• 12 bàn bi-a chuẩn quốc tế</li>
+                      <li>• 12 bàn billiards chuẩn quốc tế</li>
                       <li>• Nỉ bàn cao cấp, thay định kỳ</li>
                       <li>• Hệ thống đèn chiếu sáng chuyên dụng</li>
-                      <li>• Cơ bi-a chính hãng, bảo dưỡng tốt</li>
+                      <li>• Cơ billiards chính hãng, bảo dưỡng tốt</li>
                     </ul>
                   </div>
                   <div className="space-y-4">
@@ -126,12 +126,12 @@ const SimpleClubAboutPage = () => {
               <CardContent>
                 <div className="grid md:grid-cols-3 gap-6">
                   <div className="text-center p-4 bg-green-700 rounded-lg">
-                    <h3 className="text-yellow-400 font-semibold text-lg mb-2">Chơi bi-a tự do</h3>
+                    <h3 className="text-yellow-400 font-semibold text-lg mb-2">Chơi billiards tự do</h3>
                     <p className="text-green-200">Giá cả hợp lý theo giờ, không gian thoải mái</p>
                   </div>
                   <div className="text-center p-4 bg-green-700 rounded-lg">
                     <h3 className="text-yellow-400 font-semibold text-lg mb-2">Tổ chức giải đấu</h3>
-                    <p className="text-green-200">Hỗ trợ tổ chức các giải đấu bi-a cho cộng đồng</p>
+                    <p className="text-green-200">Hỗ trợ tổ chức các giải đấu billiards cho cộng đồng</p>
                   </div>
                   <div className="text-center p-4 bg-green-700 rounded-lg">
                     <h3 className="text-yellow-400 font-semibold text-lg mb-2">Hướng dẫn kỹ thuật</h3>
@@ -174,7 +174,7 @@ const SimpleClubAboutPage = () => {
             {/* Call to Action */}
             <div className="text-center py-8">
               <h3 className="text-3xl font-bold text-white mb-4">Sẵn sàng trải nghiệm?</h3>
-              <p className="text-green-200 mb-6 text-lg">Hãy đến và cảm nhận không khí chơi bi-a chuyên nghiệp</p>
+              <p className="text-green-200 mb-6 text-lg">Hãy đến và cảm nhận không khí chơi billiards chuyên nghiệp</p>
               <Link to="/simple-booking">
                 <Button size="lg" className="bg-yellow-400 text-green-900 hover:bg-yellow-500 font-bold px-8 py-4 text-lg min-h-[44px]">
                   🎯 Đặt bàn ngay

@@ -144,8 +144,8 @@ const SimpleClubBookingPage = () => {
   return (
     <>
       <Helmet>
-        <title>Đặt bàn bi-a - CLB Bi-a Sài Gòn</title>
-        <meta name="description" content="Đặt bàn bi-a online nhanh chóng, dễ dàng tại CLB Bi-a Sài Gòn" />
+        <title>Đặt bàn billiards - SABO Billiards</title>
+        <meta name="description" content="Đặt bàn billiards online nhanh chóng, dễ dàng tại SABO Billiards" />
       </Helmet>
 
       <div className={`min-h-screen ${themeClasses}`}>

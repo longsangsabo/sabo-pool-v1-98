@@ -331,7 +331,7 @@ const ClubProfileTab = ({ user, profile, onUpdate }: ClubProfileTabProps) => {
                 {...register('club_name', {
                   required: 'Vui lòng nhập tên CLB',
                 })}
-                placeholder='Ví dụ: CLB Bida Sài Gòn'
+                placeholder='Ví dụ: SABO Billiards'
               />
               {errors.club_name && (
                 <p className='mt-1 text-sm text-red-600'>

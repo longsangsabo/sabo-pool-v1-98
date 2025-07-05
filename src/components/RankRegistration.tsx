@@ -86,7 +86,7 @@ const RankRegistration = () => {
           status: 'pending',
           reason: 'Tournament performance',
           created_at: new Date().toISOString(),
-          clubs: { name: 'CLB Bi-a Sài Gòn' }
+          clubs: { name: 'SABO Billiards' }
         }
       ];
       setRegistrations(mockRegistrations);

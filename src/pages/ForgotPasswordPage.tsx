@@ -34,7 +34,7 @@ const ForgotPasswordPage = () => {
     return (
       <>
         <Helmet>
-          <title>Kiểm tra email - CLB Bi-a Sài Gòn</title>
+          <title>Kiểm tra email - SABO Billiards</title>
         </Helmet>
 
         <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-900 flex items-center justify-center p-4">
@@ -67,7 +67,7 @@ const ForgotPasswordPage = () => {
   return (
     <>
       <Helmet>
-        <title>Quên mật khẩu - CLB Bi-a Sài Gòn</title>
+        <title>Quên mật khẩu - SABO Billiards</title>
       </Helmet>
 
       <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-900 flex items-center justify-center p-4">

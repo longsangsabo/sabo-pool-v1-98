@@ -92,7 +92,7 @@ const RankRegistrationForm = ({ onSuccess }: RankRegistrationFormProps) => {
           requested_rank: 1500,
           status: 'pending',
           created_at: new Date().toISOString(),
-          club: { name: 'CLB Bi-a Sài Gòn', address: '123 Nguyễn Huệ, Q1' }
+          club: { name: 'SABO Billiards', address: '123 Nguyễn Huệ, Q1' }
         }
       ];
       setUserRankRequests(mockRankRequests);

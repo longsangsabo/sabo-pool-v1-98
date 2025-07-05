@@ -234,7 +234,7 @@ export const useTournamentRecommendations = () => {
           contact_info: {},
           club: {
             id: 'club_2',
-            name: 'CLB Bi-a Sài Gòn',
+            name: 'SABO Billiards',
             address: 'Tp. Hồ Chí Minh',
             latitude: 10.8231,
             longitude: 106.6297,

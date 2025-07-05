@@ -406,7 +406,7 @@ const SystemAuditPage = () => {
   return (
     <>
       <Helmet>
-        <title>System Audit - CLB Bi-a Sài Gòn</title>
+        <title>System Audit - SABO Billiards</title>
       </Helmet>
 
       <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-900 p-4">

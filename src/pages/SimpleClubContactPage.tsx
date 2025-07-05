@@ -57,8 +57,8 @@ const SimpleClubContactPage = () => {
   return (
     <>
       <Helmet>
-        <title>Liên hệ - CLB Bi-a Sài Gòn</title>
-        <meta name="description" content="Liên hệ với CLB Bi-a Sài Gòn để được tư vấn và hỗ trợ" />
+        <title>Liên hệ - SABO Billiards</title>
+        <meta name="description" content="Liên hệ với SABO Billiards để được tư vấn và hỗ trợ" />
       </Helmet>
 
       <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-900">
