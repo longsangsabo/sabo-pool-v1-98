@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 
 interface Membership {
   id: string;
+  club_id: string;
   user_id: string;
-  membership_type: string;
-  price: number;
-  start_date: string;
-  end_date: string;
+  joined_at: string;
   status: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface IndividualMembershipTabProps {
@@ -32,14 +32,14 @@ export const IndividualMembershipTab: React.FC<
             <div className='flex items-center space-x-4'>
               <div
                 className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                  currentMembership.membership_type === 'premium'
+                  currentMembership.status === 'active'
                     ? 'bg-yellow-100'
                     : 'bg-gray-100'
                 }`}
               >
                 <Crown
                   className={`w-6 h-6 ${
-                    currentMembership.membership_type === 'premium'
+                    currentMembership.status === 'active'
                       ? 'text-yellow-600'
                       : 'text-gray-600'
                   }`}
@@ -47,18 +47,18 @@ export const IndividualMembershipTab: React.FC<
               </div>
               <div>
                 <h3 className='text-lg font-medium text-gray-900'>
-                  {currentMembership.membership_type === 'premium'
-                    ? 'Premium Member'
+                  {currentMembership.status === 'active'
+                    ? 'Active Member'
                     : 'Free Member'}
                 </h3>
                 <p className='text-sm text-gray-600'>
-                  {currentMembership.membership_type === 'premium'
-                    ? `Hết hạn: ${new Date(currentMembership.end_date).toLocaleDateString('vi-VN')}`
+                  {currentMembership.status === 'active'
+                    ? `Gia nhập: ${new Date(currentMembership.joined_at).toLocaleDateString('vi-VN')}`
                     : 'Gói miễn phí không giới hạn thời gian'}
                 </p>
               </div>
             </div>
-            {currentMembership.membership_type === 'premium' && (
+            {currentMembership.status === 'active' && (
               <Button onClick={() => onUpgrade('premium', 99000)}>
                 Gia hạn
               </Button>
@@ -104,10 +104,10 @@ export const IndividualMembershipTab: React.FC<
 
           <Button
             variant='outline'
-            disabled={currentMembership?.membership_type === 'free'}
+            disabled={currentMembership?.status === 'active'}
             className='w-full'
           >
-            {currentMembership?.membership_type === 'free'
+            {currentMembership?.status === 'active'
               ? 'Đang sử dụng'
               : 'Chọn gói này'}
           </Button>
@@ -160,10 +160,10 @@ export const IndividualMembershipTab: React.FC<
 
           <Button
             onClick={() => onUpgrade('premium', 99000)}
-            disabled={currentMembership?.membership_type === 'premium'}
+            disabled={currentMembership?.status === 'active'}
             className='w-full'
           >
-            {currentMembership?.membership_type === 'premium'
+            {currentMembership?.status === 'active'
               ? 'Đang sử dụng'
               : 'Nâng cấp ngay'}
           </Button>

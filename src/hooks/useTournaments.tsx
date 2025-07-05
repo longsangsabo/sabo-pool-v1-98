@@ -200,9 +200,21 @@ export const useTournaments = (userId?: string) => {
       setError(null);
 
       try {
-        // Mock registration
-        console.log('Mock registering for tournament:', tournamentId);
-        
+        if (!user?.id) throw new Error('Must be logged in');
+
+        const { data, error } = await supabase
+          .from('tournament_registrations')
+          .insert({
+            tournament_id: tournamentId,
+            player_id: user.id,
+            registration_status: 'pending'
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Update local tournaments list
         setTournaments(prev =>
           prev.map(tournament =>
             tournament.id === tournamentId
@@ -214,13 +226,15 @@ export const useTournaments = (userId?: string) => {
           )
         );
 
-        return { id: 'mock_registration', tournament_id: tournamentId, user_id: user?.id };
+        toast.success('Đăng ký giải đấu thành công!');
+        return data;
       } catch (err) {
         setError(
           err instanceof Error
             ? err.message
             : 'Failed to register for tournament'
         );
+        toast.error('Có lỗi khi đăng ký giải đấu');
         throw err;
       } finally {
         setLoading(false);
@@ -235,8 +249,15 @@ export const useTournaments = (userId?: string) => {
       setError(null);
 
       try {
-        // Mock cancel registration
-        console.log('Mock canceling registration for tournament:', tournamentId);
+        if (!user?.id) throw new Error('Must be logged in');
+
+        const { error } = await supabase
+          .from('tournament_registrations')
+          .delete()
+          .eq('tournament_id', tournamentId)
+          .eq('player_id', user.id);
+
+        if (error) throw error;
 
         setTournaments(prev =>
           prev.map(tournament =>
@@ -251,10 +272,13 @@ export const useTournaments = (userId?: string) => {
               : tournament
           )
         );
+
+        toast.success('Đã hủy đăng ký giải đấu');
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Failed to cancel registration'
         );
+        toast.error('Có lỗi khi hủy đăng ký');
         throw err;
       } finally {
         setLoading(false);
@@ -266,8 +290,23 @@ export const useTournaments = (userId?: string) => {
   const getTournamentRegistrations = useCallback(
     async (tournamentId: string) => {
       try {
-        // Mock registrations
-        return [];
+        const { data, error } = await supabase
+          .from('tournament_registrations')
+          .select(`
+            *,
+            profiles!inner(
+              user_id,
+              full_name,
+              display_name,
+              avatar_url,
+              verified_rank
+            )
+          `)
+          .eq('tournament_id', tournamentId)
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        return data || [];
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Failed to fetch registrations'

@@ -15,25 +15,37 @@ interface Membership {
 
 interface ClubRegistration {
   id: string;
-  user_id: string;
+  user_id?: string;
   club_name: string;
-  club_type: string;
-  existing_club_id?: string;
-  province_id?: string;
-  district_id?: string;
-  ward_id?: string;
   address: string;
+  district: string;
+  city: string;
   phone: string;
-  email?: string;
-  description?: string;
+  opening_time: string;
+  closing_time: string;
   table_count: number;
-  hourly_rate: number;
+  table_types: string[];
+  basic_price: number;
+  normal_hour_price?: number;
+  peak_hour_price?: number;
+  weekend_price?: number;
+  vip_table_price?: number;
+  amenities?: any;
+  photos?: string[];
+  facebook_url?: string;
+  google_maps_url?: string;
+  business_license_url?: string;
+  manager_name?: string;
+  manager_phone?: string;
+  email?: string;
   status: string;
   rejection_reason?: string;
   reviewed_by?: string;
   reviewed_at?: string;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
+  approved_at?: string;
+  approved_by?: string;
 }
 
 export const useMembership = () => {
@@ -46,10 +58,18 @@ export const useMembership = () => {
     queryFn: async () => {
       if (!user?.id) return null;
 
-      // Mock membership data since memberships table has different structure
-      const mockMembership = null; // No active membership
+      const { data, error } = await supabase
+        .from('memberships')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle();
 
-      return mockMembership;
+      if (error) {
+        console.error('Error fetching membership:', error);
+        return null;
+      }
+      return data;
     },
     enabled: !!user?.id,
   });
@@ -60,10 +80,18 @@ export const useMembership = () => {
     queryFn: async () => {
       if (!user?.id) return null;
 
-      // Mock club registration since table doesn't exist
-      const mockRegistration = null; // No registration found
+      const { data, error } = await supabase
+        .from('club_registrations')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .maybeSingle();
 
-      return mockRegistration;
+      if (error) {
+        console.error('Error fetching club registration:', error);
+        return null;
+      }
+      return data;
     },
     enabled: !!user?.id,
   });
@@ -71,32 +99,52 @@ export const useMembership = () => {
   // Create or update club registration
   const createClubRegistration = useMutation({
     mutationFn: async (
-      registrationData: Omit<
-        ClubRegistration,
-        'id' | 'user_id' | 'status' | 'created_at' | 'updated_at'
-      >
+      registrationData: {
+        club_name: string;
+        address: string;
+        phone: string;
+        email?: string;
+        table_count: number;
+        hourly_rate: number;
+      }
     ) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // Mock club registration creation since table doesn't exist
-      console.log('Mock creating club registration:', registrationData);
-      
-      const mockRegistration: ClubRegistration = {
-        id: Date.now().toString(),
-        user_id: user.id,
-        ...registrationData,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+          const { data, error } = await supabase
+            .from('club_registrations')
+            .insert({
+              user_id: user.id,
+              club_name: registrationData.club_name,
+              address: registrationData.address,
+              phone: registrationData.phone,
+              email: registrationData.email,
+              table_count: registrationData.table_count,
+              table_types: ['Standard', 'Pool'], // Default table types
+              opening_time: '08:00',
+              closing_time: '22:00',
+              basic_price: registrationData.hourly_rate,
+              district: 'Unknown',
+              city: 'Ho Chi Minh',
+              status: 'pending'
+            })
+        .select()
+        .single();
 
-      return mockRegistration;
+      if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['club-registration'] });
       toast.success(
         'Đăng ký CLB thành công! Chúng tôi sẽ xem xét trong 1-3 ngày làm việc.'
       );
+      
+      // Send notification to user
+      if (user?.id) {
+        // The database trigger will handle sending notification to admins
+        // But we should also confirm to user that their registration was received
+        console.log('Club registration created successfully:', data);
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Có lỗi xảy ra khi đăng ký CLB');

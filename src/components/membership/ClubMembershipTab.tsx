@@ -4,25 +4,37 @@ import { Button } from '@/components/ui/button';
 
 interface ClubRegistration {
   id: string;
-  user_id: string;
+  user_id?: string;
   club_name: string;
-  club_type: string;
-  existing_club_id?: string;
-  province_id?: string;
-  district_id?: string;
-  ward_id?: string;
   address: string;
+  district: string;
+  city: string;
   phone: string;
-  email?: string;
-  description?: string;
+  opening_time: string;
+  closing_time: string;
   table_count: number;
-  hourly_rate: number;
+  table_types: string[];
+  basic_price: number;
+  normal_hour_price?: number;
+  peak_hour_price?: number;
+  weekend_price?: number;
+  vip_table_price?: number;
+  amenities?: any;
+  photos?: string[];
+  facebook_url?: string;
+  google_maps_url?: string;
+  business_license_url?: string;
+  manager_name?: string;
+  manager_phone?: string;
+  email?: string;
   status: string;
   rejection_reason?: string;
   reviewed_by?: string;
   reviewed_at?: string;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
+  approved_at?: string;
+  approved_by?: string;
 }
 
 interface ClubMembershipTabProps {

@@ -134,31 +134,49 @@ export const useClubs = (userId?: string) => {
         setLoading(true);
         setError(null);
 
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Create club registration first
+        const { data: registration, error: regError } = await supabase
+          .from('club_registrations')
+          .insert({
+            user_id: userId,
+            club_name: data.name,
+            address: data.address,
+            phone: data.phone || '',
+            email: data.email,
+            table_count: data.available_tables || 10,
+            table_types: ['Standard', 'Pool'], // Default table types
+            opening_time: '08:00',
+            closing_time: '22:00',
+            basic_price: data.hourly_rate || 50000,
+            district: 'Unknown',
+            city: 'Ho Chi Minh',
+            status: 'pending'
+          })
+          .select()
+          .single();
 
-        const newClub: CommonClub = {
-          id: Date.now().toString(),
-          name: data.name,
-          description: data.description,
-          address: data.address,
-          phone: data.phone,
-          email: data.email,
-          available_tables: data.available_tables || 10,
-          hourly_rate: data.hourly_rate || 30000,
-          is_sabo_owned: false,
-          priority_score: 50,
-          owner_id: userId,
-          logo_url: undefined,
-          table_count: data.available_tables || 10,
-          latitude: undefined,
-          longitude: undefined,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
+        if (regError) throw regError;
 
-        setClubs(prev => [newClub, ...prev]);
-        return newClub;
+        // For demo purposes, also create a club profile directly (normally would be done by admin)
+        const { data: clubProfile, error: profileError } = await supabase
+          .from('club_profiles')
+          .insert({
+            user_id: userId,
+            club_name: data.name,
+            address: data.address,
+            phone: data.phone || '',
+            number_of_tables: data.available_tables || 10,
+            verification_status: 'pending'
+          })
+          .select()
+          .single();
+
+        if (profileError) {
+          console.warn('Could not create club profile:', profileError);
+        }
+
+        await fetchClubs(); // Refresh clubs list
+        return registration;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Không thể tạo club');
         throw err;
@@ -166,7 +184,7 @@ export const useClubs = (userId?: string) => {
         setLoading(false);
       }
     },
-    [userId]
+    [userId, fetchClubs]
   );
 
   // Get club by ID
@@ -221,17 +239,32 @@ export const useClubs = (userId?: string) => {
 
   // Update club
   const updateClub = useCallback(
-    async (clubId: string, data: Partial<CommonClub>) => {
+    async (clubId: string, updateData: Partial<CommonClub>) => {
       try {
+        const { error } = await supabase
+          .from('club_profiles')
+          .update({
+            club_name: updateData.name,
+            address: updateData.address,
+            phone: updateData.phone,
+            number_of_tables: updateData.table_count,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', clubId);
+
+        if (error) throw error;
+
+        // Update local state
         setClubs(prev =>
           prev.map(club =>
             club.id === clubId
-              ? { ...club, ...data, updated_at: new Date().toISOString() }
+              ? { ...club, ...updateData, updated_at: new Date().toISOString() }
               : club
           )
         );
       } catch (err) {
         console.error('Failed to update club:', err);
+        throw err;
       }
     },
     []
@@ -240,9 +273,17 @@ export const useClubs = (userId?: string) => {
   // Delete club
   const deleteClub = useCallback(async (clubId: string) => {
     try {
+      const { error } = await supabase
+        .from('club_profiles')
+        .delete()
+        .eq('id', clubId);
+
+      if (error) throw error;
+
       setClubs(prev => prev.filter(club => club.id !== clubId));
     } catch (err) {
       console.error('Failed to delete club:', err);
+      throw err;
     }
   }, []);
 
