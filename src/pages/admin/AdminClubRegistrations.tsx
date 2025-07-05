@@ -70,12 +70,29 @@ const AdminClubRegistrations = () => {
     fetchRegistrations();
   }, [statusFilter]);
 
+  // Debug effect to check registrations table
+  useEffect(() => {
+    const debugCheck = async () => {
+      console.log('🔍 Checking club_registrations table...');
+      
+      const { data, error, count } = await supabase
+        .from('club_registrations')
+        .select('*', { count: 'exact' });
+      
+      console.log('Total registrations:', count);
+      console.log('Data:', data);
+      console.log('Error:', error);
+    };
+    
+    debugCheck();
+  }, []);
+
   const fetchRegistrations = async () => {
     console.log('🔍 Admin accessing club panel');
     setLoading(true);
     
     try {
-      // First get club registrations
+      // Simple query without joins first
       let query = supabase
         .from('club_registrations')
         .select('*')
@@ -93,10 +110,12 @@ const AdminClubRegistrations = () => {
         return;
       }
 
-      // Then get user info for each club
+      console.log('📋 Found clubs:', clubs?.length || 0);
+
+      // If we have clubs, get user info separately
       let clubsWithUsers = clubs || [];
       if (clubs && clubs.length > 0) {
-        const userIds = clubs.map(club => club.user_id).filter(Boolean);
+        const userIds = [...new Set(clubs.map(c => c.user_id).filter(Boolean))];
         
         if (userIds.length > 0) {
           const { data: users, error: usersError } = await supabase
@@ -107,16 +126,14 @@ const AdminClubRegistrations = () => {
           if (usersError) {
             console.error('Users query error:', usersError);
           } else {
-            // Merge data
+            // Merge user data with clubs
             clubsWithUsers = clubs.map(club => ({
               ...club,
-              profiles: users?.find(u => u.user_id === club.user_id)
+              profiles: users?.find(u => u.user_id === club.user_id) || null
             }));
           }
         }
       }
-
-      console.log('📋 Found clubs:', clubsWithUsers?.length || 0);
       
       setRegistrations(clubsWithUsers.map(item => ({
         ...item,
@@ -323,18 +340,23 @@ const AdminClubRegistrations = () => {
           <h1 className="text-2xl font-bold">Quản lý đăng ký câu lạc bộ</h1>
           <p className="text-gray-600">Xét duyệt các yêu cầu đăng ký câu lạc bộ</p>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="pending">Chờ duyệt</SelectItem>
-            <SelectItem value="approved">Đã duyệt</SelectItem>
-            <SelectItem value="rejected">Bị từ chối</SelectItem>
-            <SelectItem value="draft">Bản nháp</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-3 items-center">
+          <Button onClick={fetchRegistrations} variant="outline" disabled={loading}>
+            🔄 Refresh danh sách
+          </Button>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả</SelectItem>
+              <SelectItem value="pending">Chờ duyệt</SelectItem>
+              <SelectItem value="approved">Đã duyệt</SelectItem>
+              <SelectItem value="rejected">Bị từ chối</SelectItem>
+              <SelectItem value="draft">Bản nháp</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Registration List */}

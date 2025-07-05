@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Users, 
@@ -29,9 +29,13 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Badge } from './ui/badge';
+import NotificationBadge from './NotificationBadge';
+import { supabase } from '@/integrations/supabase/client';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const { user, signOut } = useAuth();
   console.log('Header: user:', user?.id, user?.phone);
   
@@ -39,6 +43,34 @@ const Header = () => {
   console.log('Header: isAdmin value:', isAdmin, 'isLoading:', isLoading, 'error:', error);
   
   const location = useLocation();
+
+  // Fetch notifications for admin users
+  const fetchNotifications = async () => {
+    if (user && isAdmin) {
+      try {
+        const { data, count } = await supabase
+          .from('notifications')
+          .select('*', { count: 'exact' })
+          .eq('user_id', user.id)
+          .eq('is_read', false)
+          .order('created_at', { ascending: false });
+        
+        setNotifications(data || []);
+        setUnreadCount(count || 0);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    }
+  };
+
+  // Poll for new notifications every 30 seconds for admins
+  useEffect(() => {
+    if (user && isAdmin) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 30000); // 30s
+      return () => clearInterval(interval);
+    }
+  }, [user, isAdmin]);
 
   const navigationItems = [
     { name: 'Trang chủ', href: '/', icon: Home },
@@ -105,15 +137,14 @@ const Header = () => {
           <div className="flex items-center space-x-4">
             {/* Notifications */}
             {user && (
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="w-5 h-5" />
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                >
-                  3
-                </Badge>
-              </Button>
+              <NotificationBadge 
+                count={notifications?.length || 0}
+                hasUrgent={notifications?.some(n => n.priority === 'high') || false}
+                onClick={() => {
+                  // Navigate to notifications page or open dropdown
+                  window.location.href = '/notifications';
+                }}
+              />
             )}
 
             {/* User Menu */}
