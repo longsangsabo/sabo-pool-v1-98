@@ -34,6 +34,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { data: isAdmin } = useAdminCheck();
+  console.log('Header: isAdmin value:', isAdmin);
   const location = useLocation();
 
   const navigationItems = [

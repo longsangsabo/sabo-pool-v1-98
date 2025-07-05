@@ -9,7 +9,12 @@ export const useAdminCheck = () => {
   return useQuery({
     queryKey: ['admin-check', user?.id],
     queryFn: async () => {
-      if (!user?.id) return false;
+      if (!user?.id) {
+        console.log('useAdminCheck: No user ID');
+        return false;
+      }
+
+      console.log('useAdminCheck: Checking admin status for user:', user.id);
 
       // Check if user has admin status in profiles
       const { data: profile, error } = await supabase
@@ -19,11 +24,15 @@ export const useAdminCheck = () => {
         .single();
 
       if (error) {
-        console.error('Error checking admin status:', error);
+        console.error('useAdminCheck: Error checking admin status:', error);
         return false;
       }
 
-      return profile?.is_admin || false;
+      console.log('useAdminCheck: Profile data:', profile);
+      const isAdmin = profile?.is_admin || false;
+      console.log('useAdminCheck: Final admin status:', isAdmin);
+      
+      return isAdmin;
     },
     enabled: !!user?.id,
   });
