@@ -151,116 +151,30 @@ const AdminClubRegistrations = () => {
 
   const approveRegistration = async (registration: ClubRegistration) => {
     console.log('✅ Starting approval for club:', registration.club_name);
-    console.log('📋 Registration data:', registration);
     setProcessing(true);
     
     try {
-      // Step 1: Update registration status
-      console.log('📝 Step 1: Updating registration status...');
-      const { data: updatedReg, error: updateError } = await supabase
-        .from('club_registrations')
-        .update({
-          status: 'approved',
-          approved_at: new Date().toISOString(),
-          approved_by: user?.id
-        })
-        .eq('id', registration.id)
-        .select();
+      // Use the new database function for atomic approval
+      const { data, error } = await supabase.rpc('approve_club_registration', {
+        registration_id: registration.id,
+        approver_id: user?.id,
+        approved: true,
+        comments: null
+      });
 
-      if (updateError) {
-        console.error('❌ Update registration error:', updateError);
-        throw new Error(`Lỗi cập nhật đăng ký: ${updateError.message}`);
-      }
-      console.log('✅ Registration updated:', updatedReg);
-
-      // Step 2: Check if club profile already exists
-      console.log('📝 Step 2: Checking existing club profile...');
-      const { data: existingClub } = await supabase
-        .from('club_profiles')
-        .select('id')
-        .eq('user_id', registration.user_id)
-        .maybeSingle();
-
-      if (!existingClub) {
-        // Create club profile only if it doesn't exist
-        console.log('📝 Creating new club profile...');
-        const clubProfileData = {
-          user_id: registration.user_id,
-          club_name: registration.club_name,
-          address: registration.address,
-          phone: registration.phone,
-          operating_hours: {
-            open: registration.opening_time,
-            close: registration.closing_time,
-            days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-          },
-          number_of_tables: registration.table_count,
-          verification_status: 'approved',
-          verified_at: new Date().toISOString(),
-          verified_by: user?.id
-        };
-        
-        console.log('📋 Club profile data:', clubProfileData);
-        const { data: clubProfile, error: clubError } = await supabase
-          .from('club_profiles')
-          .insert(clubProfileData)
-          .select();
-
-        if (clubError) {
-          console.error('❌ Club profile error:', clubError);
-          throw new Error(`Lỗi tạo hồ sơ CLB: ${clubError.message}`);
-        }
-        console.log('✅ Club profile created:', clubProfile);
-      } else {
-        console.log('✅ Club profile already exists, skipping creation');
+      if (error) {
+        console.error('❌ Approval function error:', error);
+        throw new Error(`Lỗi duyệt đăng ký: ${error.message}`);
       }
 
-      // Step 3: Update user role
-      console.log('📝 Step 3: Updating user role...');
-      const { data: updatedProfile, error: roleError } = await supabase
-        .from('profiles')
-        .update({
-          role: 'both',
-          active_role: 'club_owner'
-        })
-        .eq('user_id', registration.user_id)
-        .select();
-
-      if (roleError) {
-        console.error('❌ Role update error:', roleError);
-        throw new Error(`Lỗi cập nhật vai trò: ${roleError.message}`);
-      }
-      console.log('✅ User role updated:', updatedProfile);
-
-      // Step 4: Create notification for club owner
-      console.log('📝 Step 4: Creating notification...');
-      const notificationData = {
-        user_id: registration.user_id,
-        type: 'club_approved',
-        title: 'CLB được phê duyệt',
-        message: `Chúc mừng! Câu lạc bộ "${registration.club_name}" của bạn đã được phê duyệt thành công.`,
-        action_url: '/profile?tab=club',
-        metadata: {
-          club_name: registration.club_name,
-          registration_id: registration.id
-        },
-        priority: 'high'
-      };
-
-      const { data: notification, error: notificationError } = await supabase
-        .from('notifications')
-        .insert(notificationData)
-        .select();
-
-      if (notificationError) {
-        console.error('⚠️ Notification error (non-critical):', notificationError);
-        // Don't fail the whole process for notification errors
-      } else {
-        console.log('✅ Notification created:', notification);
+      const result = data as { success: boolean; error?: string; club_name?: string };
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Approval failed');
       }
 
       console.log('🎉 Club approval completed successfully!');
-      toast.success(`Đã duyệt thành công câu lạc bộ "${registration.club_name}"!`);
+      toast.success(`Đã duyệt thành công câu lạc bộ "${result.club_name}"!`);
       
       // Refresh the list to show updated status
       await fetchRegistrations();
@@ -284,42 +198,29 @@ const AdminClubRegistrations = () => {
     setProcessing(true);
     
     try {
-      const { error } = await supabase
-        .from('club_registrations')
-        .update({
-          status: 'rejected',
-          rejection_reason: rejectionReason
-        })
-        .eq('id', registration.id);
+      // Use the new database function for atomic rejection
+      const { data, error } = await supabase.rpc('approve_club_registration', {
+        registration_id: registration.id,
+        approver_id: user?.id,
+        approved: false,
+        comments: rejectionReason
+      });
 
-      if (error) throw error;
-
-      // Create notification for club owner
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: registration.user_id,
-          type: 'club_rejected',
-          title: 'CLB bị từ chối',
-          message: `Đăng ký câu lạc bộ "${registration.club_name}" đã bị từ chối. Lý do: ${rejectionReason}`,
-          action_url: '/profile?tab=club-registration',
-          metadata: {
-            club_name: registration.club_name,
-            registration_id: registration.id,
-            rejection_reason: rejectionReason
-          },
-          priority: 'normal'
-        });
-
-      if (notificationError) {
-        console.error('Error creating notification:', notificationError);
-        // Don't fail the whole process for notification errors
+      if (error) {
+        console.error('❌ Rejection function error:', error);
+        throw new Error(`Lỗi từ chối đăng ký: ${error.message}`);
       }
 
-      console.log('❌ Club rejected:', registration.club_name);
-      toast.success('Đã từ chối đăng ký câu lạc bộ');
+      const result = data as { success: boolean; error?: string; club_name?: string };
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Rejection failed');
+      }
+
+      console.log('❌ Club rejected successfully:', result.club_name);
+      toast.success(`Đã từ chối đăng ký câu lạc bộ "${result.club_name}"`);
       setRejectionReason('');
-      fetchRegistrations();
+      await fetchRegistrations();
       setSelectedRegistration(null);
     } catch (error: any) {
       console.error('Error rejecting registration:', error);

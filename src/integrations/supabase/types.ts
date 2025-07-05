@@ -39,6 +39,41 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_logs: {
+        Row: {
+          action: string
+          approver_id: string
+          comments: string | null
+          created_at: string | null
+          id: string
+          registration_id: string
+        }
+        Insert: {
+          action: string
+          approver_id: string
+          comments?: string | null
+          created_at?: string | null
+          id?: string
+          registration_id: string
+        }
+        Update: {
+          action?: string
+          approver_id?: string
+          comments?: string | null
+          created_at?: string | null
+          id?: string
+          registration_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_logs_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "club_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenges: {
         Row: {
           bet_points: number | null
@@ -2352,6 +2387,15 @@ export type Database = {
       apply_automatic_penalty: {
         Args: { player_uuid: string }
         Returns: undefined
+      }
+      approve_club_registration: {
+        Args: {
+          registration_id: string
+          approver_id: string
+          approved: boolean
+          comments?: string
+        }
+        Returns: Json
       }
       calculate_trust_score: {
         Args: { player_uuid: string }

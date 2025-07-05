@@ -63,12 +63,52 @@ const Header = () => {
     }
   };
 
-  // Poll for new notifications every 30 seconds for admins
+  // Real-time notification subscription
   useEffect(() => {
     if (user && isAdmin) {
+      console.log('Setting up real-time notification subscription for admin');
+      
+      // Initial fetch
       fetchNotifications();
-      const interval = setInterval(fetchNotifications, 30000); // 30s
-      return () => clearInterval(interval);
+      
+      // Set up real-time subscription
+      const channel = supabase
+        .channel('admin-notifications')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        }, (payload) => {
+          console.log('Real-time notification update:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            // Add new notification
+            setNotifications(prev => [payload.new as any, ...prev]);
+            setUnreadCount(prev => prev + 1);
+          } else if (payload.eventType === 'UPDATE') {
+            // Update existing notification
+            setNotifications(prev => 
+              prev.map(notif => 
+                notif.id === payload.new.id ? payload.new as any : notif
+              )
+            );
+            // Recalculate unread count
+            fetchNotifications();
+          } else if (payload.eventType === 'DELETE') {
+            // Remove notification
+            setNotifications(prev => 
+              prev.filter(notif => notif.id !== payload.old.id)
+            );
+            setUnreadCount(prev => Math.max(0, prev - 1));
+          }
+        })
+        .subscribe();
+
+      return () => {
+        console.log('Cleaning up real-time subscription');
+        supabase.removeChannel(channel);
+      };
     }
   }, [user, isAdmin]);
 
