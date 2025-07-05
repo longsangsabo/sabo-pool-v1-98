@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Filter, MoreHorizontal, UserCheck, UserX, Crown } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, UserCheck, UserX, Crown, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -19,43 +20,78 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import AdminLayout from '@/components/AdminLayout';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
+import { useAdminUsers, type AdminUser } from '@/hooks/useAdminUsers';
 
 const AdminUsers = () => {
   const { data: isAdmin, isLoading: adminLoading } = useAdminCheck();
+  const { users, isLoading: usersLoading, updateUserBan, updateUserRole, isUpdatingBan, isUpdatingRole } = useAdminUsers();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [banReason, setBanReason] = useState('');
 
-  // Mock users data
-  const users = [
-    {
-      id: '1',
-      full_name: 'Nguyễn Văn A',
-      email: 'nguyenvana@email.com',
-      phone: '0901234567',
-      current_rank: 'A+',
-      ranking_points: 2500,
-      status: 'active',
-      role: 'user',
-      created_at: '2024-01-15T00:00:00Z',
-      last_active: '2024-01-20T10:30:00Z',
-    },
-    {
-      id: '2',
-      full_name: 'Trần Thị B',
-      email: 'tranthib@email.com',
-      phone: '0987654321',
-      current_rank: 'B+',
-      ranking_points: 1800,
-      status: 'active',
-      role: 'premium',
-      created_at: '2024-01-10T00:00:00Z',
-      last_active: '2024-01-20T09:15:00Z',
-    },
-  ];
+  // Filter users based on search and status
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = !searchQuery || 
+      user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.phone?.includes(searchQuery);
+    
+    const matchesStatus = statusFilter === 'all' || 
+      (statusFilter === 'active' && user.ban_status !== 'banned') ||
+      (statusFilter === 'banned' && user.ban_status === 'banned') ||
+      (statusFilter === 'inactive' && user.ban_status === 'inactive');
+    
+    return matchesSearch && matchesStatus;
+  });
 
-  if (adminLoading) {
+  const handleBanUser = (user: AdminUser) => {
+    setSelectedUser(user);
+    setBanDialogOpen(true);
+  };
+
+  const confirmBanUser = () => {
+    if (selectedUser) {
+      updateUserBan({
+        userId: selectedUser.user_id,
+        banStatus: 'banned',
+        banReason: banReason,
+        banExpiresAt: null,
+      });
+      setBanDialogOpen(false);
+      setBanReason('');
+      setSelectedUser(null);
+    }
+  };
+
+  const handleUnbanUser = (user: AdminUser) => {
+    updateUserBan({
+      userId: user.user_id,
+      banStatus: 'active',
+      banReason: null,
+      banExpiresAt: null,
+    });
+  };
+
+  const handleChangeRole = (user: AdminUser, newRole: string) => {
+    updateUserRole({
+      userId: user.user_id,
+      role: newRole,
+    });
+  };
+
+  if (adminLoading || usersLoading) {
     return (
       <AdminLayout>
         <div className='flex items-center justify-center h-64'>
@@ -78,16 +114,25 @@ const AdminUsers = () => {
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'inactive':
-        return 'bg-gray-100 text-gray-800';
+  const getStatusColor = (banStatus: string | null) => {
+    switch (banStatus) {
       case 'banned':
         return 'bg-red-100 text-red-800';
-      default:
+      case 'inactive':
         return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-green-100 text-green-800';
+    }
+  };
+
+  const getStatusText = (banStatus: string | null) => {
+    switch (banStatus) {
+      case 'banned':
+        return 'Đã khóa';
+      case 'inactive':
+        return 'Không hoạt động';
+      default:
+        return 'Hoạt động';
     }
   };
 
@@ -135,66 +180,123 @@ const AdminUsers = () => {
         <Card>
           <CardHeader>
             <CardTitle>Danh sách người dùng</CardTitle>
-            <CardDescription>Tổng cộng {users.length} người dùng</CardDescription>
+            <CardDescription>Tổng cộng {filteredUsers.length} người dùng</CardDescription>
           </CardHeader>
           <CardContent>
             <div className='space-y-4'>
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <div
-                  key={user.id}
+                  key={user.user_id}
                   className='flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50'
                 >
                   <div className='flex items-center space-x-4'>
                     <Avatar>
-                      <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.full_name}`} />
-                      <AvatarFallback>{user.full_name.charAt(0)}</AvatarFallback>
+                      <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.full_name || 'User'}`} />
+                      <AvatarFallback>{user.full_name?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
                     <div>
                       <div className='flex items-center space-x-2'>
-                        <h3 className='font-medium'>{user.full_name}</h3>
+                        <h3 className='font-medium'>{user.full_name || 'Chưa cập nhật'}</h3>
                         {getRoleIcon(user.role)}
+                        {user.is_admin && <Badge variant="secondary" className="text-xs">Admin</Badge>}
                       </div>
-                      <p className='text-sm text-gray-500'>{user.email}</p>
-                      <p className='text-sm text-gray-500'>{user.phone}</p>
+                      <p className='text-sm text-gray-500'>{user.user_id}</p>
+                      <p className='text-sm text-gray-500'>{user.phone || 'Chưa có SĐT'}</p>
+                      {user.ban_reason && (
+                        <p className='text-sm text-red-500 flex items-center'>
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          {user.ban_reason}
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   <div className='flex items-center space-x-4'>
                     <div className='text-right'>
-                      <Badge className='mb-1'>{user.current_rank}</Badge>
-                      <p className='text-sm text-gray-500'>{user.ranking_points} điểm</p>
+                      <Badge className='mb-1'>{user.verified_rank || 'Chưa xác thực'}</Badge>
+                      <p className='text-sm text-gray-500'>{user.city || 'Chưa cập nhật'}</p>
                     </div>
-                    <Badge className={getStatusColor(user.status)}>
-                      {user.status === 'active' ? 'Hoạt động' : 
-                       user.status === 'inactive' ? 'Không hoạt động' : 'Đã khóa'}
+                    <Badge className={getStatusColor(user.ban_status)}>
+                      {getStatusText(user.ban_status)}
                     </Badge>
                     <div className='text-right text-sm text-gray-500'>
                       <p>Tham gia: {formatDate(user.created_at)}</p>
-                      <p>Hoạt động: {formatDate(user.last_active)}</p>
+                      <p>Cập nhật: {formatDate(user.updated_at)}</p>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant='ghost' size='sm'>
+                        <Button variant='ghost' size='sm' disabled={isUpdatingBan || isUpdatingRole}>
                           <MoreHorizontal className='w-4 h-4' />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => console.log('View details', user.user_id)}>
                           <UserCheck className='w-4 h-4 mr-2' />
                           Xem chi tiết
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <UserX className='w-4 h-4 mr-2' />
-                          Khóa tài khoản
+                        <DropdownMenuSeparator />
+                        {user.ban_status === 'banned' ? (
+                          <DropdownMenuItem onClick={() => handleUnbanUser(user)}>
+                            <UserCheck className='w-4 h-4 mr-2' />
+                            Mở khóa tài khoản
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => handleBanUser(user)}>
+                            <UserX className='w-4 h-4 mr-2' />
+                            Khóa tài khoản
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleChangeRole(user, user.role === 'premium' ? 'player' : 'premium')}>
+                          <Crown className='w-4 h-4 mr-2' />
+                          {user.role === 'premium' ? 'Hủy Premium' : 'Nâng cấp Premium'}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
                 </div>
               ))}
+              {filteredUsers.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  Không tìm thấy người dùng nào
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
+
+        {/* Ban User Dialog */}
+        <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Khóa tài khoản người dùng</DialogTitle>
+              <DialogDescription>
+                Bạn có chắc chắn muốn khóa tài khoản của {selectedUser?.full_name}?
+                Vui lòng nhập lý do khóa tài khoản.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Textarea
+                placeholder="Nhập lý do khóa tài khoản..."
+                value={banReason}
+                onChange={(e) => setBanReason(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBanDialogOpen(false)}>
+                Hủy
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmBanUser}
+                disabled={!banReason.trim() || isUpdatingBan}
+              >
+                {isUpdatingBan ? 'Đang xử lý...' : 'Khóa tài khoản'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );
