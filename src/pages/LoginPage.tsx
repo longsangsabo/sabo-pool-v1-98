@@ -12,6 +12,7 @@ import { Eye, EyeOff, Mail, Phone, AlertTriangle, CheckCircle } from 'lucide-rea
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { FacebookLoginButton } from '@/components/auth/FacebookLoginButton';
+import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton';
 import { handleAuthError } from '@/utils/authHelpers';
 
 const LoginPage = () => {
@@ -139,7 +140,10 @@ const LoginPage = () => {
 
           <CardContent className="space-y-6">
             {/* Social Login */}
-            <FacebookLoginButton />
+            <div className="space-y-3">
+              <GoogleLoginButton />
+              <FacebookLoginButton />
+            </div>
             
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
