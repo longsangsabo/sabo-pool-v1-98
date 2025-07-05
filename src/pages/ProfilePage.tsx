@@ -220,7 +220,6 @@ const ProfilePage = () => {
     setUpdating(true);
     try {
       const updateData = {
-        user_id: user.id,
         display_name: profile.display_name,
         full_name: profile.display_name, // For compatibility
         phone: profile.phone,
@@ -230,18 +229,43 @@ const ProfilePage = () => {
         district: profile.district,
       };
 
-      const { error } = await supabase
+      // Try update first, if no rows affected then insert
+      const { data: updateResult, error: updateError } = await supabase
         .from('profiles')
-        .upsert(updateData);
+        .update(updateData)
+        .eq('user_id', user.id)
+        .select();
 
-      if (error) throw error;
+      if (updateError) {
+        console.error('Update error:', updateError);
+        throw updateError;
+      }
+
+      // If no rows were updated (profile doesn't exist), create new profile
+      if (!updateResult || updateResult.length === 0) {
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            ...updateData,
+          });
+
+        if (insertError) {
+          console.error('Insert error:', insertError);
+          throw insertError;
+        }
+      }
 
       // Update original profile to match current
       setOriginalProfile(profile);
       toast.success('🎉 Đã cập nhật thông tin thành công!');
     } catch (error: any) {
       console.error('Error updating all profile:', error);
-      toast.error('❌ Lỗi khi cập nhật: ' + error.message);
+      if (error.message.includes('duplicate key')) {
+        toast.error('❌ Lỗi: Hồ sơ đã tồn tại. Vui lòng tải lại trang và thử lại.');
+      } else {
+        toast.error('❌ Lỗi khi cập nhật: ' + error.message);
+      }
     } finally {
       setUpdating(false);
     }
