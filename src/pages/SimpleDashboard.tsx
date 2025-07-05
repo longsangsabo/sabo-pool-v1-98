@@ -14,8 +14,8 @@ const SimpleDashboard = () => {
   return (
     <>
       <Helmet>
-        <title>CLB Bi-a Sài Gòn - Trang chủ</title>
-        <meta name="description" content="Hệ thống đặt bàn bi-a trực tuyến" />
+        <title>SABO Pool Arena - Trang chủ</title>
+        <meta name="description" content="Hệ thống quản lý và đặt bàn billiards chuyên nghiệp" />
       </Helmet>
 
       <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-900">
@@ -28,7 +28,7 @@ const SimpleDashboard = () => {
                   <span className="text-2xl">🎱</span>
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-yellow-400">CLB Bi-a Sài Gòn</h1>
+                  <h1 className="text-xl font-bold text-yellow-400">SABO Pool Arena</h1>
                   <p className="text-green-200 text-sm">Chào mừng bạn đến với trang chủ</p>
                 </div>
               </div>
@@ -52,7 +52,7 @@ const SimpleDashboard = () => {
         <main className="container mx-auto px-4 py-16">
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
-              Chào Mừng Đến CLB Bi-a Sài Gòn
+              Chào Mừng Đến SABO Pool Arena
             </h2>
             <p className="text-xl text-green-200 mb-8 max-w-2xl mx-auto">
               Hệ thống quản lý và đặt bàn bi-a hiện đại, chuyên nghiệp
@@ -168,7 +168,7 @@ const SimpleDashboard = () => {
         <footer className="bg-green-900 border-t border-green-700 py-8 px-4 mt-16">
           <div className="container mx-auto text-center">
             <p className="text-green-300 text-sm">
-              © 2024 CLB Bi-a Sài Gòn. Website hoạt động bình thường.
+              © 2024 SABO Pool Arena. Website hoạt động bình thường.
             </p>
             <p className="text-green-400 text-xs mt-2">
               Trang chủ cơ bản - Đơn giản và dễ sử dụng

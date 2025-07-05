@@ -10,8 +10,8 @@ const SimpleClubHomePage = () => {
   return (
     <>
       <Helmet>
-        <title>CLB Bi-a Sài Gòn - Đặt bàn nhanh chóng</title>
-        <meta name="description" content="Câu lạc bộ bi-a hàng đầu Sài Gòn. Đặt bàn dễ dàng, giá cả phải chăng." />
+        <title>SABO Pool Arena - Đặt bàn nhanh chóng</title>
+        <meta name="description" content="Câu lạc bộ billiards chuyên nghiệp. Đặt bàn dễ dàng, chất lượng cao." />
       </Helmet>
 
       <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-900">
@@ -24,7 +24,7 @@ const SimpleClubHomePage = () => {
                   <span className="text-2xl">🎱</span>
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-yellow-400">CLB Bi-a Sài Gòn</h1>
+                  <h1 className="text-xl font-bold text-yellow-400">SABO Pool Arena</h1>
                   <p className="text-green-200 text-sm">Chuyên nghiệp • Uy tín</p>
                 </div>
               </div>
@@ -169,7 +169,7 @@ const SimpleClubHomePage = () => {
               <MapPin className="h-5 w-5 text-yellow-400" />
               <p className="text-green-200">123 Đường Nguyễn Huệ, Q.1, TP.HCM</p>
             </div>
-            <p className="text-green-300 text-sm">© 2024 CLB Bi-a Sài Gòn. Bản quyền thuộc về chúng tôi.</p>
+            <p className="text-green-300 text-sm">© 2024 SABO Pool Arena. Bản quyền thuộc về chúng tôi.</p>
           </div>
         </footer>
       </div>
