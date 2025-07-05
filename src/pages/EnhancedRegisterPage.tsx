@@ -43,7 +43,7 @@ const EnhancedRegisterPage = () => {
     }
 
     if (!/^0\d{9}$/.test(phone)) {
-      toast.error('Số điện thoại phải có định dạng 0xxxxxxxxx');
+      toast.error('Số điện thoại phải có 10 số và bắt đầu bằng 0 (VD: 0961167717)');
       return;
     }
 
@@ -139,7 +139,62 @@ const EnhancedRegisterPage = () => {
           <FacebookLoginButton />
           <AuthDivider />
 
-          <EnhancedAuthTabs defaultTab="email">
+          <EnhancedAuthTabs defaultTab="phone">
+            <PhoneTabContent>
+              <form onSubmit={handlePhoneSubmit} className="space-y-4">
+                <Input
+                  type="text"
+                  value={phoneFullName}
+                  onChange={(e) => setPhoneFullName(e.target.value)}
+                  placeholder="Họ và tên"
+                  className="w-full h-12 text-lg border-2 border-gray-300 focus:border-blue-500 rounded-xl"
+                  required
+                  disabled={loading}
+                />
+                <Input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="0961167717"
+                  className="w-full h-12 text-lg border-2 border-gray-300 focus:border-blue-500 rounded-xl"
+                  required
+                  disabled={loading}
+                  maxLength={10}
+                  inputMode="numeric"
+                />
+                <Input
+                  type="password"
+                  value={phonePassword}
+                  onChange={(e) => setPhonePassword(e.target.value)}
+                  placeholder="Mật khẩu (ít nhất 6 ký tự)"
+                  className="w-full h-12 text-lg border-2 border-gray-300 focus:border-blue-500 rounded-xl"
+                  required
+                  disabled={loading}
+                />
+                <Input
+                  type="password"
+                  value={phoneConfirmPassword}
+                  onChange={(e) => setPhoneConfirmPassword(e.target.value)}
+                  placeholder="Xác nhận mật khẩu"
+                  className="w-full h-12 text-lg border-2 border-gray-300 focus:border-blue-500 rounded-xl"
+                  required
+                  disabled={loading}
+                />
+                <TermsCheckbox
+                  checked={phoneTermsAccepted}
+                  onCheckedChange={setPhoneTermsAccepted}
+                  disabled={loading}
+                />
+                <Button
+                  type="submit"
+                  disabled={loading || !phoneTermsAccepted}
+                  className="w-full h-12 text-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl font-semibold"
+                >
+                  {loading ? 'Đang đăng ký...' : 'Đăng ký'}
+                </Button>
+              </form>
+            </PhoneTabContent>
+
             <EmailTabContent>
               <form onSubmit={handleEmailSubmit} className="space-y-4">
                 <Input
@@ -192,61 +247,6 @@ const EnhancedRegisterPage = () => {
                 </Button>
               </form>
             </EmailTabContent>
-
-            <PhoneTabContent>
-              <form onSubmit={handlePhoneSubmit} className="space-y-4">
-                <Input
-                  type="text"
-                  value={phoneFullName}
-                  onChange={(e) => setPhoneFullName(e.target.value)}
-                  placeholder="Họ và tên"
-                  className="w-full h-12 text-lg border-2 border-gray-300 focus:border-blue-500 rounded-xl"
-                  required
-                  disabled={loading}
-                />
-                <Input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="0987654321"
-                  className="w-full h-12 text-lg border-2 border-gray-300 focus:border-blue-500 rounded-xl"
-                  required
-                  disabled={loading}
-                  maxLength={10}
-                  inputMode="numeric"
-                />
-                <Input
-                  type="password"
-                  value={phonePassword}
-                  onChange={(e) => setPhonePassword(e.target.value)}
-                  placeholder="Mật khẩu (ít nhất 6 ký tự)"
-                  className="w-full h-12 text-lg border-2 border-gray-300 focus:border-blue-500 rounded-xl"
-                  required
-                  disabled={loading}
-                />
-                <Input
-                  type="password"
-                  value={phoneConfirmPassword}
-                  onChange={(e) => setPhoneConfirmPassword(e.target.value)}
-                  placeholder="Xác nhận mật khẩu"
-                  className="w-full h-12 text-lg border-2 border-gray-300 focus:border-blue-500 rounded-xl"
-                  required
-                  disabled={loading}
-                />
-                <TermsCheckbox
-                  checked={phoneTermsAccepted}
-                  onCheckedChange={setPhoneTermsAccepted}
-                  disabled={loading}
-                />
-                <Button
-                  type="submit"
-                  disabled={loading || !phoneTermsAccepted}
-                  className="w-full h-12 text-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl font-semibold"
-                >
-                  {loading ? 'Đang đăng ký...' : 'Đăng ký'}
-                </Button>
-              </form>
-            </PhoneTabContent>
           </EnhancedAuthTabs>
 
           <div className="text-center mt-6 space-y-4">

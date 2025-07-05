@@ -68,8 +68,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signInWithPhone = async (phone: string, password: string) => {
     try {
       console.log("AuthProvider: Attempting phone sign in for:", phone);
+      // Convert Vietnamese phone format to E.164
+      const e164Phone = phone.startsWith('0') ? '+84' + phone.substring(1) : phone;
       const { error } = await supabase.auth.signInWithPassword({
-        phone,
+        phone: e164Phone,
         password,
       });
       return { error };
@@ -120,13 +122,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUpWithPhone = async (phone: string, password: string, fullName: string) => {
     try {
       console.log("AuthProvider: Attempting phone sign up for:", phone);
+      // Convert Vietnamese phone format to E.164
+      const e164Phone = phone.startsWith('0') ? '+84' + phone.substring(1) : phone;
       const { data, error } = await supabase.auth.signUp({
-        phone,
+        phone: e164Phone,
         password,
         options: {
           data: {
             full_name: fullName,
-            phone: phone,
+            phone: phone, // Store original format in metadata
           },
         },
       });
@@ -138,7 +142,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .insert({
             user_id: data.user.id,
             full_name: fullName,
-            phone: phone,
+            phone: phone, // Store original format
           });
         
         if (profileError) {

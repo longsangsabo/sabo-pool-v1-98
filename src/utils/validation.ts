@@ -9,8 +9,16 @@ export const validatePhone = (phone: string): string | null => {
   const phoneRegex = /^0\d{9}$/;
   if (!phone) return 'Số điện thoại là bắt buộc';
   if (!phoneRegex.test(phone))
-    return 'Số điện thoại phải có 10 số và bắt đầu bằng 0';
+    return 'Số điện thoại phải có 10 số và bắt đầu bằng 0 (VD: 0961167717)';
   return null;
+};
+
+export const formatPhoneToE164 = (phone: string): string => {
+  // Convert Vietnamese phone format (0xxxxxxxxx) to E.164 format (+84xxxxxxxxx)
+  if (phone.startsWith('0')) {
+    return '+84' + phone.substring(1);
+  }
+  return phone;
 };
 
 export const validatePassword = (password: string): string | null => {

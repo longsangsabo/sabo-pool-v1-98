@@ -25,7 +25,7 @@ const LoginPage = () => {
   
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState('email');
+  const [activeTab, setActiveTab] = useState('phone');
   const navigate = useNavigate();
   const { signInWithPhone, signInWithEmail, user, loading: authLoading } = useAuth();
 
@@ -46,7 +46,7 @@ const LoginPage = () => {
 
     // Validate phone format
     if (!/^0\d{9}$/.test(phone)) {
-      toast.error('Số điện thoại phải có định dạng 0xxxxxxxxx');
+      toast.error('Số điện thoại phải có 10 số và bắt đầu bằng 0 (VD: 0961167717)');
       return;
     }
 
@@ -153,15 +153,80 @@ const LoginPage = () => {
             {/* Phone/Email Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="email" className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  Email
-                </TabsTrigger>
                 <TabsTrigger value="phone" className="flex items-center gap-2">
                   <Phone className="h-4 w-4" />
                   SĐT
                 </TabsTrigger>
+                <TabsTrigger value="email" className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Email
+                </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="phone" className="space-y-4">
+                <Alert className="border-green-200 bg-green-50 text-green-800">
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Sử dụng số điện thoại Việt Nam (10 chữ số, VD: 0961167717) để đăng nhập nhanh chóng.
+                  </AlertDescription>
+                </Alert>
+                
+                <form onSubmit={handlePhoneSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Số điện thoại</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="0961167717"
+                      className="h-11"
+                      required
+                      disabled={loading}
+                      maxLength={10}
+                      inputMode="numeric"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phonePassword">Mật khẩu</Label>
+                    <div className="relative">
+                      <Input
+                        id="phonePassword"
+                        type={showPassword ? "text" : "password"}
+                        value={phonePassword}
+                        onChange={(e) => setPhonePassword(e.target.value)}
+                        placeholder="Nhập mật khẩu"
+                        className="h-11 pr-10"
+                        required
+                        disabled={loading}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-11 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
+                  >
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Đang đăng nhập...
+                      </div>
+                    ) : (
+                      'Đăng nhập với SĐT'
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
 
               <TabsContent value="email" className="space-y-4">
                 <Alert className="border-blue-200 bg-blue-50 text-blue-800">
@@ -170,7 +235,7 @@ const LoginPage = () => {
                     Email đăng ký đã hoạt động! Kiểm tra email để xác thực sau khi đăng ký.
                   </AlertDescription>
                 </Alert>
-                
+
                 <form onSubmit={handleEmailSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
@@ -221,71 +286,6 @@ const LoginPage = () => {
                       </div>
                     ) : (
                       'Đăng nhập với Email'
-                    )}
-                  </Button>
-                </form>
-              </TabsContent>
-
-              <TabsContent value="phone" className="space-y-4">
-                <Alert className="border-amber-200 bg-amber-50 text-amber-800">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    Phone authentication cần được bật trong Supabase Dashboard. Hiện tại chỉ hỗ trợ email.
-                  </AlertDescription>
-                </Alert>
-
-                <form onSubmit={handlePhoneSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Số điện thoại</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="0987654321"
-                      className="h-11"
-                      required
-                      disabled={loading}
-                      maxLength={10}
-                      inputMode="numeric"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phonePassword">Mật khẩu</Label>
-                    <div className="relative">
-                      <Input
-                        id="phonePassword"
-                        type={showPassword ? "text" : "password"}
-                        value={phonePassword}
-                        onChange={(e) => setPhonePassword(e.target.value)}
-                        placeholder="Nhập mật khẩu"
-                        className="h-11 pr-10"
-                        required
-                        disabled={loading}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full h-11 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
-                  >
-                    {loading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Đang đăng nhập...
-                      </div>
-                    ) : (
-                      'Đăng nhập với SĐT'
                     )}
                   </Button>
                 </form>
