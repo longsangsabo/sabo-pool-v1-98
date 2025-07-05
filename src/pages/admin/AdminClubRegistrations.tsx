@@ -75,19 +75,17 @@ const AdminClubRegistrations = () => {
     setLoading(true);
     
     try {
+      // First get club registrations
       let query = supabase
         .from('club_registrations')
-        .select(`
-          *,
-          profiles!club_registrations_user_id_fkey(display_name, full_name, phone)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
       }
 
-      const { data, error } = await query;
+      const { data: clubs, error } = await query;
 
       if (error) {
         console.error('Club query error:', error);
@@ -95,12 +93,34 @@ const AdminClubRegistrations = () => {
         return;
       }
 
-      console.log('📋 Found pending clubs:', data?.length || 0);
+      // Then get user info for each club
+      let clubsWithUsers = clubs || [];
+      if (clubs && clubs.length > 0) {
+        const userIds = clubs.map(club => club.user_id).filter(Boolean);
+        
+        if (userIds.length > 0) {
+          const { data: users, error: usersError } = await supabase
+            .from('profiles')
+            .select('user_id, display_name, full_name, phone')
+            .in('user_id', userIds);
+
+          if (usersError) {
+            console.error('Users query error:', usersError);
+          } else {
+            // Merge data
+            clubsWithUsers = clubs.map(club => ({
+              ...club,
+              profiles: users?.find(u => u.user_id === club.user_id)
+            }));
+          }
+        }
+      }
+
+      console.log('📋 Found clubs:', clubsWithUsers?.length || 0);
       
-      setRegistrations((data || []).map(item => ({
+      setRegistrations(clubsWithUsers.map(item => ({
         ...item,
         amenities: (item.amenities as Record<string, boolean>) || {},
-        profiles: item.profiles as any,
         status: item.status as 'draft' | 'pending' | 'approved' | 'rejected'
       })));
     } catch (error: any) {
