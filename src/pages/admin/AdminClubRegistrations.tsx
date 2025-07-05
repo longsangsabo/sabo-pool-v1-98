@@ -69,6 +69,50 @@ const AdminClubRegistrations = () => {
 
   useEffect(() => {
     fetchRegistrations();
+    
+    // Set up real-time subscription for club registrations
+    console.log('Setting up real-time subscription for club registrations');
+    const channel = supabase
+      .channel('admin-club-registrations')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'club_registrations'
+      }, (payload) => {
+        console.log('Real-time club registration update:', payload);
+        
+        if (payload.eventType === 'INSERT') {
+          // Add new registration to the list
+          const newRegistration = payload.new as ClubRegistration;
+          setRegistrations(prev => [newRegistration, ...prev]);
+          toast.info(`Đăng ký CLB mới: ${newRegistration.club_name}`);
+        } else if (payload.eventType === 'UPDATE') {
+          // Update existing registration
+          const updatedRegistration = payload.new as ClubRegistration;
+          setRegistrations(prev => 
+            prev.map(reg => 
+              reg.id === updatedRegistration.id ? updatedRegistration : reg
+            )
+          );
+          
+          // Show status change notification
+          if (payload.old?.status !== payload.new?.status) {
+            const statusText = payload.new?.status === 'approved' ? 'đã duyệt' : 
+                              payload.new?.status === 'rejected' ? 'bị từ chối' : payload.new?.status;
+            toast.success(`CLB "${updatedRegistration.club_name}" ${statusText}`);
+          }
+        } else if (payload.eventType === 'DELETE') {
+          // Remove registration from list
+          const deletedId = payload.old?.id;
+          setRegistrations(prev => prev.filter(reg => reg.id !== deletedId));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up club registrations subscription');
+      supabase.removeChannel(channel);
+    };
   }, [statusFilter]);
 
   // Debug effect to check registrations table

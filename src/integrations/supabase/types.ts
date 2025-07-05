@@ -2381,7 +2381,13 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_dashboard_stats: {
+        Row: {
+          metric_type: string | null
+          stats: Json | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       apply_automatic_penalty: {
@@ -2399,6 +2405,10 @@ export type Database = {
       }
       calculate_trust_score: {
         Args: { player_uuid: string }
+        Returns: undefined
+      }
+      create_bulk_notifications: {
+        Args: { notifications: Json }
         Returns: undefined
       }
       create_notification: {
@@ -2421,6 +2431,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_notification_summary: {
+        Args: { target_user_id: string }
+        Returns: Json
+      }
       get_user_admin_status: {
         Args: { user_uuid: string }
         Returns: boolean
@@ -2428,6 +2442,10 @@ export type Database = {
       is_current_user_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      mark_notifications_read: {
+        Args: { notification_ids: string[] }
+        Returns: undefined
       }
       populate_initial_leaderboard_data: {
         Args: Record<PropertyKey, never>
@@ -2441,6 +2459,10 @@ export type Database = {
           points_cost: number
         }
         Returns: Json
+      }
+      refresh_admin_dashboard_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       refresh_current_month_leaderboard: {
         Args: Record<PropertyKey, never>

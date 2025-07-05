@@ -66,6 +66,35 @@ const AdminApprovedClubs = () => {
 
   useEffect(() => {
     fetchApprovedClubs();
+    
+    // Set up real-time subscription for approved clubs
+    console.log('Setting up real-time subscription for approved clubs');
+    const channel = supabase
+      .channel('admin-approved-clubs')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'club_registrations',
+        filter: 'status=eq.approved'
+      }, (payload) => {
+        console.log('Real-time approved club update:', payload);
+        
+        if (payload.eventType === 'UPDATE' && payload.new.status === 'approved') {
+          // Add newly approved club to the list
+          const approvedClub = payload.new as ApprovedClub;
+          setClubs(prev => [approvedClub, ...prev]);
+          toast.success(`CLB "${approvedClub.club_name}" vừa được duyệt!`);
+        } else if (payload.eventType === 'UPDATE' && payload.old.status === 'approved' && payload.new.status !== 'approved') {
+          // Remove club from approved list if status changed
+          setClubs(prev => prev.filter(club => club.id !== payload.new.id));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up approved clubs subscription');
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchApprovedClubs = async () => {

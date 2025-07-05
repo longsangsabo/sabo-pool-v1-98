@@ -1,144 +1,167 @@
-import { useEffect, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { toast } from 'sonner';
 
-interface EnhancedNotification {
-  id: string;
-  user_id: string;
-  title: string;
-  message: string;
-  type: string;
-  metadata?: any;
-  is_read: boolean;
-  action_url?: string;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  expires_at?: string;
-  created_at: string;
-  updated_at: string;
+interface NotificationSummary {
+  total_unread: number;
+  high_priority_unread: number;
+  recent_notifications: Array<{
+    id: string;
+    type: string;
+    title: string;
+    message: string;
+    created_at: string;
+    priority: string;
+  }> | null;
 }
 
 export const useEnhancedNotifications = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const [isConnected, setIsConnected] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [highPriorityCount, setHighPriorityCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [markAsReadPending, setMarkAsReadPending] = useState(false);
+  const [markAllAsReadPending, setMarkAllAsReadPending] = useState(false);
 
-  // Fetch notifications from database
-  const { data: notifications = [], isLoading } = useQuery({
-    queryKey: ['enhanced-notifications', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
+  // Fetch notification summary using the new database function
+  const fetchNotificationSummary = useCallback(async () => {
+    if (!user?.id) return;
 
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('get_notification_summary', {
+        target_user_id: user.id
+      });
 
       if (error) {
-        console.error('Error fetching notifications:', error);
-        return [];
+        console.error('Error fetching notification summary:', error);
+        return;
       }
 
-      return data || [];
+      // Safely handle the response
+      if (data && typeof data === 'object') {
+        const summary = data as unknown as NotificationSummary;
+        setUnreadCount(summary.total_unread || 0);
+        setHighPriorityCount(summary.high_priority_unread || 0);
+        setNotifications(summary.recent_notifications || []);
+      }
+    } catch (error) {
+      console.error('Error in fetchNotificationSummary:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  // Mark notifications as read using the batch function
+  const markNotificationsAsRead = useCallback(async (notificationIds: string[]) => {
+    if (!notificationIds.length) return;
+
+    try {
+      const { error } = await supabase.rpc('mark_notifications_read', {
+        notification_ids: notificationIds
+      });
+
+      if (error) {
+        console.error('Error marking notifications as read:', error);
+        return;
+      }
+
+      // Update local state
+      setNotifications(prev => 
+        prev.map(notif => 
+          notificationIds.includes(notif.id) 
+            ? { ...notif, is_read: true }
+            : notif
+        )
+      );
+      
+      // Refresh summary to get accurate counts
+      await fetchNotificationSummary();
+    } catch (error) {
+      console.error('Error in markNotificationsAsRead:', error);
+    }
+  }, [fetchNotificationSummary]);
+
+  // Mark single notification as read with mutation API
+  const markAsRead = useMemo(() => ({
+    mutate: async (notificationId: string) => {
+      setMarkAsReadPending(true);
+      try {
+        await markNotificationsAsRead([notificationId]);
+      } finally {
+        setMarkAsReadPending(false);
+      }
     },
-    enabled: !!user,
-    refetchInterval: 30000,
-    staleTime: 10000,
-  });
+    isPending: markAsReadPending
+  }), [markNotificationsAsRead, markAsReadPending]);
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  // Mark all notifications as read with mutation API
+  const markAllAsRead = useMemo(() => ({
+    mutate: async () => {
+      setMarkAllAsReadPending(true);
+      try {
+        const unreadIds = notifications
+          .filter(notif => !notif.is_read)
+          .map(notif => notif.id);
+        
+        if (unreadIds.length > 0) {
+          await markNotificationsAsRead(unreadIds);
+        }
+      } finally {
+        setMarkAllAsReadPending(false);
+      }
+    },
+    isPending: markAllAsReadPending
+  }), [notifications, markNotificationsAsRead, markAllAsReadPending]);
 
-  // Real-time subscription for notifications
+  // Set up real-time subscription
   useEffect(() => {
     if (!user?.id) return;
 
+    console.log('Setting up enhanced notification subscription');
+    
+    // Initial fetch
+    fetchNotificationSummary();
+    
+    // Set up real-time subscription
     const channel = supabase
-      .channel('user-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        payload => {
-          const notification = payload.new;
-          
-          // Show toast notification
-          toast.info(notification.title, {
-            description: notification.message,
-            duration: 5000,
-          });
-
-          // Refresh notifications
-          queryClient.invalidateQueries({ queryKey: ['enhanced-notifications'] });
+      .channel(`notifications-${user.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log('Real-time notification update:', payload);
+        
+        // Refresh the summary to get accurate counts and latest notifications
+        fetchNotificationSummary();
+        
+        // Show toast for new high-priority notifications
+        if (payload.eventType === 'INSERT' && payload.new.priority === 'high') {
+          // You can add a toast notification here if needed
         }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          // Refresh notifications on update
-          queryClient.invalidateQueries({ queryKey: ['enhanced-notifications'] });
-        }
-      )
-      .subscribe(status => {
-        setIsConnected(status === 'SUBSCRIBED');
-      });
+      })
+      .subscribe();
 
     return () => {
+      console.log('Cleaning up enhanced notification subscription');
       supabase.removeChannel(channel);
-      setIsConnected(false);
     };
-  }, [user, queryClient]);
-
-  const markAsRead = useMutation({
-    mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId)
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['enhanced-notifications'] });
-    },
-  });
-
-  const markAllAsRead = useMutation({
-    mutationFn: async () => {
-      if (!user?.id) return;
-
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('user_id', user.id)
-        .eq('is_read', false);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['enhanced-notifications'] });
-    },
-  });
+  }, [user?.id, fetchNotificationSummary]);
 
   return {
     notifications,
     unreadCount,
-    isLoading,
-    isConnected,
+    highPriorityCount,
+    loading,
+    isLoading: loading, // Alias for compatibility
+    isConnected: true, // Always connected in this implementation
+    fetchNotificationSummary,
+    markNotificationsAsRead,
     markAsRead,
     markAllAsRead,
+    hasUrgent: highPriorityCount > 0
   };
 };
