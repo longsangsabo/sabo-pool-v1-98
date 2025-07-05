@@ -16,8 +16,10 @@ import {
   LayoutDashboard,
   Crown,
   History,
+  Shield,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useAdminCheck } from '@/hooks/useAdminCheck';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -30,6 +32,8 @@ import {
 
 const Navigation = () => {
   const { user, signOut } = useAuth();
+  const { data: isAdmin } = useAdminCheck();
+  console.log('Navigation: user admin status:', isAdmin);
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -152,8 +156,19 @@ const Navigation = () => {
                         </Link>
                       </DropdownMenuItem>
                     );
-                  })}
-                  <DropdownMenuSeparator />
+                   })}
+                   {isAdmin && (
+                     <>
+                       <DropdownMenuSeparator />
+                       <DropdownMenuItem asChild>
+                         <Link to="/admin" className='flex items-center text-purple-600 font-medium'>
+                           <Shield className='mr-2 h-4 w-4' />
+                           <span>Quản trị Admin</span>
+                         </Link>
+                       </DropdownMenuItem>
+                     </>
+                   )}
+                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className='mr-2 h-4 w-4' />
                     <span>Đăng xuất</span>
