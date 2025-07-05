@@ -2366,6 +2366,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_user_admin_status: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
+      is_current_user_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       populate_initial_leaderboard_data: {
         Args: Record<PropertyKey, never>
         Returns: undefined
