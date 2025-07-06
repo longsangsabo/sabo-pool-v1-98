@@ -88,6 +88,7 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTestRanking from "./pages/admin/AdminTestRanking";
 import AdminLayout from "./components/AdminLayout";
+import ClubManagementPage from "./pages/ClubManagementPage";
 
 // Simple loading fallback
 const LoadingFallback = () => (
@@ -195,6 +196,7 @@ const App = () => {
                         <Route path="test" element={<TestPage />} />
                         <Route path="sitemap" element={<SiteMapPage />} />
                         <Route path="practice" element={<AuthWrapper><PracticeFinderPage /></AuthWrapper>} />
+                        <Route path="club-management" element={<AuthWrapper><ClubManagementPage /></AuthWrapper>} />
                       </Route>
                       
                       {/* Admin routes - standalone with AdminLayout */}
