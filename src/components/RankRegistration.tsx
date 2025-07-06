@@ -40,18 +40,18 @@ const RankRegistration = () => {
   const [registrations, setRegistrations] = useState<RankRegistration[]>([]);
 
   const ranks = [
-    { value: 'K1', label: 'Hạng K1', color: 'bg-gray-100 text-gray-800' },
-    { value: 'K2', label: 'Hạng K2', color: 'bg-gray-100 text-gray-800' },
-    { value: 'K3', label: 'Hạng K3', color: 'bg-gray-100 text-gray-800' },
-    { value: 'A1', label: 'Hạng A1', color: 'bg-green-100 text-green-800' },
-    { value: 'A2', label: 'Hạng A2', color: 'bg-green-100 text-green-800' },
-    { value: 'A3', label: 'Hạng A3', color: 'bg-green-100 text-green-800' },
-    { value: 'B1', label: 'Hạng B1', color: 'bg-blue-100 text-blue-800' },
-    { value: 'B2', label: 'Hạng B2', color: 'bg-blue-100 text-blue-800' },
-    { value: 'B3', label: 'Hạng B3', color: 'bg-blue-100 text-blue-800' },
-    { value: 'G1', label: 'Hạng G1', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'G2', label: 'Hạng G2', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'G+', label: 'Hạng G+', color: 'bg-yellow-100 text-yellow-800' },
+    { value: 'K', label: 'Hạng K', color: 'bg-gray-100 text-gray-800' },
+    { value: 'K+', label: 'Hạng K+', color: 'bg-gray-100 text-gray-800' },
+    { value: 'I', label: 'Hạng I', color: 'bg-amber-100 text-amber-800' },
+    { value: 'I+', label: 'Hạng I+', color: 'bg-amber-100 text-amber-800' },
+    { value: 'H', label: 'Hạng H', color: 'bg-green-100 text-green-800' },
+    { value: 'H+', label: 'Hạng H+', color: 'bg-green-100 text-green-800' },
+    { value: 'G', label: 'Hạng G', color: 'bg-blue-100 text-blue-800' },
+    { value: 'G+', label: 'Hạng G+', color: 'bg-blue-100 text-blue-800' },
+    { value: 'F', label: 'Hạng F', color: 'bg-purple-100 text-purple-800' },
+    { value: 'F+', label: 'Hạng F+', color: 'bg-purple-100 text-purple-800' },
+    { value: 'E', label: 'Hạng E', color: 'bg-red-100 text-red-800' },
+    { value: 'E+', label: 'Hạng E+', color: 'bg-red-100 text-red-800' },
   ];
 
   useEffect(() => {

@@ -88,7 +88,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           totalMatches: 156,
           winRate: 72.5,
           totalEarnings: 2500000,
-          currentRank: 'A+',
+          currentRank: 'H+',
           rankProgress: 85,
           activeStreak: 8,
         },
@@ -143,18 +143,24 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   const getRankColor = (rank: string) => {
     switch (rank) {
-      case 'G':
-        return 'bg-purple-100 text-purple-800';
-      case 'A+':
+      case 'E+':
+      case 'E':
         return 'bg-red-100 text-red-800';
-      case 'A':
-        return 'bg-orange-100 text-orange-800';
-      case 'B+':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'B':
+      case 'F+':
+      case 'F':
+        return 'bg-purple-100 text-purple-800';
+      case 'G+':
+      case 'G':
         return 'bg-blue-100 text-blue-800';
-      case 'C':
+      case 'H+':
+      case 'H':
         return 'bg-green-100 text-green-800';
+      case 'I+':
+      case 'I':
+        return 'bg-amber-100 text-amber-800';
+      case 'K+':
+      case 'K':
+        return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }

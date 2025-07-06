@@ -82,12 +82,18 @@ export const TournamentCreator: React.FC<TournamentCreatorProps> = ({
   ];
 
   const ranks = [
-    { value: 'G', label: 'Grandmaster (G)' },
-    { value: 'A+', label: 'Expert (A+)' },
-    { value: 'A', label: 'Advanced (A)' },
-    { value: 'B+', label: 'Intermediate+ (B+)' },
-    { value: 'B', label: 'Intermediate (B)' },
-    { value: 'C', label: 'Beginner (C)' },
+    { value: 'E+', label: 'Chuyên nghiệp tiến bộ (E+)' },
+    { value: 'E', label: 'Chuyên nghiệp (E)' },
+    { value: 'F+', label: 'Xuất sắc tiến bộ (F+)' },
+    { value: 'F', label: 'Xuất sắc (F)' },
+    { value: 'G+', label: 'Giỏi tiến bộ (G+)' },
+    { value: 'G', label: 'Giỏi (G)' },
+    { value: 'H+', label: 'Khá tiến bộ (H+)' },
+    { value: 'H', label: 'Khá (H)' },
+    { value: 'I+', label: 'Trung bình tiến bộ (I+)' },
+    { value: 'I', label: 'Trung bình (I)' },
+    { value: 'K+', label: 'Người mới tiến bộ (K+)' },
+    { value: 'K', label: 'Người mới (K)' },
   ];
 
   const handleInputChange = (key: keyof TournamentForm, value: any) => {

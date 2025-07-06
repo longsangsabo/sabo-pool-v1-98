@@ -32,8 +32,8 @@ const RankHistory = () => {
       const mockHistory = [
         {
           id: '1',
-          old_rank: 'A3',
-          new_rank: 'A1', 
+          old_rank: 'I',
+          new_rank: 'H+', 
           old_points: 1200,
           new_points: 1350,
           reason: 'Won tournament match',
@@ -41,8 +41,8 @@ const RankHistory = () => {
         },
         {
           id: '2',
-          old_rank: 'B1',
-          new_rank: 'A3',
+          old_rank: 'K+',
+          new_rank: 'I',
           old_points: 1000,
           new_points: 1200,
           reason: 'Challenge victory',
@@ -66,18 +66,18 @@ const RankHistory = () => {
 
   const isRankUp = (oldRank: string, newRank: string) => {
     const rankOrder = [
-      'K1',
-      'K2',
-      'K3',
-      'A1',
-      'A2',
-      'A3',
-      'B1',
-      'B2',
-      'B3',
-      'G1',
-      'G2',
+      'K',
+      'K+',
+      'I',
+      'I+',
+      'H',
+      'H+',
+      'G',
       'G+',
+      'F',
+      'F+',
+      'E',
+      'E+',
     ];
     return rankOrder.indexOf(newRank) > rankOrder.indexOf(oldRank);
   };

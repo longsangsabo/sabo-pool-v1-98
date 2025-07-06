@@ -155,20 +155,18 @@ export const EnhancedLeaderboard: React.FC<EnhancedLeaderboardProps> = ({
   const getRankName = (rating: number) => {
     const rank = getRankFromRating(rating);
     const names: { [key: string]: string } = {
-      'S+': 'Legendary',
-      S: 'Master',
-      'G+': 'Elite',
-      G: 'Expert',
-      'A+': 'Advanced',
-      A: 'Intermediate+',
-      'B+': 'Intermediate',
-      B: 'Beginner+',
-      'C+': 'Beginner',
-      C: 'Novice+',
-      'D+': 'Novice',
-      D: 'Rookie+',
-      'E+': 'Rookie',
-      E: 'Newcomer',
+      'E+': 'Chuyên nghiệp tiến bộ',
+      E: 'Chuyên nghiệp',
+      'F+': 'Xuất sắc tiến bộ',
+      F: 'Xuất sắc',
+      'G+': 'Giỏi tiến bộ',
+      G: 'Giỏi',
+      'H+': 'Khá tiến bộ',
+      H: 'Khá',
+      'I+': 'Trung bình tiến bộ',
+      I: 'Trung bình',
+      'K+': 'Người mới tiến bộ',
+      K: 'Người mới',
     };
     return `${rank} (${names[rank]})`;
   };
@@ -272,20 +270,18 @@ export const EnhancedLeaderboard: React.FC<EnhancedLeaderboardProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value='all'>All Ranks</SelectItem>
-                  <SelectItem value='S+'>S+ (Legendary)</SelectItem>
-                  <SelectItem value='S'>S (Master)</SelectItem>
-                  <SelectItem value='G+'>G+ (Elite)</SelectItem>
-                  <SelectItem value='G'>G (Expert)</SelectItem>
-                  <SelectItem value='A+'>A+ (Advanced)</SelectItem>
-                  <SelectItem value='A'>A (Intermediate+)</SelectItem>
-                  <SelectItem value='B+'>B+ (Intermediate)</SelectItem>
-                  <SelectItem value='B'>B (Beginner+)</SelectItem>
-                  <SelectItem value='C+'>C+ (Beginner)</SelectItem>
-                  <SelectItem value='C'>C (Novice+)</SelectItem>
-                  <SelectItem value='D+'>D+ (Novice)</SelectItem>
-                  <SelectItem value='D'>D (Rookie+)</SelectItem>
-                  <SelectItem value='E+'>E+ (Rookie)</SelectItem>
-                  <SelectItem value='E'>E (Newcomer)</SelectItem>
+                  <SelectItem value='E+'>E+ (Chuyên nghiệp tiến bộ)</SelectItem>
+                  <SelectItem value='E'>E (Chuyên nghiệp)</SelectItem>
+                  <SelectItem value='F+'>F+ (Xuất sắc tiến bộ)</SelectItem>
+                  <SelectItem value='F'>F (Xuất sắc)</SelectItem>
+                  <SelectItem value='G+'>G+ (Giỏi tiến bộ)</SelectItem>
+                  <SelectItem value='G'>G (Giỏi)</SelectItem>
+                  <SelectItem value='H+'>H+ (Khá tiến bộ)</SelectItem>
+                  <SelectItem value='H'>H (Khá)</SelectItem>
+                  <SelectItem value='I+'>I+ (Trung bình tiến bộ)</SelectItem>
+                  <SelectItem value='I'>I (Trung bình)</SelectItem>
+                  <SelectItem value='K+'>K+ (Người mới tiến bộ)</SelectItem>
+                  <SelectItem value='K'>K (Người mới)</SelectItem>
                 </SelectContent>
               </Select>
               <Select
