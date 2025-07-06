@@ -17,7 +17,7 @@ export interface AuthContextType {
   session: SupabaseSession | null;
   profile: UserProfile | null;
   signIn: (email: string, password: string) => Promise<{ error?: any }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ data?: any; error?: any }>;
+  signUp: (email: string, password: string, fullName: string, referralCode?: string) => Promise<{ data?: any; error?: any }>;
   signInWithEmail: (email: string, password: string) => Promise<{ error?: any }>;
   signInWithPhone: (phone: string, password: string) => Promise<{ error?: any }>;
   signUpWithEmail: (email: string, password: string, fullName: string, referralCode?: string) => Promise<{ data?: any; error?: any }>;
