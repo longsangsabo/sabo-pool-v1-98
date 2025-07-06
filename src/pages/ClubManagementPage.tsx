@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Building, Trophy, Users, Settings, BarChart3, Bell } from 'lucide-react';
@@ -22,10 +23,41 @@ const ClubManagementPage = () => {
   }
 
   // Check if user is a verified club owner
-  const isClubOwner = (profile as any)?.clbVerified || profile?.club_id;
-  const hasClubProfile = profile?.club_id;
+  const [hasClubAccess, setHasClubAccess] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(true);
 
-  if (!user || !isClubOwner || !hasClubProfile) {
+  useEffect(() => {
+    if (user) {
+      const checkClubAccess = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('club_profiles')
+            .select('id, verification_status')
+            .eq('user_id', user.id)
+            .single();
+          
+          setHasClubAccess(!!data && data.verification_status === 'approved');
+        } catch (error) {
+          setHasClubAccess(false);
+        } finally {
+          setCheckingAccess(false);
+        }
+      };
+      checkClubAccess();
+    } else {
+      setCheckingAccess(false);
+    }
+  }, [user]);
+
+  if (loading || checkingAccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user || !hasClubAccess) {
     return <Navigate to="/profile" replace />;
   }
 

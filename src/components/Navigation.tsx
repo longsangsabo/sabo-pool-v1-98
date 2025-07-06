@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,6 +23,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
 import { useNotifications } from '@/hooks/useNotifications';
+import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -42,6 +43,30 @@ const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isClubOwner, setIsClubOwner] = useState(false);
+
+  // Check if user is a verified club owner
+  useEffect(() => {
+    if (user) {
+      const checkClubOwner = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('club_profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('verification_status', 'approved')
+            .single();
+          
+          setIsClubOwner(!!data && !error);
+        } catch (error) {
+          setIsClubOwner(false);
+        }
+      };
+      checkClubOwner();
+    } else {
+      setIsClubOwner(false);
+    }
+  }, [user]);
 
   const unreadCount = getUnreadCount();
 
@@ -80,6 +105,7 @@ const Navigation = () => {
     ? [
         { name: 'Feed', href: '/feed', icon: LayoutDashboard },
         { name: 'Hồ sơ cá nhân', href: '/profile', icon: User },
+        { name: 'Quản lý CLB', href: '/club-management', icon: Trophy, requiresClub: true },
         { name: 'Gói hội viên', href: '/membership', icon: Crown },
         { name: 'Ví của tôi', href: '/wallet', icon: Wallet },
         { name: 'Lịch sử trận đấu', href: '/matches', icon: History },
@@ -177,16 +203,19 @@ const Navigation = () => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {userMenuItems.map(item => {
-                    const Icon = item.icon;
-                    return (
-                      <DropdownMenuItem key={item.name} asChild>
-                        <Link to={item.href} className='flex items-center'>
-                          <Icon className='mr-2 h-4 w-4' />
-                          <span>{item.name}</span>
-                        </Link>
-                      </DropdownMenuItem>
-                    );
+                   {userMenuItems.map(item => {
+                     const Icon = item.icon;
+                     // Skip club management if user is not a club owner
+                     if (item.requiresClub && !isClubOwner) return null;
+                     
+                     return (
+                       <DropdownMenuItem key={item.name} asChild>
+                         <Link to={item.href} className='flex items-center'>
+                           <Icon className='mr-2 h-4 w-4' />
+                           <span>{item.name}</span>
+                         </Link>
+                       </DropdownMenuItem>
+                     );
                    })}
                    {isAdmin && (
                      <>
