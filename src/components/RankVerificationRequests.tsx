@@ -57,14 +57,7 @@ const RankVerificationRequests = () => {
       // Get verification requests for this club with profile information
       const { data, error } = await supabase
         .from('rank_verifications')
-        .select(`
-          *,
-          profiles:player_id(
-            full_name,
-            phone,
-            display_name
-          )
-        `)
+        .select('*')
         .eq('club_id', clubData.id)
         .in('status', ['pending', 'testing'])
         .order('created_at', { ascending: false });
@@ -73,8 +66,24 @@ const RankVerificationRequests = () => {
         console.error('Error fetching rank verifications:', error);
         throw error;
       }
-      
-      setRequests((data as any) || []);
+
+      // Get profile information separately for each request
+      const requestsWithProfiles = await Promise.all(
+        (data || []).map(async (request) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, phone, display_name')
+            .eq('user_id', request.player_id)
+            .single();
+          
+          return {
+            ...request,
+            profiles: profile
+          };
+        })
+      );
+
+      setRequests(requestsWithProfiles || []);
     } catch (error) {
       console.error('Error fetching requests:', error);
       toast.error('Lỗi khi tải danh sách yêu cầu xác thực hạng');
