@@ -9,7 +9,7 @@ import RankVerificationRequests from '@/components/RankVerificationRequests';
 import ClubMemberManagement from '@/components/ClubMemberManagement';
 import ClubStatsDashboard from '@/components/ClubStatsDashboard';
 import ClubNotifications from '@/components/ClubNotifications';
-import ClubDashboardOverview from '@/components/ClubDashboardOverview';
+import ClubSettings from '@/components/ClubSettings';
 import ClubSettings from '@/components/ClubSettings';
 
 const ClubManagementPage = () => {
