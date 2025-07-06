@@ -24,6 +24,8 @@ interface Player {
   avatar_url?: string;
   current_rank?: string;
   spa_points?: number;
+  isClubMember?: boolean;
+  hasRecentChallenges?: boolean;
 }
 
 interface Club {
@@ -70,7 +72,7 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
     } else {
       setPlayers([]);
     }
-  }, [searchTerm]);
+  }, [searchTerm, selectedClub]);
 
   const fetchClubs = async () => {
     try {
@@ -92,38 +94,114 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
     
     setSearchLoading(true);
     try {
-      const { data, error } = await supabase
+      // Get active players with SPA points
+      const { data: activePlayersData, error: activeError } = await supabase
         .from('profiles')
         .select(`
           user_id,
           full_name,
-          avatar_url,
-          player_rankings(current_rank_id, spa_points, ranks(code))
+          avatar_url
         `)
         .neq('user_id', user.id)
         .ilike('full_name', `%${searchTerm}%`)
         .limit(10);
 
-      if (error) throw error;
+      if (activeError) throw activeError;
 
-      const formattedPlayers = data?.map(player => ({
-        user_id: player.user_id,
-        full_name: player.full_name || 'Người chơi',
-        avatar_url: player.avatar_url,
-        current_rank: player.player_rankings?.[0]?.ranks?.code || 'K',
-        spa_points: player.player_rankings?.[0]?.spa_points || 0,
-      })) || [];
+      // Get their ranking info separately
+      const playerIds = activePlayersData?.map(p => p.user_id) || [];
+      const { data: rankingsData } = await supabase
+        .from('player_rankings')
+        .select(`
+          player_id,
+          spa_points,
+          current_rank_id
+        `)
+        .in('player_id', playerIds);
 
-      setPlayers(formattedPlayers);
+      // Get rank codes separately
+      const rankIds = rankingsData?.map(r => r.current_rank_id).filter(Boolean) || [];
+      const { data: ranksData } = await supabase
+        .from('ranks')
+        .select('id, code')
+        .in('id', rankIds);
+
+      // Get club members if club is selected
+      let clubMemberIds: string[] = [];
+      if (selectedClub) {
+        const { data: membersData } = await supabase
+          .from('memberships')
+          .select('user_id')
+          .eq('club_id', selectedClub);
+        clubMemberIds = membersData?.map(m => m.user_id) || [];
+      }
+
+      // Get recent challengers
+      const { data: recentChallenges } = await supabase
+        .from('challenges')
+        .select('challenger_id')
+        .neq('challenger_id', user.id)
+        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+      
+      const recentChallengerIds = recentChallenges?.map(c => c.challenger_id) || [];
+
+      // Combine data
+      const formattedPlayers = activePlayersData?.map(player => {
+        const ranking = rankingsData?.find(r => r.player_id === player.user_id);
+        const rank = ranksData?.find(r => r.id === ranking?.current_rank_id);
+        
+        return {
+          user_id: player.user_id,
+          full_name: player.full_name || 'Người chơi',
+          avatar_url: player.avatar_url,
+          current_rank: rank?.code || 'K',
+          spa_points: ranking?.spa_points || 0,
+          isClubMember: clubMemberIds.includes(player.user_id),
+          hasRecentChallenges: recentChallengerIds.includes(player.user_id),
+        };
+      }).filter(player => player.spa_points >= 50) || []; // Only show active players
+
+      // Sort by priority: club members first, then recent challengers, then by SPA points
+      formattedPlayers.sort((a, b) => {
+        if (a.isClubMember && !b.isClubMember) return -1;
+        if (!a.isClubMember && b.isClubMember) return 1;
+        if (a.hasRecentChallenges && !b.hasRecentChallenges) return -1;
+        if (!a.hasRecentChallenges && b.hasRecentChallenges) return 1;
+        return (b.spa_points || 0) - (a.spa_points || 0);
+      });
+
+      setPlayers(formattedPlayers.slice(0, 10));
     } catch (error) {
       console.error('Error searching players:', error);
+      // Fallback to simple search
+      const { data, error: fallbackError } = await supabase
+        .from('profiles')
+        .select(`
+          user_id,
+          full_name,
+          avatar_url
+        `)
+        .neq('user_id', user.id)
+        .ilike('full_name', `%${searchTerm}%`)
+        .limit(10);
+
+      if (!fallbackError) {
+        const formattedPlayers = data?.map(player => ({
+          user_id: player.user_id,
+          full_name: player.full_name || 'Người chơi',
+          avatar_url: player.avatar_url,
+          current_rank: 'K',
+          spa_points: 0,
+        })) || [];
+        setPlayers(formattedPlayers);
+      }
     } finally {
       setSearchLoading(false);
     }
   };
 
   const handleCreateChallenge = async () => {
-    if (!user || !selectedPlayer) {
+    if (!user || !selectedPlayer || !selectedPlayer.user_id) {
       toast.error('Vui lòng chọn đối thủ');
       return;
     }
@@ -163,6 +241,15 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
       toast.success('Thách đấu đã được gửi thành công!');
       onChallengeCreated();
       handleClose();
+      
+      // Navigate to challenges page or club page based on selection
+      setTimeout(() => {
+        if (selectedClub) {
+          window.location.href = `/club/${selectedClub}`;
+        } else {
+          window.location.href = '/challenges';
+        }
+      }, 1000);
     } catch (error: any) {
       console.error('Error creating challenge:', error);
       toast.error('Lỗi khi tạo thách đấu: ' + error.message);
@@ -228,8 +315,10 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
                     </Avatar>
                     <div className="flex-1">
                       <div className="font-medium">{player.full_name}</div>
-                      <div className="text-sm text-gray-500">
-                        Hạng {player.current_rank} • {player.spa_points} SPA
+                      <div className="text-sm text-gray-500 flex items-center gap-2">
+                        <span>Hạng {player.current_rank} • {player.spa_points} SPA</span>
+                        {player.isClubMember && <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded">CLB</span>}
+                        {player.hasRecentChallenges && <span className="text-xs bg-green-100 text-green-800 px-1 rounded">Hoạt động</span>}
                       </div>
                     </div>
                     {selectedPlayer?.user_id === player.user_id && (
@@ -346,7 +435,7 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
             </Button>
             <Button
               onClick={handleCreateChallenge}
-              disabled={loading || !selectedPlayer}
+              disabled={loading || !selectedPlayer || !selectedPlayer.user_id}
               className="flex-1"
             >
               {loading ? 'Đang tạo...' : 'Tạo thách đấu'}
