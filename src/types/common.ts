@@ -130,6 +130,8 @@ export interface Notification {
   created_at: string;
   priority?: 'low' | 'medium' | 'high';
   action_url?: string;
+  metadata?: any;
+  deleted_at?: string;
 }
 
 export interface Challenge {

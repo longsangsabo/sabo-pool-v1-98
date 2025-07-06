@@ -6,6 +6,7 @@ import { Notification } from '@/types/common';
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [deletedNotifications, setDeletedNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { user } = useAuth();
@@ -17,17 +18,30 @@ export const useNotifications = () => {
     setError('');
     
     try {
-      const { data, error: fetchError } = await supabase
+      // Fetch active notifications (not deleted)
+      const { data: activeData, error: activeError } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (fetchError) throw fetchError;
+      if (activeError) throw activeError;
 
-      // Transform database notifications to match our interface
-      const transformedNotifications: Notification[] = (data || []).map(notification => ({
+      // Fetch deleted notifications
+      const { data: deletedData, error: deletedError } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false })
+        .limit(20);
+
+      if (deletedError) throw deletedError;
+
+      // Transform active notifications
+      const transformedNotifications: Notification[] = (activeData || []).map(notification => ({
         id: notification.id,
         user_id: notification.user_id,
         title: notification.title,
@@ -40,7 +54,23 @@ export const useNotifications = () => {
         metadata: notification.metadata,
       }));
 
+      // Transform deleted notifications
+      const transformedDeletedNotifications: Notification[] = (deletedData || []).map(notification => ({
+        id: notification.id,
+        user_id: notification.user_id,
+        title: notification.title,
+        message: notification.message,
+        type: notification.type,
+        created_at: notification.created_at,
+        read_at: notification.is_read ? notification.updated_at : undefined,
+        priority: (notification.priority as 'low' | 'medium' | 'high') || 'medium',
+        action_url: notification.action_url,
+        metadata: notification.metadata,
+        deleted_at: notification.deleted_at,
+      }));
+
       setNotifications(transformedNotifications);
+      setDeletedNotifications(transformedDeletedNotifications);
     } catch (err: any) {
       console.error('Error fetching notifications:', err);
       setError(err.message || 'Failed to fetch notifications');
@@ -106,6 +136,54 @@ export const useNotifications = () => {
     if (!user) return;
 
     try {
+      // Soft delete by setting deleted_at timestamp
+      const { error } = await supabase
+        .from('notifications')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', notificationId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Move notification from active to deleted list
+      const deletedNotification = notifications.find(n => n.id === notificationId);
+      if (deletedNotification) {
+        setNotifications(prev => prev.filter(n => n.id !== notificationId));
+        setDeletedNotifications(prev => [...prev, { ...deletedNotification, deleted_at: new Date().toISOString() }]);
+      }
+    } catch (err: any) {
+      console.error('Error deleting notification:', err);
+    }
+  };
+
+  const restoreNotification = async (notificationId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ deleted_at: null })
+        .eq('id', notificationId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Move notification from deleted to active list
+      const restoredNotification = deletedNotifications.find(n => n.id === notificationId);
+      if (restoredNotification) {
+        setDeletedNotifications(prev => prev.filter(n => n.id !== notificationId));
+        const { deleted_at, ...cleanNotification } = restoredNotification as any;
+        setNotifications(prev => [cleanNotification, ...prev]);
+      }
+    } catch (err: any) {
+      console.error('Error restoring notification:', err);
+    }
+  };
+
+  const permanentlyDeleteNotification = async (notificationId: string) => {
+    if (!user) return;
+
+    try {
       const { error } = await supabase
         .from('notifications')
         .delete()
@@ -114,12 +192,18 @@ export const useNotifications = () => {
 
       if (error) throw error;
 
-      setNotifications(prev =>
-        prev.filter(notification => notification.id !== notificationId)
-      );
+      setDeletedNotifications(prev => prev.filter(n => n.id !== notificationId));
     } catch (err: any) {
-      console.error('Error deleting notification:', err);
+      console.error('Error permanently deleting notification:', err);
     }
+  };
+
+  const getReadCount = () => {
+    return notifications.filter(notification => notification.read_at).length;
+  };
+
+  const getDeletedCount = () => {
+    return deletedNotifications.length;
   };
 
   const getUnreadCount = () => {
@@ -132,12 +216,17 @@ export const useNotifications = () => {
 
   return {
     notifications,
+    deletedNotifications,
     loading,
     error,
     fetchNotifications,
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    restoreNotification,
+    permanentlyDeleteNotification,
     getUnreadCount,
+    getReadCount,
+    getDeletedCount,
   };
 };

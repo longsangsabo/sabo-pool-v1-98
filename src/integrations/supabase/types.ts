@@ -814,6 +814,7 @@ export type Database = {
         Row: {
           action_url: string | null
           created_at: string | null
+          deleted_at: string | null
           expires_at: string | null
           id: string
           is_read: boolean | null
@@ -829,6 +830,7 @@ export type Database = {
         Insert: {
           action_url?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           expires_at?: string | null
           id?: string
           is_read?: boolean | null
@@ -844,6 +846,7 @@ export type Database = {
         Update: {
           action_url?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           expires_at?: string | null
           id?: string
           is_read?: boolean | null
