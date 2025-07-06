@@ -2888,6 +2888,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      update_rank_verification_simple: {
+        Args: {
+          verification_id: string
+          new_status: string
+          verifier_id: string
+        }
+        Returns: Json
+      }
       update_weekly_leaderboard: {
         Args: Record<PropertyKey, never>
         Returns: undefined

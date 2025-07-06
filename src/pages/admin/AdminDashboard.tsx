@@ -32,16 +32,12 @@ const AdminDashboard = () => {
       try {
         const { data, error } = await supabase
           .from('admin_dashboard_stats')
-          .select('*');
+          .select('*')
+          .single();
 
         if (error) throw error;
         
-        const statsData = data?.reduce((acc, item) => {
-          acc[item.metric_type] = item.stats;
-          return acc;
-        }, {});
-        
-        setDashboardStats(statsData);
+        setDashboardStats(data || {});
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
         toast.error('Không thể tải thống kê dashboard');
@@ -111,8 +107,21 @@ const AdminDashboard = () => {
     }
   };
 
-  const clubStats = dashboardStats?.club_registrations || {};
-  const notificationStats = dashboardStats?.notifications || {};
+  const clubStats = {
+    pending: dashboardStats?.pending_registrations || 0,
+    approved: dashboardStats?.active_clubs || 0,
+    total: (dashboardStats?.pending_registrations || 0) + (dashboardStats?.active_clubs || 0),
+    rejected: 0,
+    approval_rate: dashboardStats?.active_clubs > 0 ? 
+      Math.round((dashboardStats.active_clubs / ((dashboardStats.pending_registrations || 0) + dashboardStats.active_clubs)) * 100) : 0,
+    today_submissions: 0
+  };
+  const notificationStats = {
+    total: dashboardStats?.pending_verifications || 0,
+    unread: dashboardStats?.pending_verifications || 0,
+    high_priority: highPriorityCount || 0,
+    today_notifications: 0
+  };
 
   const stats = [
     {

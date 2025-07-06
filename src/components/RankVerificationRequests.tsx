@@ -98,18 +98,21 @@ const RankVerificationRequests = () => {
     setProcessing(requestId);
 
     try {
-      const { error } = await supabase
-        .from('rank_verifications')
-        .update({
-          status,
-          verified_by: user?.id,
-          verified_at: new Date().toISOString()
-        })
-        .eq('id', requestId);
+      // Use the new database function to avoid ambiguous column reference issues
+      const { data, error } = await supabase.rpc('update_rank_verification_simple', {
+        verification_id: requestId,
+        new_status: status,
+        verifier_id: user?.id
+      });
 
       if (error) {
         console.error('Error updating rank verification:', error);
         throw error;
+      }
+
+      if (data && typeof data === 'object' && 'success' in data && !data.success) {
+        console.error('Database function error:', (data as any).error);
+        throw new Error((data as any).error);
       }
 
       toast.success('Đã chuyển sang trạng thái test');
