@@ -26,46 +26,53 @@ const AdminDashboard = () => {
     );
   }
 
+  // Fetch dashboard stats from existing tables  
+  const fetchDashboardStats = async () => {
+    try {
+      const [clubRegistrations, clubProfiles, notifications] = await Promise.all([
+        supabase.from('club_registrations').select('status', { count: 'exact', head: true }),
+        supabase.from('club_profiles').select('verification_status', { count: 'exact', head: true }),
+        supabase.from('notifications').select('is_read', { count: 'exact', head: true })
+      ]);
+
+      const data = {
+        pending_registrations: clubRegistrations.count || 0,
+        active_clubs: clubProfiles.count || 0,
+        pending_verifications: notifications.count || 0
+      };
+      
+      setDashboardStats(data);
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      toast.error('Không thể tải thống kê dashboard');
+    }
+  };
+
+  const fetchSystemHealth = async () => {
+    try {
+      // Get basic system health indicators
+      const [profilesCount, tournamentsCount, clubsCount] = await Promise.all([
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('tournaments').select('id', { count: 'exact', head: true }),
+        supabase.from('club_profiles').select('id', { count: 'exact', head: true })
+      ]);
+
+      setSystemHealth({
+        total_users: profilesCount.count || 0,
+        total_tournaments: tournamentsCount.count || 0,
+        total_clubs: clubsCount.count || 0,
+        system_status: 'healthy'
+      });
+    } catch (error) {
+      console.error('Error fetching system health:', error);
+      setSystemHealth({ system_status: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch dashboard stats from materialized view
   useEffect(() => {
-    const fetchDashboardStats = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('admin_dashboard_stats')
-          .select('*')
-          .single();
-
-        if (error) throw error;
-        
-        setDashboardStats(data || {});
-      } catch (error) {
-        console.error('Error fetching dashboard stats:', error);
-        toast.error('Không thể tải thống kê dashboard');
-      }
-    };
-
-    const fetchSystemHealth = async () => {
-      try {
-        // Get basic system health indicators
-        const [profilesCount, tournamentsCount, clubsCount] = await Promise.all([
-          supabase.from('profiles').select('id', { count: 'exact', head: true }),
-          supabase.from('tournaments').select('id', { count: 'exact', head: true }),
-          supabase.from('club_profiles').select('id', { count: 'exact', head: true })
-        ]);
-
-        setSystemHealth({
-          total_users: profilesCount.count || 0,
-          total_tournaments: tournamentsCount.count || 0,
-          total_clubs: clubsCount.count || 0,
-          system_status: 'healthy'
-        });
-      } catch (error) {
-        console.error('Error fetching system health:', error);
-        setSystemHealth({ system_status: 'error' });
-      } finally {
-        setLoading(false);
-      }
-    };
 
     if (isAdmin) {
       fetchDashboardStats();
@@ -98,9 +105,10 @@ const AdminDashboard = () => {
 
   const refreshStats = async () => {
     try {
-      await supabase.rpc('refresh_admin_dashboard_stats');
+      // Re-fetch dashboard stats
+      fetchDashboardStats();
+      fetchSystemHealth();
       toast.success('Đã cập nhật thống kê thành công');
-      window.location.reload();
     } catch (error) {
       console.error('Error refreshing stats:', error);
       toast.error('Có lỗi khi cập nhật thống kê');

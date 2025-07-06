@@ -53,7 +53,7 @@ const TrustScoreBadge = ({ playerId, showFullDetails = false, className = '' }: 
         .from('rank_verifications')
         .select(`
           verified_at,
-          club_profiles!inner(club_name)
+          club_profiles!rank_verifications_club_id_fkey(club_name)
         `)
         .eq('player_id', playerId)
         .eq('status', 'approved')

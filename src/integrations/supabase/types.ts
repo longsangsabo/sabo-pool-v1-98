@@ -766,6 +766,7 @@ export type Database = {
           played_at: string | null
           player1_id: string
           player2_id: string
+          privacy_level: string | null
           score_player1: number | null
           score_player2: number | null
           status: string | null
@@ -781,6 +782,7 @@ export type Database = {
           played_at?: string | null
           player1_id: string
           player2_id: string
+          privacy_level?: string | null
           score_player1?: number | null
           score_player2?: number | null
           status?: string | null
@@ -796,6 +798,7 @@ export type Database = {
           played_at?: string | null
           player1_id?: string
           player2_id?: string
+          privacy_level?: string | null
           score_player1?: number | null
           score_player2?: number | null
           status?: string | null
