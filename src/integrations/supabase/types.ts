@@ -2391,10 +2391,13 @@ export type Database = {
           id: string
           is_admin: boolean | null
           member_since: string | null
+          my_referral_code: string | null
           nickname: string | null
           phone: string | null
           rank_verified_at: string | null
           rank_verified_by: string | null
+          referral_bonus_claimed: boolean | null
+          referred_by_code: string | null
           role: string | null
           skill_level: string | null
           updated_at: string
@@ -2418,10 +2421,13 @@ export type Database = {
           id?: string
           is_admin?: boolean | null
           member_since?: string | null
+          my_referral_code?: string | null
           nickname?: string | null
           phone?: string | null
           rank_verified_at?: string | null
           rank_verified_by?: string | null
+          referral_bonus_claimed?: boolean | null
+          referred_by_code?: string | null
           role?: string | null
           skill_level?: string | null
           updated_at?: string
@@ -2445,10 +2451,13 @@ export type Database = {
           id?: string
           is_admin?: boolean | null
           member_since?: string | null
+          my_referral_code?: string | null
           nickname?: string | null
           phone?: string | null
           rank_verified_at?: string | null
           rank_verified_by?: string | null
+          referral_bonus_claimed?: boolean | null
+          referred_by_code?: string | null
           role?: string | null
           skill_level?: string | null
           updated_at?: string
@@ -2725,6 +2734,54 @@ export type Database = {
           skill_description?: string | null
         }
         Relationships: []
+      }
+      referrals: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          referral_code: string
+          referred_id: string | null
+          referrer_id: string
+          reward_claimed: boolean | null
+          status: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          referral_code: string
+          referred_id?: string | null
+          referrer_id: string
+          reward_claimed?: boolean | null
+          status?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          referral_code?: string
+          referred_id?: string | null
+          referrer_id?: string
+          reward_claimed?: boolean | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       reward_redemptions: {
         Row: {
@@ -3823,6 +3880,7 @@ export type Database = {
           points_amount: number | null
           reference_id: string | null
           status: string | null
+          transaction_category: string | null
           transaction_type: string
           wallet_id: string
         }
@@ -3838,6 +3896,7 @@ export type Database = {
           points_amount?: number | null
           reference_id?: string | null
           status?: string | null
+          transaction_category?: string | null
           transaction_type: string
           wallet_id: string
         }
@@ -3853,6 +3912,7 @@ export type Database = {
           points_amount?: number | null
           reference_id?: string | null
           status?: string | null
+          transaction_category?: string | null
           transaction_type?: string
           wallet_id?: string
         }
@@ -4012,6 +4072,10 @@ export type Database = {
       expire_old_challenges: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      generate_referral_code: {
+        Args: { user_id: string }
+        Returns: string
       }
       get_cron_jobs: {
         Args: Record<PropertyKey, never>

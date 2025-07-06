@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signUpWithEmail = async (email: string, password: string, fullName: string) => {
+  const signUpWithEmail = async (email: string, password: string, fullName: string, referralCode?: string) => {
     try {
       console.log("AuthProvider: Attempting email sign up for:", email);
       const redirectUrl = `${window.location.origin}/`;
@@ -95,6 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           data: {
             full_name: fullName,
             email: email,
+            referred_by_code: referralCode, // Include referral code in user metadata
           },
         },
       });
@@ -109,6 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             user_id: data.user.id,
             full_name: fullName,
             is_admin: isAdmin,
+            referred_by_code: referralCode, // Store referral code in profile
           });
         
         if (profileError) {
@@ -126,7 +128,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signUpWithPhone = async (phone: string, password: string, fullName: string) => {
+  const signUpWithPhone = async (phone: string, password: string, fullName: string, referralCode?: string) => {
     try {
       console.log("AuthProvider: Attempting phone sign up for:", phone);
       // Convert Vietnamese phone format to E.164
@@ -138,6 +140,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           data: {
             full_name: fullName,
             phone: phone, // Store original format in metadata
+            referred_by_code: referralCode, // Include referral code in user metadata
           },
         },
       });
@@ -151,8 +154,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .insert({
             user_id: data.user.id,
             full_name: fullName,
-            phone: phone, // Store original format
+            referred_by_code: referralCode, // Store referral code
             is_admin: isAdmin,
+            referred_by_code: referralCode, // Store referral code in profile
           });
         
         if (profileError) {

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { EnhancedAuthTabs, PhoneTabContent, EmailTabContent } from '@/components/auth/EnhancedAuthTabs';
@@ -12,6 +13,7 @@ import { AuthDivider } from '@/components/auth/AuthDivider';
 import { TermsCheckbox } from '@/components/auth/TermsCheckbox';
 import { OAuthSetupGuide } from '@/components/auth/OAuthSetupGuide';
 import { handleAuthError } from '@/utils/authHelpers';
+import { Gift } from 'lucide-react';
 
 const EnhancedRegisterPage = () => {
   const [phone, setPhone] = useState('');
@@ -30,6 +32,8 @@ const EnhancedRegisterPage = () => {
   
   const navigate = useNavigate();
   const { signUpWithPhone, signUpWithEmail } = useAuth();
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get('ref');
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,12 +66,15 @@ const EnhancedRegisterPage = () => {
     setLoading(true);
     
     try {
-      const { error } = await signUpWithPhone(phone, phonePassword, phoneFullName);
+      const { error } = await signUpWithPhone(phone, phonePassword, phoneFullName, referralCode);
       
       if (error) {
         handleAuthError(error);
       } else {
-        toast.success('Đăng ký thành công! Chào mừng bạn đến với SABO Pool Arena!');
+        toast.success(referralCode 
+          ? 'Đăng ký thành công! Bạn và người giới thiệu đều nhận được 100 SPA!' 
+          : 'Đăng ký thành công! Chào mừng bạn đến với SABO Pool Arena!'
+        );
         navigate('/dashboard');
       }
     } catch (error) {
@@ -109,12 +116,15 @@ const EnhancedRegisterPage = () => {
     setLoading(true);
     
     try {
-      const { error } = await signUpWithEmail(email, emailPassword, emailFullName);
+      const { error } = await signUpWithEmail(email, emailPassword, emailFullName, referralCode);
       
       if (error) {
         handleAuthError(error);
       } else {
-        toast.success('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.');
+        toast.success(referralCode
+          ? 'Đăng ký thành công! Bạn và người giới thiệu đều nhận được 100 SPA! Vui lòng kiểm tra email để xác thực tài khoản.'
+          : 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.'
+        );
         navigate('/login');
       }
     } catch (error) {
@@ -137,6 +147,17 @@ const EnhancedRegisterPage = () => {
             <h1 className="text-3xl font-bold text-gray-800 mb-2">🎱 Đăng ký</h1>
             <p className="text-gray-600">SABO Pool Arena</p>
           </div>
+
+          {referralCode && (
+            <Alert className="mb-6 border-green-200 bg-green-50">
+              <Gift className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                <strong>Chúc mừng!</strong> Bạn được giới thiệu bởi mã: <strong>{referralCode}</strong>
+                <br />
+                Bạn sẽ nhận được 100 SPA khi đăng ký thành công!
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-3">
             <FacebookLoginButton />
