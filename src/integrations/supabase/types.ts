@@ -2702,8 +2702,12 @@ export type Database = {
     Views: {
       admin_dashboard_stats: {
         Row: {
-          metric_type: string | null
-          stats: Json | null
+          active_clubs: number | null
+          active_tournaments: number | null
+          pending_registrations: number | null
+          pending_verifications: number | null
+          recent_matches: number | null
+          total_users: number | null
         }
         Relationships: []
       }
