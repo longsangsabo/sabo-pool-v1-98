@@ -8,6 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Trophy, Clock, CheckCircle, XCircle, AlertTriangle, Upload } from 'lucide-react';
 import RankTestModal from './RankTestModal';
+import RankInfo from './RankInfo';
+import { getRankInfo } from '@/utils/rankDefinitions';
 
 interface VerificationRequest {
   id: string;
@@ -226,51 +228,58 @@ const RankVerificationRequests = () => {
               </div>
             </div>
 
-            {requests.map(request => (
-              <div key={request.id} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold">
-                      Player {request.player_id}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Muốn xác thực hạng {request.requested_rank}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    {getStatusBadge(request.status)}
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(request.created_at).toLocaleDateString('vi-VN')}
-                    </p>
-                  </div>
-                </div>
-
-                {request.status === 'pending' && (
-                  <div className="space-y-3">
-                    <RankTestModal
-                      request={request}
-                      onStartTest={(id) => handleStatusUpdate(id, 'testing')}
-                      onCompleteTest={handleCompleteTest}
-                      processing={processing === request.id}
-                    />
-                  </div>
-                )}
-
-                {request.status === 'testing' && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center">
-                      <Clock className="w-5 h-5 text-blue-600 mr-2" />
-                      <div>
-                        <p className="font-medium text-blue-800">Đang trong quá trình test</p>
-                        <p className="text-sm text-blue-600 mt-1">
-                          Vui lòng hoàn thành test để cập nhật kết quả
-                        </p>
-                      </div>
+            {requests.map(request => {
+              const rankInfo = getRankInfo(request.requested_rank);
+              
+              return (
+                <div key={request.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h3 className="font-semibold">
+                        Player {request.player_id}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Muốn xác thực {rankInfo.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {rankInfo.description}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      {getStatusBadge(request.status)}
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(request.created_at).toLocaleDateString('vi-VN')}
+                      </p>
                     </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {request.status === 'pending' && (
+                    <div className="space-y-3">
+                      <RankTestModal
+                        request={request}
+                        onStartTest={(id) => handleStatusUpdate(id, 'testing')}
+                        onCompleteTest={handleCompleteTest}
+                        processing={processing === request.id}
+                      />
+                    </div>
+                  )}
+
+                  {request.status === 'testing' && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <Clock className="w-5 h-5 text-blue-600 mr-2" />
+                        <div>
+                          <p className="font-medium text-blue-800">Đang trong quá trình test</p>
+                          <p className="text-sm text-blue-600 mt-1">
+                            Vui lòng hoàn thành test để cập nhật kết quả
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </CardContent>
