@@ -93,6 +93,8 @@ const RankVerificationRequests = () => {
   };
 
   const handleStatusUpdate = async (requestId: string, status: 'testing') => {
+    if (processing === requestId) return; // Prevent double processing
+    
     setProcessing(requestId);
 
     try {
@@ -105,25 +107,31 @@ const RankVerificationRequests = () => {
         })
         .eq('id', requestId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating rank verification:', error);
+        throw error;
+      }
 
       toast.success('Đã chuyển sang trạng thái test');
-      fetchRequests();
+      await fetchRequests();
     } catch (error: any) {
       console.error('Error updating request:', error);
-      toast.error('Lỗi khi cập nhật: ' + error.message);
+      toast.error(`Lỗi khi cập nhật: ${error.message || 'Unknown error'}`);
     } finally {
       setProcessing(null);
     }
   };
 
   const handleCompleteTest = async (requestId: string, status: 'approved' | 'rejected', testResult: any) => {
+    if (processing === requestId) return; // Prevent double processing
+    
     setProcessing(requestId);
 
     try {
       // Validate required data
       if (!testResult.notes?.trim()) {
         toast.error('Vui lòng nhập ghi chú chi tiết về kết quả test');
+        setProcessing(null);
         return;
       }
 
@@ -133,10 +141,10 @@ const RankVerificationRequests = () => {
         verified_by: user?.id,
         verified_at: new Date().toISOString(),
         test_result: JSON.stringify({
-          duration: testResult.testDuration,
-          score: testResult.testScore,
-          skillLevel: testResult.skillLevel,
-          checklist: testResult.checklist,
+          duration: testResult.testDuration || 0,
+          score: testResult.testScore || 0,
+          skillLevel: testResult.skillLevel || 'average',
+          checklist: testResult.checklist || {},
           proofPhotos: testResult.proofPhotos || []
         })
       };
@@ -184,7 +192,7 @@ const RankVerificationRequests = () => {
       
     } catch (error: any) {
       console.error('Error updating request:', error);
-      toast.error('Lỗi khi xử lý yêu cầu: ' + (error.message || 'Unknown error'));
+      toast.error(`Lỗi khi xử lý yêu cầu: ${error.message || 'Unknown error'}`);
     } finally {
       setProcessing(null);
     }
