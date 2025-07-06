@@ -496,6 +496,39 @@ export type Database = {
         }
         Relationships: []
       }
+      leaderboard_snapshots: {
+        Row: {
+          created_at: string | null
+          id: string
+          matches: number | null
+          player_id: string
+          rank_id: string | null
+          spa_points: number | null
+          week_start: string
+          wins: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          matches?: number | null
+          player_id: string
+          rank_id?: string | null
+          spa_points?: number | null
+          week_start: string
+          wins?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          matches?: number | null
+          player_id?: string
+          rank_id?: string | null
+          spa_points?: number | null
+          week_start?: string
+          wins?: number | null
+        }
+        Relationships: []
+      }
       leaderboards: {
         Row: {
           city: string | null
@@ -810,6 +843,39 @@ export type Database = {
           },
         ]
       }
+      monthly_snapshots: {
+        Row: {
+          created_at: string | null
+          id: string
+          month: string
+          player_id: string
+          rank_id: string | null
+          spa_points: number | null
+          total_matches: number | null
+          wins: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          month: string
+          player_id: string
+          rank_id?: string | null
+          spa_points?: number | null
+          total_matches?: number | null
+          wins?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          month?: string
+          player_id?: string
+          rank_id?: string | null
+          spa_points?: number | null
+          total_matches?: number | null
+          wins?: number | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           action_url: string | null
@@ -1008,12 +1074,14 @@ export type Database = {
         Row: {
           created_at: string | null
           current_rank_id: string | null
+          daily_challenges: number | null
           id: string
           player_id: string | null
           rank_points: number | null
           season_start: string | null
           spa_points: number | null
           total_matches: number | null
+          tournament_wins: number | null
           updated_at: string | null
           verified_at: string | null
           verified_by: string | null
@@ -1022,12 +1090,14 @@ export type Database = {
         Insert: {
           created_at?: string | null
           current_rank_id?: string | null
+          daily_challenges?: number | null
           id?: string
           player_id?: string | null
           rank_points?: number | null
           season_start?: string | null
           spa_points?: number | null
           total_matches?: number | null
+          tournament_wins?: number | null
           updated_at?: string | null
           verified_at?: string | null
           verified_by?: string | null
@@ -1036,12 +1106,14 @@ export type Database = {
         Update: {
           created_at?: string | null
           current_rank_id?: string | null
+          daily_challenges?: number | null
           id?: string
           player_id?: string | null
           rank_points?: number | null
           season_start?: string | null
           spa_points?: number | null
           total_matches?: number | null
+          tournament_wins?: number | null
           updated_at?: string | null
           verified_at?: string | null
           verified_by?: string | null
@@ -1816,6 +1888,39 @@ export type Database = {
           reward_value?: string
           status?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      season_summaries: {
+        Row: {
+          created_at: string | null
+          final_rank_id: string | null
+          id: string
+          matches_played: number | null
+          player_id: string
+          season_number: number
+          total_spa_points: number | null
+          tournaments_won: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          final_rank_id?: string | null
+          id?: string
+          matches_played?: number | null
+          player_id: string
+          season_number: number
+          total_spa_points?: number | null
+          tournaments_won?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          final_rank_id?: string | null
+          id?: string
+          matches_played?: number | null
+          player_id?: string
+          season_number?: number
+          total_spa_points?: number | null
+          tournaments_won?: number | null
         }
         Relationships: []
       }
@@ -2621,6 +2726,10 @@ export type Database = {
         }
         Returns: Json
       }
+      automated_season_reset: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       award_challenge_points: {
         Args: {
           p_winner_id: string
@@ -2688,6 +2797,10 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: Json
       }
+      decay_inactive_spa_points: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       delete_club_completely: {
         Args: { club_profile_id: string; admin_id: string }
         Returns: Json
@@ -2745,7 +2858,19 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      send_monthly_reports: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      system_health_check: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       update_monthly_leaderboard: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_weekly_leaderboard: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
