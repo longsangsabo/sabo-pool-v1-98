@@ -238,6 +238,22 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
 
       if (error) throw error;
 
+      // Create notification for the opponent
+      await supabase.from('notifications').insert({
+        user_id: selectedPlayer.user_id,
+        type: 'challenge_received',
+        title: 'Thách đấu mới!',
+        message: `${user.user_metadata?.full_name || 'Một người chơi'} đã gửi thách đấu ${betPoints} điểm SPA cho bạn`,
+        action_url: '/challenges',
+        metadata: {
+          challenger_id: user.id,
+          bet_points: betPoints,
+          race_to: selectedConfig?.raceTO || 8,
+          club_name: selectedClub ? clubs.find(c => c.id === selectedClub)?.club_name : null
+        },
+        priority: 'high'
+      });
+
       toast.success('Thách đấu đã được gửi thành công!');
       onChallengeCreated();
       handleClose();
