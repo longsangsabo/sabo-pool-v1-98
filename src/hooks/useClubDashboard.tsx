@@ -177,11 +177,17 @@ export const useClubDashboard = () => {
           .order('created_at', { ascending: false })
           .limit(10),
 
-        // Recent notifications
+        // Recent notifications (club-related only)
         supabase
           .from('notifications')
           .select('*')
           .eq('user_id', user.id)
+          .in('type', [
+            'rank_verification_request',
+            'new_match',
+            'member_promoted',
+            'club_member_joined'
+          ])
           .order('created_at', { ascending: false })
           .limit(10),
 

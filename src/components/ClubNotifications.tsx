@@ -39,11 +39,10 @@ const ClubNotifications = () => {
         .eq('user_id', user.id)
         .in('type', [
           'rank_verification_request',
-          'rank_verification_approved',
-          'rank_verification_rejected',
+          'new_match',
+          'member_promoted',
           'club_member_joined',
-          'club_stats_update',
-          'system_announcement'
+          'club_stats_update'
         ])
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
@@ -142,9 +141,9 @@ const ClubNotifications = () => {
       case 'unread':
         return !notification.is_read;
       case 'rank':
-        return notification.type.includes('rank_verification');
+        return notification.type === 'rank_verification_request' || notification.type === 'member_promoted';
       case 'member':
-        return notification.type.includes('member') || notification.type.includes('club');
+        return notification.type === 'club_member_joined' || notification.type === 'new_match';
       default:
         return true;
     }
