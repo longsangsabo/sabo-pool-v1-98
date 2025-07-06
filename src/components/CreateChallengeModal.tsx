@@ -287,6 +287,11 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
 
   const selectedConfig = BET_CONFIGURATIONS.find(config => config.points === betPoints);
 
+  const canCreateChallenge = selectedPlayer && selectedPlayer.user_id && selectedPlayer.user_id.trim() !== '';
+
+  console.log('Debug - selectedPlayer:', selectedPlayer);
+  console.log('Debug - canCreateChallenge:', canCreateChallenge);
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -323,7 +328,10 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
                     className={`p-3 cursor-pointer hover:bg-gray-50 flex items-center gap-3 ${
                       selectedPlayer?.user_id === player.user_id ? 'bg-blue-50 border-blue-200' : ''
                     }`}
-                    onClick={() => setSelectedPlayer(player)}
+                    onClick={() => {
+                      console.log('Selecting player:', player);
+                      setSelectedPlayer(player);
+                    }}
                   >
                     <Avatar className="w-8 h-8">
                       <AvatarImage src={player.avatar_url} />
@@ -451,7 +459,7 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
             </Button>
             <Button
               onClick={handleCreateChallenge}
-              disabled={loading || !selectedPlayer || !selectedPlayer.user_id}
+              disabled={loading || !canCreateChallenge}
               className="flex-1"
             >
               {loading ? 'Đang tạo...' : 'Tạo thách đấu'}
