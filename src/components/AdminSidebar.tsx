@@ -9,6 +9,7 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  Home,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -55,7 +56,16 @@ const AdminSidebar = () => {
         })}
       </nav>
 
-      <div className='p-4 border-t'>
+      <div className='p-4 border-t space-y-2'>
+        <NavLink to="/" className="block">
+          <Button
+            variant='ghost'
+            className='w-full justify-start gap-3 text-gray-600 hover:bg-gray-100'
+          >
+            <Home className='h-5 w-5' />
+            Về trang chủ
+          </Button>
+        </NavLink>
         <Button
           variant='ghost'
           className='w-full justify-start gap-3 text-gray-600'
