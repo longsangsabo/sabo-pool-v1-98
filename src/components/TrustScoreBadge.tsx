@@ -50,23 +50,20 @@ const TrustScoreBadge = ({ playerId, showFullDetails = false, className = '' }: 
   const fetchVerificationInfo = async () => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('rank_verifications')
         .select(`
-          verified_rank,
-          rank_verified_at,
-          rank_verifications!inner(
-            club_profiles!inner(club_name)
-          )
+          verified_at,
+          club_profiles!inner(club_name)
         `)
-        .eq('user_id', playerId)
-        .eq('rank_verifications.status', 'approved')
-        .order('rank_verifications.verified_at', { ascending: false })
+        .eq('player_id', playerId)
+        .eq('status', 'approved')
+        .order('verified_at', { ascending: false })
         .limit(1);
 
       if (error) throw error;
 
-      if (data && data.length > 0 && data[0].rank_verifications) {
-        const verification = data[0].rank_verifications as any;
+      if (data && data.length > 0) {
+        const verification = data[0];
         if (verification && verification.club_profiles) {
           setVerifiedByClub(verification.club_profiles.club_name);
         }
