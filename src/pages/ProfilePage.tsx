@@ -22,6 +22,7 @@ import PlayerStatsComponent from '@/components/PlayerStatsComponent';
 import TrustScoreBadge from '@/components/TrustScoreBadge';
 import ProfileHeader from '@/components/ProfileHeader';
 import { RankingDashboard } from '@/components/ranking';
+import { WalletBalance } from '@/components/WalletBalance';
 import { isAdminUser } from '@/utils/adminHelpers';
 
 // Export types for other components
@@ -477,6 +478,9 @@ const ProfilePage = () => {
           </TabsList>
 
           <TabsContent value="profile" className="space-y-6">
+            {/* Wallet Balance Card */}
+            <WalletBalance />
+            
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">

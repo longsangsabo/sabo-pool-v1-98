@@ -30,6 +30,7 @@ import {
 } from './ui/dropdown-menu';
 import { Badge } from './ui/badge';
 import NotificationBadge from './NotificationBadge';
+import SPAPointsBadge from './SPAPointsBadge';
 import { supabase } from '@/integrations/supabase/client';
 
 const Header = () => {
@@ -175,6 +176,9 @@ const Header = () => {
 
           {/* Right Side */}
           <div className="flex items-center space-x-4">
+            {/* SPA Points Badge */}
+            {user && <SPAPointsBadge />}
+            
             {/* Notifications */}
             {user && (
               <NotificationBadge 

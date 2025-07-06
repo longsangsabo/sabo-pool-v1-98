@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, Trophy, Target, Users } from 'lucide-react';
+import { WalletBalance } from '@/components/WalletBalance';
 
 const DashboardPage = () => {
   const { user, signOut } = useAuth();
@@ -47,6 +48,11 @@ const DashboardPage = () => {
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h2>
           <p className="text-gray-600">Chào mừng bạn đến với SABO Pool Arena!</p>
+        </div>
+
+        {/* Wallet Balance */}
+        <div className="mb-8">
+          <WalletBalance />
         </div>
 
         {/* Quick Stats */}
