@@ -8,6 +8,7 @@ import {
   Trophy,
   MapPin,
   Bell,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,10 +17,12 @@ import MobileLayout from '../components/MobileLayout';
 import TournamentFeedCard from '@/components/TournamentFeedCard';
 import { EnhancedChallengeCard } from '@/components/challenges/EnhancedChallengeCard';
 import { EnhancedAuthFlow } from '@/components/auth/EnhancedAuthFlow';
+import SocialFeedCard from '@/components/SocialFeedCard';
 import { useTournaments } from '@/hooks/useTournaments';
 import { useChallenges } from '@/hooks/useChallenges';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserLocation } from '@/hooks/useUserLocation';
+import { useRealtimeFeed } from '@/hooks/useRealtimeFeed';
 import { toast } from 'sonner';
 
 const FeedPage = () => {
@@ -27,8 +30,17 @@ const FeedPage = () => {
   const { tournaments, joinTournament } = useTournaments();
   const { receivedChallenges } = useChallenges();
   const { userLocation, requestLocationPermission } = useUserLocation();
+  const { 
+    feedPosts, 
+    isConnected, 
+    handleLike, 
+    handleComment, 
+    handleShare, 
+    handleChallenge,
+    refreshFeed 
+  } = useRealtimeFeed();
   const [showAuthFlow, setShowAuthFlow] = useState(false);
-  const [activeTab, setActiveTab] = useState('tournaments');
+  const [activeTab, setActiveTab] = useState('social');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Show auth flow if user is not logged in
@@ -144,6 +156,10 @@ const FeedPage = () => {
             className='w-full'
           >
             <TabsList className='grid w-full grid-cols-3'>
+              <TabsTrigger value='social' className='text-xs'>
+                <Bell className='w-4 h-4 mr-1' />
+                Hoạt động
+              </TabsTrigger>
               <TabsTrigger value='tournaments' className='text-xs'>
                 <Trophy className='w-4 h-4 mr-1' />
                 Giải đấu
@@ -152,10 +168,6 @@ const FeedPage = () => {
                 <Users className='w-4 h-4 mr-1' />
                 Thách đấu
               </TabsTrigger>
-              <TabsTrigger value='social' className='text-xs'>
-                <Bell className='w-4 h-4 mr-1' />
-                Hoạt động
-              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -163,6 +175,48 @@ const FeedPage = () => {
         {/* Content */}
         <div className='p-4'>
           <Tabs value={activeTab} className='w-full'>
+            <TabsContent value='social' className='space-y-4 mt-0'>
+              {/* Real-time status indicator */}
+              <div className='flex items-center justify-between mb-4'>
+                <div className='flex items-center gap-2'>
+                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <span className='text-xs text-muted-foreground'>
+                    {isConnected ? 'Trực tuyến' : 'Ngoại tuyến'}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={refreshFeed}
+                  className='flex items-center gap-2'
+                >
+                  <RefreshCw className='w-4 h-4' />
+                  Làm mới
+                </Button>
+              </div>
+
+              {feedPosts.length > 0 ? (
+                feedPosts.map(post => (
+                  <SocialFeedCard
+                    key={post.id}
+                    post={post}
+                    onLike={handleLike}
+                    onComment={handleComment}
+                    onShare={handleShare}
+                    onChallenge={handleChallenge}
+                  />
+                ))
+              ) : (
+                <div className='text-center py-12'>
+                  <Bell className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+                  <p className='text-gray-500 mb-2'>Chưa có hoạt động nào</p>
+                  <p className='text-sm text-gray-400'>
+                    Các bài viết về thành tích, xác nhận hạng sẽ hiển thị ở đây
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+
             <TabsContent value='tournaments' className='space-y-4 mt-0'>
               {filteredTournaments.length > 0 ? (
                 filteredTournaments.map(tournament => (
@@ -255,13 +309,6 @@ const FeedPage = () => {
                   <p className='text-gray-500'>Không có thách đấu nào</p>
                 </div>
               )}
-            </TabsContent>
-
-            <TabsContent value='social' className='space-y-4 mt-0'>
-              <div className='text-center py-12'>
-                <Bell className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-                <p className='text-gray-500'>Tính năng sắp ra mắt</p>
-              </div>
             </TabsContent>
           </Tabs>
         </div>
