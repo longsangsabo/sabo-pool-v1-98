@@ -28,6 +28,7 @@ import SystemAuditPage from "./pages/SystemAuditPage";
 import TestPage from "./pages/TestPage";
 import EnhancedLoginPage from "./pages/EnhancedLoginPage";
 import EnhancedRegisterPage from "./pages/EnhancedRegisterPage";
+import EnhancedChallengesPageV2 from "./pages/EnhancedChallengesPageV2";
 
 // Import all other pages
 import AboutPage from "./pages/AboutPage";

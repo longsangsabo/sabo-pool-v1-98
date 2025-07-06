@@ -112,29 +112,7 @@ const EnhancedChallengesPageV2: React.FC = () => {
     try {
       let query = supabase
         .from('challenges')
-        .select(`
-          *,
-          challenger_profile:profiles!challenges_challenger_id_fkey(
-            full_name,
-            avatar_url,
-            player_rankings(
-              spa_points,
-              ranks(code)
-            )
-          ),
-          opponent_profile:profiles!challenges_opponent_id_fkey(
-            full_name,
-            avatar_url,
-            player_rankings(
-              spa_points,
-              ranks(code)
-            )
-          ),
-          club_profiles!challenges_club_id_fkey(
-            club_name,
-            address
-          )
-        `)
+        .select('*')
         .or(`challenger_id.eq.${user.id},opponent_id.eq.${user.id}`);
 
       if (statusFilter !== 'all') {
@@ -147,7 +125,49 @@ const EnhancedChallengesPageV2: React.FC = () => {
 
       if (error) throw error;
 
-      setChallenges(data || []);
+      // Fetch profile data separately to avoid complex joins
+      const enrichedChallenges = await Promise.all(
+        (data || []).map(async (challenge) => {
+          const [challengerProfile, opponentProfile, clubProfile] = await Promise.all([
+            supabase
+              .from('profiles')
+              .select('full_name, avatar_url')
+              .eq('user_id', challenge.challenger_id)
+              .single(),
+            supabase
+              .from('profiles')
+              .select('full_name, avatar_url')
+              .eq('user_id', challenge.opponent_id)
+              .single(),
+            challenge.club_id
+              ? supabase
+                  .from('club_profiles')
+                  .select('club_name, address')
+                  .eq('id', challenge.club_id)
+                  .single()
+              : Promise.resolve({ data: null, error: null })
+          ]);
+
+          return {
+            ...challenge,
+            challenger_profile: challengerProfile.data ? {
+              full_name: challengerProfile.data.full_name,
+              avatar_url: challengerProfile.data.avatar_url,
+              current_rank: 'K', // Default rank for now
+              spa_points: 0, // Default points for now
+            } : undefined,
+            opponent_profile: opponentProfile.data ? {
+              full_name: opponentProfile.data.full_name,
+              avatar_url: opponentProfile.data.avatar_url,
+              current_rank: 'K', // Default rank for now
+              spa_points: 0, // Default points for now
+            } : undefined,
+            club_profiles: clubProfile.data,
+          };
+        })
+      );
+
+      setChallenges(enrichedChallenges);
 
       
     } catch (error) {
