@@ -86,9 +86,12 @@ const OpponentCard = ({
   };
 
   const getRankColor = (rank: string) => {
-    if (rank.includes('A')) return 'text-gold';
-    if (rank.includes('B')) return 'text-silver';
-    if (rank.includes('C')) return 'text-bronze';
+    if (rank.startsWith('E')) return 'text-purple-600 font-bold';
+    if (rank.startsWith('F')) return 'text-red-600 font-bold';
+    if (rank.startsWith('G')) return 'text-yellow-600 font-bold';
+    if (rank.startsWith('H')) return 'text-green-600 font-bold';
+    if (rank.startsWith('I')) return 'text-blue-600 font-bold';
+    if (rank.startsWith('K')) return 'text-gray-600';
     return 'text-primary-blue';
   };
 

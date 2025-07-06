@@ -17,24 +17,29 @@ const RankVerificationBadge: React.FC<RankVerificationBadgeProps> = ({
   position = 'top-right',
   showIcon = true,
 }) => {
-  if (!rank || rank === 'K1') return null;
+  if (!rank || rank === 'K') return null;
 
   const getRankColor = (rank: string) => {
+    if (rank.startsWith('E'))
+      return 'bg-gradient-to-r from-purple-400 to-purple-500 text-purple-900';
+    if (rank.startsWith('F'))
+      return 'bg-gradient-to-r from-red-400 to-red-500 text-red-900';
     if (rank.startsWith('G'))
       return 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900';
-    if (rank.startsWith('B'))
-      return 'bg-gradient-to-r from-blue-400 to-blue-500 text-blue-900';
-    if (rank.startsWith('A'))
+    if (rank.startsWith('H'))
       return 'bg-gradient-to-r from-green-400 to-green-500 text-green-900';
-    if (rank.startsWith('C'))
-      return 'bg-gradient-to-r from-purple-400 to-purple-500 text-purple-900';
+    if (rank.startsWith('I'))
+      return 'bg-gradient-to-r from-blue-400 to-blue-500 text-blue-900';
+    if (rank.startsWith('K'))
+      return 'bg-gradient-to-r from-gray-400 to-gray-500 text-gray-900';
     return 'bg-gradient-to-r from-gray-400 to-gray-500 text-gray-900';
   };
 
   const getRankIcon = (rank: string) => {
-    if (rank.startsWith('G')) return <Crown className='w-3 h-3' />;
-    if (rank.startsWith('A')) return <Trophy className='w-3 h-3' />;
-    if (rank.startsWith('B')) return <Star className='w-3 h-3' />;
+    if (rank.startsWith('E')) return <Crown className='w-3 h-3' />;
+    if (rank.startsWith('F')) return <Trophy className='w-3 h-3' />;
+    if (rank.startsWith('G')) return <Star className='w-3 h-3' />;
+    if (rank.startsWith('H')) return <Shield className='w-3 h-3' />;
     return <Shield className='w-3 h-3' />;
   };
 

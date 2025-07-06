@@ -81,7 +81,7 @@ const RankRegistration = () => {
       const mockRegistrations = [
         {
           id: '1',
-          requested_rank: 'A1',
+          requested_rank: 'H+',
           club_id: '1',
           status: 'pending',
           reason: 'Tournament performance',

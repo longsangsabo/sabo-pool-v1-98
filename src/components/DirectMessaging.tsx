@@ -59,7 +59,7 @@ const DirectMessaging = ({ isOpen, onClose }: DirectMessagingProps) => {
         id: '1',
         name: 'Nguyễn Văn A',
         avatar: '/placeholder.svg',
-        rank: 'A+',
+        rank: 'G+',
         isOnline: true,
       },
       lastMessage: {
@@ -96,7 +96,7 @@ const DirectMessaging = ({ isOpen, onClose }: DirectMessagingProps) => {
         id: '2',
         name: 'Lê Thị B',
         avatar: '/placeholder.svg',
-        rank: 'B+',
+        rank: 'H+',
         isOnline: false,
       },
       lastMessage: {

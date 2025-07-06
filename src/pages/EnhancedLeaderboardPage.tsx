@@ -113,7 +113,7 @@ const EnhancedLeaderboardPage = () => {
         {
           id: '1',
           user_id: '1',
-          current_rank: 'G3',
+          current_rank: 'E+',
           current_points: 2500,
           user_profiles: {
             full_name: 'Nguyễn Văn A',
@@ -127,7 +127,7 @@ const EnhancedLeaderboardPage = () => {
         {
           id: '2',
           user_id: '2',
-          current_rank: 'B2',
+          current_rank: 'F',
           current_points: 1800,
           user_profiles: {
             full_name: 'Trần Thị B',
@@ -141,7 +141,7 @@ const EnhancedLeaderboardPage = () => {
         {
           id: '3',
           user_id: '3',
-          current_rank: 'A1',
+          current_rank: 'G+',
           current_points: 1500,
           user_profiles: {
             full_name: 'Lê Văn C',
@@ -185,11 +185,18 @@ const EnhancedLeaderboardPage = () => {
   };
 
   const getRankColor = (rank: string) => {
-    if (rank.startsWith('G'))
+    if (rank.startsWith('E'))
       return 'border-purple-200 bg-purple-50 text-purple-800';
-    if (rank.startsWith('B')) return 'border-blue-200 bg-blue-50 text-blue-800';
-    if (rank.startsWith('A'))
+    if (rank.startsWith('F'))
+      return 'border-red-200 bg-red-50 text-red-800';
+    if (rank.startsWith('G'))
+      return 'border-yellow-200 bg-yellow-50 text-yellow-800';
+    if (rank.startsWith('H'))
       return 'border-green-200 bg-green-50 text-green-800';
+    if (rank.startsWith('I'))
+      return 'border-blue-200 bg-blue-50 text-blue-800';
+    if (rank.startsWith('K'))
+      return 'border-gray-200 bg-gray-50 text-gray-800';
     return 'border-gray-200 bg-gray-50 text-gray-800';
   };
 
@@ -286,10 +293,12 @@ const EnhancedLeaderboardPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value=''>Tất cả hạng</SelectItem>
-                    <SelectItem value='G'>Hạng G (Cao thủ)</SelectItem>
-                    <SelectItem value='B'>Hạng B (Giỏi)</SelectItem>
-                    <SelectItem value='A'>Hạng A (Khá)</SelectItem>
-                    <SelectItem value='K'>Hạng K (Mới)</SelectItem>
+                    <SelectItem value='E'>Hạng E (Chuyên nghiệp)</SelectItem>
+                    <SelectItem value='F'>Hạng F (Xuất sắc)</SelectItem>
+                    <SelectItem value='G'>Hạng G (Giỏi)</SelectItem>
+                    <SelectItem value='H'>Hạng H (Khá)</SelectItem>
+                    <SelectItem value='I'>Hạng I (Trung bình)</SelectItem>
+                    <SelectItem value='K'>Hạng K (Người mới)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -38,7 +38,7 @@ export const useProfile = () => {
       // Convert database profile to UserProfile format
       const userProfile: UserProfile = {
         ...data,
-        current_rank: 'B',
+        current_rank: 'H+',
         ranking_points: 1000,
         total_matches: 0,
         wins: 0,
@@ -84,7 +84,7 @@ export const useProfile = () => {
       // Convert database profile to UserProfile format
       const userProfile: UserProfile = {
         ...data,
-        current_rank: 'B',
+        current_rank: 'H+',
         ranking_points: 1000,
         total_matches: 0,
         wins: 0,

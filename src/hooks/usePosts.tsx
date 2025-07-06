@@ -239,7 +239,7 @@ export const usePosts = (userId?: string) => {
           id: userId,
           username: 'current_user',
           avatar_url: '/avatars/current_user.jpg',
-          rank: 'A',
+          rank: 'F+',
         };
 
         const newPost: Post = {
@@ -403,7 +403,7 @@ export const usePostBySlug = (slug: string) => {
         created_at: new Date().toISOString(),
         author: {
           full_name: 'Author Name',
-          current_rank: 'A',
+          current_rank: 'G+',
         },
       };
 

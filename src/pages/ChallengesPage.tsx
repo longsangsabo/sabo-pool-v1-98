@@ -80,7 +80,7 @@ const ChallengesPage: React.FC = () => {
             id: '3',
             username: 'pool_master',
             avatar_url: '/avatars/pool_master.jpg',
-            rank: 'A',
+            rank: 'G+',
           },
           bet_amount: 200000,
           status: 'open',

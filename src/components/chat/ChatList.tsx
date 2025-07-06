@@ -93,7 +93,7 @@ export const ChatList: React.FC<ChatListProps> = ({
                 id: '3',
                 username: 'pool_master',
                 avatar_url: '/avatars/pool_master.jpg',
-                rank: 'A',
+                rank: 'E+',
                 is_online: false,
                 last_seen: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
               },
@@ -126,7 +126,7 @@ export const ChatList: React.FC<ChatListProps> = ({
                 id: '5',
                 username: 'newbie',
                 avatar_url: '/avatars/newbie.jpg',
-                rank: 'C',
+                rank: 'I',
                 is_online: false,
                 last_seen: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
               },

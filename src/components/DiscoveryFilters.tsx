@@ -19,20 +19,18 @@ interface DiscoveryFiltersProps {
 }
 
 const ranks = [
-  'K3',
-  'K2',
-  'K1',
-  'H3',
-  'H2',
-  'H1',
-  'I+',
-  'I',
-  'K+',
   'K',
-  'G3',
-  'G2',
-  'G1',
+  'K+',
+  'I',
+  'I+',
+  'H',
+  'H+',
+  'G',
   'G+',
+  'F',
+  'F+',
+  'E',
+  'E+',
 ];
 
 const DiscoveryFilters = ({
@@ -163,7 +161,7 @@ const DiscoveryFilters = ({
                 className='flex-1'
                 onClick={() => {
                   onFiltersChange({
-                    rankRange: ['K1', 'G+'],
+                    rankRange: ['K', 'K+'],
                     maxDistance: 50,
                     minBetPoints: 10,
                     maxBetPoints: 100,

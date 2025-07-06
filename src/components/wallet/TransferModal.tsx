@@ -61,7 +61,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
       id: '2',
       username: 'pool_master',
       avatar_url: '/avatars/pool_master.jpg',
-      rank: 'A',
+      rank: 'F+',
       is_online: false,
     },
     {
@@ -75,7 +75,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
       id: '4',
       username: 'newbie_player',
       avatar_url: '/avatars/newbie.jpg',
-      rank: 'C',
+      rank: 'I+',
       is_online: true,
     },
   ];

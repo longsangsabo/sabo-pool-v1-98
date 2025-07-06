@@ -155,7 +155,7 @@ const CommentsSection = ({
           user={{
             name: 'You',
             avatar: '/placeholder.svg',
-            rank: 'A+',
+            rank: 'I+',
           }}
           size='sm'
         />

@@ -122,18 +122,21 @@ export const ClubLeaderboard: React.FC<ClubLeaderboardProps> = ({
 
   const getRankColor = (rank: string) => {
     switch (rank) {
-      case 'S+':
-      case 'S':
+      case 'E+':
+      case 'E':
         return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'F+':
+      case 'F':
+        return 'bg-red-100 text-red-800 border-red-200';
       case 'G+':
       case 'G':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'H+':
       case 'H':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'I+':
       case 'I':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'K+':
       case 'K':
         return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -188,19 +191,21 @@ export const ClubLeaderboard: React.FC<ClubLeaderboardProps> = ({
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Ranks</SelectItem>
-                  <SelectItem value="S+">S+</SelectItem>
-                  <SelectItem value="S">S</SelectItem>
-                  <SelectItem value="G+">G+</SelectItem>
-                  <SelectItem value="G">G</SelectItem>
-                  <SelectItem value="A+">A+</SelectItem>
-                  <SelectItem value="A">A</SelectItem>
-                  <SelectItem value="B+">B+</SelectItem>
-                  <SelectItem value="B">B</SelectItem>
-                  <SelectItem value="C+">C+</SelectItem>
-                  <SelectItem value="C">C</SelectItem>
-                </SelectContent>
+                  <SelectContent>
+                    <SelectItem value="all">All Ranks</SelectItem>
+                    <SelectItem value="E+">E+</SelectItem>
+                    <SelectItem value="E">E</SelectItem>
+                    <SelectItem value="F+">F+</SelectItem>
+                    <SelectItem value="F">F</SelectItem>
+                    <SelectItem value="G+">G+</SelectItem>
+                    <SelectItem value="G">G</SelectItem>
+                    <SelectItem value="H+">H+</SelectItem>
+                    <SelectItem value="H">H</SelectItem>
+                    <SelectItem value="I+">I+</SelectItem>
+                    <SelectItem value="I">I</SelectItem>
+                    <SelectItem value="K+">K+</SelectItem>
+                    <SelectItem value="K">K</SelectItem>
+                  </SelectContent>
               </Select>
               <Select
                 value={sortBy}

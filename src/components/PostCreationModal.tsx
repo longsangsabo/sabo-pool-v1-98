@@ -60,7 +60,7 @@ const PostCreationModal = ({
     id: '1',
     name: 'Người chơi',
     avatar: '/placeholder.svg',
-    rank: 'A+',
+    rank: 'H+',
   };
 
   const handleSubmit = () => {

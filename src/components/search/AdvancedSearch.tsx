@@ -61,7 +61,6 @@ export const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const skillLevels = [
-    { value: 'G', label: 'Grandmaster (G)' },
     { value: 'E+', label: 'Chuyên nghiệp tiến bộ (E+)' },
     { value: 'E', label: 'Chuyên nghiệp (E)' },
     { value: 'F+', label: 'Xuất sắc tiến bộ (F+)' },
