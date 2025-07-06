@@ -144,6 +144,7 @@ const App = () => {
                         <Route path="tournament-discovery" element={<TournamentDiscoveryPage />} />
                         <Route path="create-tournament" element={<CreateTournamentPage />} />
                         <Route path="challenges" element={<ChallengesPage />} />
+                        <Route path="challenges-v2" element={<EnhancedChallengesPageV2 />} />
                         <Route path="enhanced-challenges" element={<EnhancedChallengesPage />} />
                         
                         {/* Clubs & Membership */}
