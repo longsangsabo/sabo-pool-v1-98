@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Trophy, Clock, CheckCircle, XCircle, AlertTriangle, Upload } from 'lucide-react';
+import RankTestModal from './RankTestModal';
 
 interface VerificationRequest {
   id: string;
@@ -69,19 +70,51 @@ const RankVerificationRequests = () => {
     }
   };
 
-  const handleStatusUpdate = async (requestId: string, status: 'testing' | 'approved' | 'rejected', notes?: string) => {
+  const handleStatusUpdate = async (requestId: string, status: 'testing') => {
+    setProcessing(requestId);
+
+    try {
+      const { error } = await supabase
+        .from('rank_verifications')
+        .update({
+          status,
+          verified_by: user?.id,
+          verified_at: new Date().toISOString()
+        })
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      toast.success('Đã chuyển sang trạng thái test');
+      fetchRequests();
+    } catch (error: any) {
+      console.error('Error updating request:', error);
+      toast.error('Lỗi khi cập nhật: ' + error.message);
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const handleCompleteTest = async (requestId: string, status: 'approved' | 'rejected', testResult: any) => {
     setProcessing(requestId);
 
     try {
       const updateData: any = {
         status,
-        club_notes: notes,
+        club_notes: testResult.notes,
         verified_by: user?.id,
-        verified_at: new Date().toISOString()
+        verified_at: new Date().toISOString(),
+        test_result: JSON.stringify({
+          duration: testResult.testDuration,
+          score: testResult.testScore,
+          skillLevel: testResult.skillLevel,
+          checklist: testResult.checklist,
+          proofPhotos: testResult.proofPhotos
+        })
       };
 
       if (status === 'rejected') {
-        updateData.rejection_reason = notes;
+        updateData.rejection_reason = testResult.notes;
       }
 
       const { error } = await supabase
@@ -110,7 +143,7 @@ const RankVerificationRequests = () => {
         }
       }
 
-      toast.success(`Đã ${status === 'approved' ? 'chấp nhận' : status === 'rejected' ? 'từ chối' : 'chuyển sang test'} yêu cầu`);
+      toast.success(`Đã ${status === 'approved' ? 'chấp nhận' : 'từ chối'} yêu cầu với kết quả test chi tiết`);
       fetchRequests();
     } catch (error: any) {
       console.error('Error updating request:', error);
@@ -214,25 +247,27 @@ const RankVerificationRequests = () => {
 
                 {request.status === 'pending' && (
                   <div className="space-y-3">
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleStatusUpdate(request.id, 'testing')}
-                        disabled={processing === request.id}
-                      >
-                        Bắt đầu test
-                      </Button>
-                    </div>
+                    <RankTestModal
+                      request={request}
+                      onStartTest={(id) => handleStatusUpdate(id, 'testing')}
+                      onCompleteTest={handleCompleteTest}
+                      processing={processing === request.id}
+                    />
                   </div>
                 )}
 
                 {request.status === 'testing' && (
-                  <TestingActions
-                    request={request}
-                    onUpdate={handleStatusUpdate}
-                    processing={processing === request.id}
-                  />
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <Clock className="w-5 h-5 text-blue-600 mr-2" />
+                      <div>
+                        <p className="font-medium text-blue-800">Đang trong quá trình test</p>
+                        <p className="text-sm text-blue-600 mt-1">
+                          Vui lòng hoàn thành test để cập nhật kết quả
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             ))}
