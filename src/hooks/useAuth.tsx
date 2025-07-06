@@ -155,8 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             user_id: data.user.id,
             full_name: fullName,
             referred_by_code: referralCode, // Store referral code
-            is_admin: isAdmin,
-            referred_by_code: referralCode, // Store referral code in profile
+            is_admin: isAdmin
           });
         
         if (profileError) {
