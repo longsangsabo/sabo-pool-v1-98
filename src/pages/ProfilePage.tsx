@@ -21,6 +21,7 @@ import MyChallengesTab from '@/components/MyChallengesTab';
 import PlayerStatsComponent from '@/components/PlayerStatsComponent';
 import TrustScoreBadge from '@/components/TrustScoreBadge';
 import ProfileHeader from '@/components/ProfileHeader';
+import { RankingDashboard } from '@/components/ranking';
 import { isAdminUser } from '@/utils/adminHelpers';
 
 // Export types for other components
@@ -455,8 +456,12 @@ const ProfilePage = () => {
 
         {/* Profile Tabs */}
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="profile">Hồ sơ</TabsTrigger>
+            <TabsTrigger value="ranking">
+              <Trophy className="w-4 h-4 mr-1" />
+              Ranking
+            </TabsTrigger>
             <TabsTrigger value="rank">Xác thực hạng</TabsTrigger>
             <TabsTrigger value="club-registration">
               <Building className="w-4 h-4 mr-1" />
@@ -640,6 +645,9 @@ const ProfilePage = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="ranking">
+            <RankingDashboard />
+          </TabsContent>
 
           <TabsContent value="rank">
             <RankVerificationForm />
