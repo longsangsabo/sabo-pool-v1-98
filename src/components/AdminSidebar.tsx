@@ -11,6 +11,7 @@ import {
   LogOut,
   Home,
   TestTube,
+  Bot,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ const AdminSidebar = () => {
     { icon: Building2, label: 'Câu lạc bộ', path: '/admin/clubs' },
     { icon: CreditCard, label: 'Giao dịch', path: '/admin/transactions' },
     { icon: BarChart3, label: 'Thống kê', path: '/admin/analytics' },
+    { icon: Bot, label: 'Automation', path: '/admin/automation' },
     { icon: TestTube, label: 'Test Ranking', path: '/admin/test-ranking' },
     { icon: Settings, label: 'Cài đặt', path: '/admin/settings' },
   ];

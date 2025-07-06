@@ -19,6 +19,18 @@ import {
   TrendingUp
 } from 'lucide-react';
 
+interface CronJob {
+  jobid: number;
+  schedule: string;
+  command: string;
+  nodename: string;
+  nodeport: number;
+  database: string;
+  username: string;
+  active: boolean;
+  jobname: string;
+}
+
 interface SystemLog {
   id: string;
   log_type: string;
@@ -29,12 +41,23 @@ interface SystemLog {
 
 const AutomationMonitor = () => {
   const { user } = useAuth();
+  const [cronJobs, setCronJobs] = useState<CronJob[]>([]);
   const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadAutomationData = async () => {
     try {
+      // Get cron jobs
+      const { data: jobs, error: jobsError } = await supabase
+        .rpc('get_cron_jobs');
+      
+      if (jobsError) {
+        console.error('Error fetching cron jobs:', jobsError);
+      } else {
+        setCronJobs(Array.isArray(jobs) ? jobs : []);
+      }
+
       // Get system logs
       const { data: logs, error: logsError } = await supabase
         .from('system_logs')
@@ -74,10 +97,34 @@ const AutomationMonitor = () => {
     }
   };
 
-  const testFunction = async (functionName: string) => {
+  const testAutomationFunction = async (functionName: string) => {
     try {
-      const { error } = await supabase.rpc(functionName as any);
-      if (error) throw error;
+      let result;
+      
+      switch (functionName) {
+        case 'reset_daily_challenges':
+          result = await supabase.rpc('reset_daily_challenges');
+          break;
+        case 'decay_inactive_spa_points':
+          result = await supabase.rpc('decay_inactive_spa_points');
+          break;
+        case 'cleanup_expired_challenges':
+          result = await supabase.rpc('cleanup_expired_challenges');
+          break;
+        case 'update_weekly_leaderboard':
+          result = await supabase.rpc('update_weekly_leaderboard');
+          break;
+        case 'send_monthly_reports':
+          result = await supabase.rpc('send_monthly_reports');
+          break;
+        case 'automated_season_reset':
+          result = await supabase.rpc('automated_season_reset');
+          break;
+        default:
+          throw new Error(`Unknown function: ${functionName}`);
+      }
+      
+      if (result.error) throw result.error;
       
       toast.success(`Function ${functionName} executed successfully`);
       await loadAutomationData();
@@ -166,11 +213,64 @@ const AutomationMonitor = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="logs" className="space-y-4">
+      <Tabs defaultValue="jobs" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="jobs">Scheduled Jobs</TabsTrigger>
           <TabsTrigger value="logs">System Logs</TabsTrigger>
           <TabsTrigger value="functions">Test Functions</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="jobs" className="space-y-4">
+          <div className="grid gap-4">
+            {cronJobs.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center text-gray-500">
+                    <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>No scheduled jobs found</p>
+                    <p className="text-sm">Make sure pg_cron is enabled and jobs are created</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              cronJobs.map((job) => (
+                <Card key={job.jobid}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        {getJobStatusIcon(job.active)}
+                        {job.jobname || `Job ${job.jobid}`}
+                      </CardTitle>
+                      <Badge variant={job.active ? "default" : "secondary"}>
+                        {job.active ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium">Schedule:</span>
+                          <p className="text-muted-foreground">{formatNextRun(job.schedule)}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Cron Expression:</span>
+                          <p className="text-muted-foreground font-mono">{job.schedule}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="font-medium">Command:</span>
+                        <p className="text-muted-foreground text-xs font-mono bg-gray-50 p-2 rounded mt-1">
+                          {job.command}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
 
         <TabsContent value="logs" className="space-y-4">
           <div className="space-y-2">
@@ -228,7 +328,7 @@ const AutomationMonitor = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button 
-                  onClick={() => testFunction('reset_daily_challenges')}
+                  onClick={() => testAutomationFunction('reset_daily_challenges')}
                   variant="outline" 
                   className="w-full justify-start"
                 >
@@ -237,7 +337,7 @@ const AutomationMonitor = () => {
                 </Button>
                 
                 <Button 
-                  onClick={() => testFunction('decay_inactive_spa_points')}
+                  onClick={() => testAutomationFunction('decay_inactive_spa_points')}
                   variant="outline"
                   className="w-full justify-start"
                 >
@@ -246,7 +346,7 @@ const AutomationMonitor = () => {
                 </Button>
                 
                 <Button 
-                  onClick={() => testFunction('cleanup_expired_challenges')}
+                  onClick={() => testAutomationFunction('cleanup_expired_challenges')}
                   variant="outline"
                   className="w-full justify-start"
                 >
@@ -255,7 +355,7 @@ const AutomationMonitor = () => {
                 </Button>
                 
                 <Button 
-                  onClick={() => testFunction('update_weekly_leaderboard')}
+                  onClick={() => testAutomationFunction('update_weekly_leaderboard')}
                   variant="outline"
                   className="w-full justify-start"
                 >
@@ -264,7 +364,7 @@ const AutomationMonitor = () => {
                 </Button>
                 
                 <Button 
-                  onClick={() => testFunction('send_monthly_reports')}
+                  onClick={() => testAutomationFunction('send_monthly_reports')}
                   variant="outline"
                   className="w-full justify-start"
                 >
@@ -287,7 +387,7 @@ const AutomationMonitor = () => {
                     ⚠️ These functions affect live data. Use with caution.
                   </p>
                   <Button 
-                    onClick={() => testFunction('automated_season_reset')}
+                    onClick={() => testAutomationFunction('automated_season_reset')}
                     variant="destructive"
                     size="sm"
                     className="w-full"
