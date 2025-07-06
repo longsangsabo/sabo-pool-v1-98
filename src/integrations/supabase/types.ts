@@ -4074,7 +4074,7 @@ export type Database = {
         Returns: undefined
       }
       generate_referral_code: {
-        Args: { user_id: string }
+        Args: { p_user_id: string }
         Returns: string
       }
       get_cron_jobs: {
