@@ -28,10 +28,18 @@ interface RankVerification {
 }
 
 const rankDescriptions = {
-  A: 'Tay cơ chuyên nghiệp - Thắng được hạng B thường xuyên',
-  B: 'Tay cơ giỏi - Có thể thắng hạng C một cách ổn định', 
-  C: 'Tay cơ trung bình - Biết các kỹ thuật cơ bản',
-  D: 'Tay cơ mới - Chưa thành thạo các kỹ thuật'
+  'E+': 'Tay cơ chuyên nghiệp tiến bộ - Đỉnh cao kỹ thuật',
+  'E': 'Tay cơ chuyên nghiệp - Thắng được hạng F thường xuyên',
+  'F+': 'Tay cơ xuất sắc tiến bộ - Kỹ thuật rất tốt',
+  'F': 'Tay cơ xuất sắc - Thắng được hạng G thường xuyên',
+  'G+': 'Tay cơ giỏi tiến bộ - Có thể thắng hạng H ổn định',
+  'G': 'Tay cơ giỏi - Thắng được hạng H thường xuyên',
+  'H+': 'Tay cơ khá tiến bộ - Có thể thắng hạng I ổn định', 
+  'H': 'Tay cơ khá - Thắng được hạng I thường xuyên',
+  'I+': 'Tay cơ trung bình tiến bộ - Có thể thắng hạng K ổn định',
+  'I': 'Tay cơ trung bình - Biết các kỹ thuật cơ bản',
+  'K+': 'Tay cơ người mới tiến bộ - Đang học hỏi',
+  'K': 'Tay cơ người mới - Chưa thành thạo các kỹ thuật'
 };
 
 const RankVerificationForm = () => {
