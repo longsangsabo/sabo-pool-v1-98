@@ -11,6 +11,7 @@ import ClubStatsDashboard from '@/components/ClubStatsDashboard';
 import ClubNotifications from '@/components/ClubNotifications';
 import ClubSettings from '@/components/ClubSettings';
 import ClubDashboardOverview from '@/components/ClubDashboardOverview';
+import ClubProfileForm from '@/components/ClubProfileForm';
 
 const ClubManagementPage = () => {
   const { user, profile, loading } = useAuth();
@@ -120,23 +121,7 @@ const ClubManagementPage = () => {
         </TabsContent>
 
         <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building className="w-5 h-5" />
-                Thông tin Câu lạc bộ
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <Building className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                <p className="font-medium">Chỉnh sửa thông tin CLB</p>
-                <p className="text-sm mt-1">
-                  Tính năng sẽ có sẵn trong phiên bản tiếp theo
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <ClubProfileForm />
         </TabsContent>
       </Tabs>
     </div>
