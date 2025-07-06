@@ -167,7 +167,7 @@ const RankVerificationRequests = () => {
         throw verificationError;
       }
 
-      // If approved, update player's verified rank
+      // If approved, update player's verified rank and create feed post
       if (status === 'approved') {
         const request = requests.find(r => r.id === requestId);
         if (request) {
@@ -184,6 +184,43 @@ const RankVerificationRequests = () => {
             console.error('Error updating profile rank:', profileError);
             // Don't throw here, just log the error
             toast.error('Cập nhật hạng thành công nhưng có lỗi khi cập nhật profile người chơi');
+          } else {
+            // Create a feed post about the rank verification
+            try {
+              // Get club info
+              const { data: clubData } = await supabase
+                .from('club_profiles')
+                .select('id, club_name')
+                .eq('user_id', user?.id)
+                .single();
+
+              // Get player name
+              const playerName = request.profiles?.display_name || request.profiles?.full_name || 'Một player';
+              const clubName = clubData?.club_name || 'Câu lạc bộ';
+              const rankInfo = getRankInfo(request.requested_rank);
+
+              const postContent = `🎉 Chúc mừng ${playerName} đã được ${clubName} chính thức xác nhận hạng ${rankInfo.name}!\n\n✨ ${rankInfo.description}\n\n#RankVerification #${request.requested_rank} #SABOPOOL`;
+
+              await supabase
+                .from('posts')
+                .insert({
+                  user_id: request.player_id, // Post as the player
+                  content: postContent,
+                  post_type: 'achievement',
+                  metadata: {
+                    type: 'rank_verification',
+                    rank: request.requested_rank,
+                    club_id: clubData?.id || null,
+                    club_name: clubName,
+                    verified_by: user?.id
+                  }
+                });
+
+              console.log('Feed post created for rank verification');
+            } catch (postError) {
+              console.error('Error creating feed post:', postError);
+              // Don't block the main flow, just log the error
+            }
           }
         }
       }
