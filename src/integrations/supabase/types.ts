@@ -1955,6 +1955,30 @@ export type Database = {
           },
         ]
       }
+      system_logs: {
+        Row: {
+          created_at: string | null
+          id: string
+          log_type: string
+          message: string
+          metadata: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          log_type: string
+          message: string
+          metadata?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          log_type?: string
+          message?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
       table_bookings: {
         Row: {
           booking_date: string
@@ -2584,6 +2608,10 @@ export type Database = {
         Args: { player_uuid: string }
         Returns: undefined
       }
+      apply_points_decay: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       approve_club_registration: {
         Args: {
           registration_id: string
@@ -2622,6 +2650,14 @@ export type Database = {
       check_rank_promotion: {
         Args: { p_player_id: string }
         Returns: boolean
+      }
+      check_season_reset: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_expired_challenges: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       complete_challenge_match: {
         Args: {
@@ -2680,6 +2716,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      recalculate_rankings: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       redeem_reward: {
         Args: {
           user_uuid: string
@@ -2694,6 +2734,10 @@ export type Database = {
         Returns: undefined
       }
       refresh_current_month_leaderboard: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      reset_daily_challenges: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
