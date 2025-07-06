@@ -10,7 +10,7 @@ import ClubMemberManagement from '@/components/ClubMemberManagement';
 import ClubStatsDashboard from '@/components/ClubStatsDashboard';
 import ClubNotifications from '@/components/ClubNotifications';
 import ClubSettings from '@/components/ClubSettings';
-import ClubSettings from '@/components/ClubSettings';
+import ClubDashboardOverview from '@/components/ClubDashboardOverview';
 
 const ClubManagementPage = () => {
   const { user, profile, loading } = useAuth();
