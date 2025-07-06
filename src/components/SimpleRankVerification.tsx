@@ -137,35 +137,7 @@ const SimpleRankVerification = () => {
         }
       }
 
-      // Send notification
-      const request = requests.find(r => r.id === requestId);
-      if (request) {
-        let message = '';
-        let title = '';
-        
-        switch (newStatus) {
-          case 'testing':
-            title = 'Bắt đầu test hạng';
-            message = `Bạn được yêu cầu đến CLB để test hạng ${request.requested_rank}`;
-            break;
-          case 'approved':
-            title = 'Xác thực hạng thành công';
-            message = `Chúc mừng! Hạng ${request.requested_rank} của bạn đã được xác thực`;
-            break;
-          case 'rejected':
-            title = 'Xác thực hạng bị từ chối';
-            message = `Yêu cầu xác thực hạng ${request.requested_rank} đã bị từ chối`;
-            break;
-        }
-
-        await supabase.rpc('create_notification', {
-          target_user_id: request.player_id,
-          notification_type: `rank_${newStatus}`,
-          notification_title: title,
-          notification_message: message,
-          notification_priority: newStatus === 'approved' ? 'high' : 'normal'
-        });
-      }
+      // Note: Notifications will be sent automatically by the database trigger
 
       toast.success(`Đã cập nhật trạng thái thành công`);
       await fetchRequests();
