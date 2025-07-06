@@ -18,7 +18,9 @@ import {
   Timer,
   User,
   PlayCircle,
-  StopCircle
+  StopCircle,
+  Image,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getRankInfo } from '@/utils/rankDefinitions';
@@ -70,6 +72,7 @@ const RankTestModal = ({ request, onStartTest, onCompleteTest, processing }: Ran
   });
   const [notes, setNotes] = useState('');
   const [proofPhotos, setProofPhotos] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   // Timer for test duration
   React.useEffect(() => {
@@ -126,6 +129,41 @@ const RankTestModal = ({ request, onStartTest, onCompleteTest, processing }: Ran
     });
     setNotes('');
     setProofPhotos([]);
+    setUploading(false);
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        // Create a unique filename
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        
+        // For now, we'll create a mock URL - in real implementation, you'd upload to Supabase storage
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+      });
+
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setProofPhotos([...proofPhotos, ...uploadedUrls]);
+      toast.success(`Đã tải lên ${uploadedUrls.length} hình ảnh`);
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Lỗi khi tải lên hình ảnh');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setProofPhotos(proofPhotos.filter((_, i) => i !== index));
   };
 
   const formatDuration = (seconds: number) => {
@@ -177,16 +215,22 @@ const RankTestModal = ({ request, onStartTest, onCompleteTest, processing }: Ran
             </div>
 
             {/* Rank Requirements */}
-            <div className="border rounded-lg p-4">
-              <h3 className="font-semibold mb-2">{rankInfo.name}</h3>
-              <p className="text-gray-600 mb-3">{rankInfo.description}</p>
-              <div>
-                <h4 className="font-medium mb-2">Yêu cầu kiểm tra:</h4>
-                <ul className="space-y-1">
+            <div className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+              <div className="flex items-center gap-2 mb-3">
+                <Trophy className="w-5 h-5 text-blue-600" />
+                <h3 className="font-bold text-lg text-blue-800">{rankInfo.name}</h3>
+              </div>
+              <p className="text-blue-700 mb-4 font-medium">{rankInfo.description}</p>
+              <div className="bg-white rounded-lg p-3 border border-blue-200">
+                <h4 className="font-semibold mb-3 text-blue-800 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" />
+                  Yêu cầu kiểm tra chi tiết:
+                </h4>
+                <ul className="space-y-2">
                   {rankInfo.requirements.map((req, index) => (
-                    <li key={index} className="flex items-center text-sm">
-                      <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
-                      {req}
+                    <li key={index} className="flex items-start text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                      <span className="text-gray-700">{req}</span>
                     </li>
                   ))}
                 </ul>
@@ -340,6 +384,60 @@ const RankTestModal = ({ request, onStartTest, onCompleteTest, processing }: Ran
                 className="mt-2 min-h-[100px]"
                 required
               />
+            </div>
+
+            {/* Photo Upload */}
+            <div>
+              <Label className="text-base font-semibold">Hình ảnh bằng chứng (tùy chọn)</Label>
+              <div className="mt-2 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    disabled={uploading}
+                    className="hidden"
+                    id="photo-upload"
+                  />
+                  <label 
+                    htmlFor="photo-upload"
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors"
+                  >
+                    {uploading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    ) : (
+                      <Camera className="w-4 h-4 text-blue-600" />
+                    )}
+                    <span className="text-blue-700 text-sm">
+                      {uploading ? 'Đang tải lên...' : 'Chọn hình ảnh'}
+                    </span>
+                  </label>
+                  <span className="text-xs text-gray-500">
+                    (Chụp ảnh quá trình test, kết quả, v.v...)
+                  </span>
+                </div>
+
+                {proofPhotos.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {proofPhotos.map((photo, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={photo}
+                          alt={`Bằng chứng ${index + 1}`}
+                          className="w-full h-20 object-cover rounded-lg border"
+                        />
+                        <button
+                          onClick={() => removePhoto(index)}
+                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Actions */}
