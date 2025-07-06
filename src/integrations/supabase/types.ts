@@ -1001,6 +1001,73 @@ export type Database = {
         }
         Relationships: []
       }
+      player_rankings: {
+        Row: {
+          created_at: string | null
+          current_rank_id: string | null
+          id: string
+          player_id: string | null
+          rank_points: number | null
+          season_start: string | null
+          spa_points: number | null
+          total_matches: number | null
+          updated_at: string | null
+          verified_at: string | null
+          verified_by: string | null
+          wins: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_rank_id?: string | null
+          id?: string
+          player_id?: string | null
+          rank_points?: number | null
+          season_start?: string | null
+          spa_points?: number | null
+          total_matches?: number | null
+          updated_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+          wins?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          current_rank_id?: string | null
+          id?: string
+          player_id?: string | null
+          rank_points?: number | null
+          season_start?: string | null
+          spa_points?: number | null
+          total_matches?: number | null
+          updated_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+          wins?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_rankings_current_rank_id_fkey"
+            columns: ["current_rank_id"]
+            isOneToOne: false
+            referencedRelation: "ranks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_rankings_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "player_rankings_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "club_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_stats: {
         Row: {
           created_at: string | null
@@ -1637,6 +1704,88 @@ export type Database = {
           },
         ]
       }
+      ranking_history: {
+        Row: {
+          id: string
+          new_rank_id: string | null
+          old_rank_id: string | null
+          player_id: string | null
+          promotion_date: string | null
+          season: number | null
+          total_points_earned: number | null
+        }
+        Insert: {
+          id?: string
+          new_rank_id?: string | null
+          old_rank_id?: string | null
+          player_id?: string | null
+          promotion_date?: string | null
+          season?: number | null
+          total_points_earned?: number | null
+        }
+        Update: {
+          id?: string
+          new_rank_id?: string | null
+          old_rank_id?: string | null
+          player_id?: string | null
+          promotion_date?: string | null
+          season?: number | null
+          total_points_earned?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ranking_history_new_rank_id_fkey"
+            columns: ["new_rank_id"]
+            isOneToOne: false
+            referencedRelation: "ranks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ranking_history_old_rank_id_fkey"
+            columns: ["old_rank_id"]
+            isOneToOne: false
+            referencedRelation: "ranks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ranking_history_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      ranks: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          level: number
+          name: string
+          requirements: Json | null
+          skill_description: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          level: number
+          name: string
+          requirements?: Json | null
+          skill_description?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          level?: number
+          name?: string
+          requirements?: Json | null
+          skill_description?: string | null
+        }
+        Relationships: []
+      }
       reward_redemptions: {
         Row: {
           id: string
@@ -1762,6 +1911,44 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      spa_points_log: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          player_id: string | null
+          points_earned: number
+          source_id: string | null
+          source_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          player_id?: string | null
+          points_earned: number
+          source_id?: string | null
+          source_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          player_id?: string | null
+          points_earned?: number
+          source_id?: string | null
+          source_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spa_points_log_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -2403,9 +2590,31 @@ export type Database = {
         }
         Returns: Json
       }
+      award_challenge_points: {
+        Args: {
+          p_winner_id: string
+          p_loser_id: string
+          p_wager_points: number
+          p_rank_difference?: number
+        }
+        Returns: number
+      }
+      award_tournament_points: {
+        Args: {
+          p_tournament_id: string
+          p_player_id: string
+          p_position: number
+          p_player_rank: string
+        }
+        Returns: number
+      }
       calculate_trust_score: {
         Args: { player_uuid: string }
         Returns: undefined
+      }
+      check_rank_promotion: {
+        Args: { p_player_id: string }
+        Returns: boolean
       }
       create_bulk_notifications: {
         Args: { notifications: Json }
