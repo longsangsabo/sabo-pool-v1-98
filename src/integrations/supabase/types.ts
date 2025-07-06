@@ -2809,6 +2809,10 @@ export type Database = {
         Args: { club_profile_id: string; admin_id: string }
         Returns: Json
       }
+      example_function: {
+        Args: { param1: string }
+        Returns: string
+      }
       expire_old_challenges: {
         Args: Record<PropertyKey, never>
         Returns: undefined

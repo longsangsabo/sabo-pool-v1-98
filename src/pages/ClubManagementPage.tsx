@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Building, Trophy, Users, Settings, BarChart3, Bell } from 'lucide-react';
-import RankVerificationRequests from '@/components/RankVerificationRequests';
+import SimpleRankVerification from '@/components/SimpleRankVerification';
 import ClubMemberManagement from '@/components/ClubMemberManagement';
 import ClubStatsDashboard from '@/components/ClubStatsDashboard';
 import ClubNotifications from '@/components/ClubNotifications';
@@ -104,7 +104,7 @@ const ClubManagementPage = () => {
         </TabsContent>
 
         <TabsContent value="rank-verification">
-          <RankVerificationRequests />
+          <SimpleRankVerification />
         </TabsContent>
 
         <TabsContent value="members">
