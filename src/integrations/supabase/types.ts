@@ -2608,6 +2608,10 @@ export type Database = {
         }
         Returns: number
       }
+      calculate_tournament_spa: {
+        Args: { p_position: number; p_rank_code: string }
+        Returns: number
+      }
       calculate_trust_score: {
         Args: { player_uuid: string }
         Returns: undefined
@@ -2615,6 +2619,15 @@ export type Database = {
       check_rank_promotion: {
         Args: { p_player_id: string }
         Returns: boolean
+      }
+      complete_challenge_match: {
+        Args: {
+          p_match_id: string
+          p_winner_id: string
+          p_loser_id: string
+          p_wager_points?: number
+        }
+        Returns: Json
       }
       create_bulk_notifications: {
         Args: { notifications: Json }
@@ -2678,6 +2691,10 @@ export type Database = {
         Returns: undefined
       }
       refresh_current_month_leaderboard: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      reset_season: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }

@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import UserAvatar from './UserAvatar';
+import { ChallengeStatusBanner } from './ranking/ChallengeStatusBanner';
 
 interface ChallengeModalProps {
   opponent: {
@@ -55,6 +56,9 @@ const ChallengeModal = ({
         </DialogHeader>
 
         <div className='space-y-6'>
+          {/* Challenge Status Banner */}
+          <ChallengeStatusBanner />
+          
           {/* Opponent Info */}
           <div className='flex items-center space-x-3 p-3 bg-gray-50 rounded-lg'>
             <UserAvatar
