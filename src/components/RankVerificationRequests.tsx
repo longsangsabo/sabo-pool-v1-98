@@ -21,10 +21,10 @@ interface VerificationRequest {
   club_notes: string | null;
   proof_photos: string[] | null;
   profiles?: {
-    display_name: string;
-    full_name: string;
-    phone: string;
-  };
+    display_name?: string;
+    full_name?: string;
+    phone?: string;
+  } | null;
 }
 
 const RankVerificationRequests = () => {
@@ -49,24 +49,35 @@ const RankVerificationRequests = () => {
         .single();
 
       if (clubError || !clubData) {
+        console.log('No club profile found for user:', user.id);
         setLoading(false);
         return;
       }
 
-      // Get verification requests for this club
+      // Get verification requests for this club with profile information
       const { data, error } = await supabase
         .from('rank_verifications')
         .select(`
-          *
+          *,
+          profiles:player_id(
+            full_name,
+            phone,
+            display_name
+          )
         `)
         .eq('club_id', clubData.id)
         .in('status', ['pending', 'testing'])
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setRequests(data || []);
+      if (error) {
+        console.error('Error fetching rank verifications:', error);
+        throw error;
+      }
+      
+      setRequests((data as any) || []);
     } catch (error) {
       console.error('Error fetching requests:', error);
+      toast.error('Lỗi khi tải danh sách yêu cầu xác thực hạng');
     } finally {
       setLoading(false);
     }
@@ -101,6 +112,12 @@ const RankVerificationRequests = () => {
     setProcessing(requestId);
 
     try {
+      // Validate required data
+      if (!testResult.notes?.trim()) {
+        toast.error('Vui lòng nhập ghi chú chi tiết về kết quả test');
+        return;
+      }
+
       const updateData: any = {
         status,
         club_notes: testResult.notes,
@@ -111,7 +128,7 @@ const RankVerificationRequests = () => {
           score: testResult.testScore,
           skillLevel: testResult.skillLevel,
           checklist: testResult.checklist,
-          proofPhotos: testResult.proofPhotos
+          proofPhotos: testResult.proofPhotos || []
         })
       };
 
@@ -119,12 +136,16 @@ const RankVerificationRequests = () => {
         updateData.rejection_reason = testResult.notes;
       }
 
-      const { error } = await supabase
+      // Update rank verification record
+      const { error: verificationError } = await supabase
         .from('rank_verifications')
         .update(updateData)
         .eq('id', requestId);
 
-      if (error) throw error;
+      if (verificationError) {
+        console.error('Error updating rank verification:', verificationError);
+        throw verificationError;
+      }
 
       // If approved, update player's verified rank
       if (status === 'approved') {
@@ -141,15 +162,20 @@ const RankVerificationRequests = () => {
 
           if (profileError) {
             console.error('Error updating profile rank:', profileError);
+            // Don't throw here, just log the error
+            toast.error('Cập nhật hạng thành công nhưng có lỗi khi cập nhật profile người chơi');
           }
         }
       }
 
-      toast.success(`Đã ${status === 'approved' ? 'chấp nhận' : 'từ chối'} yêu cầu với kết quả test chi tiết`);
-      fetchRequests();
+      toast.success(`Đã ${status === 'approved' ? 'chấp nhận' : 'từ chối'} yêu cầu xác thực hạng`);
+      
+      // Refresh the requests list
+      await fetchRequests();
+      
     } catch (error: any) {
       console.error('Error updating request:', error);
-      toast.error('Lỗi khi cập nhật: ' + error.message);
+      toast.error('Lỗi khi xử lý yêu cầu: ' + (error.message || 'Unknown error'));
     } finally {
       setProcessing(null);
     }
@@ -236,11 +262,16 @@ const RankVerificationRequests = () => {
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <h3 className="font-semibold">
-                        Player {request.player_id}
+                        {request.profiles?.display_name || request.profiles?.full_name || `Player ${request.player_id}`}
                       </h3>
                       <p className="text-sm text-gray-600">
                         Muốn xác thực {rankInfo.name}
                       </p>
+                      {request.profiles?.phone && (
+                        <p className="text-xs text-muted-foreground">
+                          SĐT: {request.profiles.phone}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground mt-1">
                         {rankInfo.description}
                       </p>
@@ -255,12 +286,21 @@ const RankVerificationRequests = () => {
 
                   {request.status === 'pending' && (
                     <div className="space-y-3">
-                      <RankTestModal
-                        request={request}
-                        onStartTest={(id) => handleStatusUpdate(id, 'testing')}
-                        onCompleteTest={handleCompleteTest}
-                        processing={processing === request.id}
-                      />
+                       <RankTestModal
+                         request={{
+                           id: request.id,
+                           player_id: request.player_id,
+                           requested_rank: request.requested_rank,
+                           status: request.status,
+                           profiles: request.profiles ? {
+                             full_name: request.profiles.full_name || '',
+                             phone: request.profiles.phone || ''
+                           } : undefined
+                         }}
+                         onStartTest={(id) => handleStatusUpdate(id, 'testing')}
+                         onCompleteTest={handleCompleteTest}
+                         processing={processing === request.id}
+                       />
                     </div>
                   )}
 
