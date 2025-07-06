@@ -9,7 +9,7 @@ import RankVerificationRequests from '@/components/RankVerificationRequests';
 import ClubMemberManagement from '@/components/ClubMemberManagement';
 import ClubStatsDashboard from '@/components/ClubStatsDashboard';
 import ClubNotifications from '@/components/ClubNotifications';
-import ClubSettings from '@/components/ClubSettings';
+import ClubDashboardOverview from '@/components/ClubDashboardOverview';
 
 const ClubManagementPage = () => {
   const { user, profile, loading } = useAuth();
@@ -99,7 +99,7 @@ const ClubManagementPage = () => {
         </TabsList>
 
         <TabsContent value="overview">
-          <ClubStatsDashboard />
+          <ClubDashboardOverview />
         </TabsContent>
 
         <TabsContent value="rank-verification">
