@@ -1,5 +1,5 @@
 import React, { ComponentType } from 'react';
-import { Home, Compass, Zap, User, Trophy } from 'lucide-react';
+import { Home, Compass, Zap, User, Trophy, HelpCircle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface NavigationItem {
@@ -37,6 +37,12 @@ const MobileNavigation = () => {
       href: '/challenges',
       icon: Zap,
       current: location.pathname === '/challenges' || location.pathname === '/enhanced-challenges',
+    },
+    {
+      name: 'Trợ giúp',
+      href: '/help',
+      icon: HelpCircle,
+      current: location.pathname === '/help',
     },
     {
       name: 'Hồ sơ',

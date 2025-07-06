@@ -1,294 +1,353 @@
-import { useState } from 'react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import {
-  Search,
-  ChevronDown,
-  ChevronUp,
-  MessageCircle,
-  Phone,
-  Mail,
-  HelpCircle,
+import { 
+  MessageCircle, 
+  Phone, 
+  Mail, 
+  Search, 
+  Trophy, 
+  Users, 
+  Zap, 
+  User,
+  Wallet,
+  Settings,
+  ChevronRight,
+  ExternalLink
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
+import { useToast } from '@/hooks/use-toast';
 
 const HelpPage = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [openItems, setOpenItems] = useState<string[]>([]);
-
-  const { data: faqs, isLoading } = useQuery({
-    queryKey: ['faqs'],
-    queryFn: async () => {
-      // Mock FAQs data since faqs table doesn't exist
-      const mockFaqs = [
-        {
-          id: '1',
-          question: 'Làm thế nào để đăng ký tài khoản?',
-          answer: 'Bạn có thể đăng ký tài khoản bằng cách nhấp vào nút "Đăng ký" và điền thông tin cần thiết.',
-          category: 'account',
-          status: 'active',
-          order_index: 1,
-        },
-        {
-          id: '2',
-          question: 'Cách tham gia giải đấu?',
-          answer: 'Để tham gia giải đấu, bạn cần có tài khoản và đăng ký trong thời gian quy định.',
-          category: 'tournament',
-          status: 'active',
-          order_index: 2,
-        },
-      ];
-
-      return mockFaqs;
-    },
-  });
-
-  const filteredFaqs = faqs?.filter(faq => {
-    const matchesSearch =
-      faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      faq.answer.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === 'all' || faq.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const { toast } = useToast();
 
   const categories = [
-    { value: 'all', label: 'Tất cả' },
-    { value: 'account', label: 'Tài khoản' },
-    { value: 'ranking', label: 'Xếp hạng' },
-    { value: 'challenges', label: 'Thách đấu' },
-    { value: 'tournaments', label: 'Giải đấu' },
-    { value: 'membership', label: 'Hội viên' },
-    { value: 'clubs', label: 'CLB' },
-    { value: 'points', label: 'Điểm số' },
-    { value: 'profile', label: 'Hồ sơ' },
+    { id: 'all', name: 'Tất cả', icon: Search },
+    { id: 'account', name: 'Tài khoản', icon: User },
+    { id: 'challenges', name: 'Thách đấu', icon: Zap },
+    { id: 'tournaments', name: 'Giải đấu', icon: Trophy },
+    { id: 'clubs', name: 'Câu lạc bộ', icon: Users },
+    { id: 'wallet', name: 'Ví & Thanh toán', icon: Wallet },
+    { id: 'settings', name: 'Cài đặt', icon: Settings },
   ];
 
-  const toggleItem = (id: string) => {
-    setOpenItems(prev =>
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
+  const faqs = [
+    {
+      category: 'account',
+      question: 'Làm thế nào để đăng ký tài khoản?',
+      answer: 'Bạn có thể đăng ký tài khoản bằng cách nhấn nút "Đăng ký" ở góc trên bên phải, sau đó điền thông tin cần thiết như email, số điện thoại và mật khẩu.'
+    },
+    {
+      category: 'account',
+      question: 'Tôi quên mật khẩu, phải làm sao?',
+      answer: 'Trên trang đăng nhập, nhấn "Quên mật khẩu" và nhập email đã đăng ký. Chúng tôi sẽ gửi link reset mật khẩu đến email của bạn.'
+    },
+    {
+      category: 'challenges',
+      question: 'Cách thách đấu người chơi khác?',
+      answer: 'Vào mục "Thách đấu", chọn người chơi bạn muốn thách đấu, đặt mức cược và gửi lời mời. Đối phương có 48 giờ để phản hồi.'
+    },
+    {
+      category: 'challenges',
+      question: 'Điểm SPA là gì và được tính như thế nào?',
+      answer: 'Điểm SPA (SABO Pool Arena) là hệ thống xếp hạng của chúng tôi. Bạn được điểm khi thắng thách đấu, tham gia giải đấu, và check-in hàng ngày. Điểm cao hơn = hạng cao hơn.'
+    },
+    {
+      category: 'tournaments',
+      question: 'Làm sao để tham gia giải đấu?',
+      answer: 'Vào mục "Giải đấu", chọn giải đấu bạn muốn tham gia, kiểm tra thể lệ và nhấn "Đăng ký". Một số giải đấu có phí tham gia.'
+    },
+    {
+      category: 'tournaments',
+      question: 'Tôi có thể tự tổ chức giải đấu không?',
+      answer: 'Có, nếu bạn là chủ câu lạc bộ được xác minh, bạn có thể tạo giải đấu riêng thông qua trang quản lý CLB.'
+    },
+    {
+      category: 'clubs',
+      question: 'Cách đăng ký câu lạc bộ?',
+      answer: 'Vào "Hồ sơ" > "Đăng ký CLB", điền đầy đủ thông tin về câu lạc bộ của bạn. Admin sẽ xem xét và phê duyệt trong 1-3 ngày làm việc.'
+    },
+    {
+      category: 'clubs',
+      question: 'Lợi ích của việc có câu lạc bộ?',
+      answer: 'Chủ CLB có thể xác thực hạng cho player, tổ chức giải đấu riêng, thu phí dịch vụ, và quản lý thành viên. Đây là cách kiếm thu nhập từ nền tảng.'
+    },
+    {
+      category: 'wallet',
+      question: 'Cách nạp tiền vào ví?',
+      answer: 'Vào "Ví của tôi", chọn "Nạp tiền", chọn phương thức thanh toán (VNPay, Momo, Banking) và làm theo hướng dẫn.'
+    },
+    {
+      category: 'wallet',
+      question: 'Tôi có thể rút tiền không?',
+      answer: 'Có, bạn có thể rút tiền về tài khoản ngân hàng. Phí rút tiền là 5,000 VNĐ/lần, thời gian xử lý 1-2 ngày làm việc.'
+    },
+    {
+      category: 'settings',
+      question: 'Cách thay đổi thông tin cá nhân?',
+      answer: 'Vào "Hồ sơ" > "Chỉnh sửa thông tin", bạn có thể cập nhật tên, avatar, địa chỉ và các thông tin khác.'
+    },
+    {
+      category: 'settings',
+      question: 'Làm sao để bật/tắt thông báo?',
+      answer: 'Vào "Cài đặt" > "Thông báo", bạn có thể tùy chỉnh các loại thông báo muốn nhận (thách đấu, giải đấu, tin nhắn, v.v.).'
+    }
+  ];
+
+  const contactMethods = [
+    {
+      title: 'Chat trực tiếp',
+      description: 'Hỗ trợ trực tiếp qua chat (8:00 - 22:00)',
+      icon: MessageCircle,
+      action: 'Bắt đầu chat',
+      color: 'bg-blue-500',
+    },
+    {
+      title: 'Điện thoại',
+      description: 'Hotline: 1900-1234 (24/7)',
+      icon: Phone,
+      action: 'Gọi ngay',
+      color: 'bg-green-500',
+    },
+    {
+      title: 'Email',
+      description: 'support@sabopool.vn',
+      icon: Mail,
+      action: 'Gửi email',
+      color: 'bg-purple-500',
+    },
+  ];
+
+  const filteredFaqs = faqs.filter(faq => {
+    const matchesCategory = selectedCategory === 'all' || faq.category === selectedCategory;
+    const matchesSearch = searchQuery === '' || 
+      faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      faq.answer.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast({
+      title: "Đã gửi liên hệ",
+      description: "Chúng tôi sẽ phản hồi trong vòng 24 giờ.",
+    });
   };
 
-  if (isLoading) {
-    return (
-      <div className='min-h-screen bg-gray-50'>
-        <Navigation />
-        <div className='container mx-auto px-4 py-8 pt-24'>
-          <div className='flex items-center justify-center h-64'>
-            <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600'></div>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
   return (
-    <div className='min-h-screen bg-gray-50'>
-      <Navigation />
-
-      <main className='container mx-auto px-4 py-8 pt-24'>
-        <div className='mb-8 text-center'>
-          <div className='flex justify-center mb-4'>
-            <div className='w-16 h-16 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center'>
-              <HelpCircle className='w-8 h-8 text-black' />
-            </div>
-          </div>
-          <h1 className='text-4xl font-bold text-gray-900 mb-4'>
-            Trung Tâm Trợ Giúp
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 pt-24">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-foreground mb-4">
+            Trung tâm trợ giúp
           </h1>
-          <p className='text-xl text-gray-600 max-w-2xl mx-auto'>
-            Tìm câu trả lời cho các câu hỏi thường gặp hoặc liên hệ với chúng
-            tôi để được hỗ trợ
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Tìm câu trả lời cho mọi thắc mắc về SABO Pool Arena
           </p>
         </div>
 
-        {/* Search and Filter */}
-        <Card className='mb-8'>
-          <CardContent className='p-6'>
-            <div className='flex flex-col md:flex-row gap-4'>
-              <div className='relative flex-1'>
-                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
-                <Input
-                  placeholder='Tìm kiếm câu hỏi...'
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className='pl-10'
-                />
-              </div>
-              <div className='flex gap-2 flex-wrap'>
-                {categories.map(category => (
-                  <Button
-                    key={category.value}
-                    variant={
-                      selectedCategory === category.value
-                        ? 'default'
-                        : 'outline'
-                    }
-                    size='sm'
-                    onClick={() => setSelectedCategory(category.value)}
-                    className={
-                      selectedCategory === category.value
-                        ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black'
-                        : ''
-                    }
-                  >
-                    {category.label}
+        {/* Quick Contact */}
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          {contactMethods.map((method) => {
+            const Icon = method.icon;
+            return (
+              <Card key={method.title} className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardContent className="p-6 text-center">
+                  <div className={`${method.color} w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4`}>
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">{method.title}</h3>
+                  <p className="text-muted-foreground text-sm mb-4">{method.description}</p>
+                  <Button variant="outline" size="sm">
+                    {method.action}
+                    <ChevronRight className="w-4 h-4 ml-2" />
                   </Button>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className='grid lg:grid-cols-3 gap-8'>
-          {/* FAQ Section */}
-          <div className='lg:col-span-2'>
-            <h2 className='text-2xl font-bold mb-6'>Câu Hỏi Thường Gặp</h2>
-
-            <div className='space-y-4'>
-              {filteredFaqs?.map(faq => (
-                <Card key={faq.id}>
-                  <Collapsible
-                    open={openItems.includes(faq.id)}
-                    onOpenChange={() => toggleItem(faq.id)}
-                  >
-                    <CollapsibleTrigger asChild>
-                      <CardHeader className='cursor-pointer hover:bg-gray-50 transition-colors'>
-                        <div className='flex justify-between items-start'>
-                          <div className='flex-1'>
-                            <CardTitle className='text-lg text-left'>
-                              {faq.question}
-                            </CardTitle>
-                            <div className='flex items-center mt-2'>
-                              <Badge variant='outline' className='mr-2'>
-                                {
-                                  categories.find(c => c.value === faq.category)
-                                    ?.label
-                                }
-                              </Badge>
-                            </div>
-                          </div>
-                          {openItems.includes(faq.id) ? (
-                            <ChevronUp className='w-5 h-5 text-gray-400 ml-2' />
-                          ) : (
-                            <ChevronDown className='w-5 h-5 text-gray-400 ml-2' />
-                          )}
-                        </div>
-                      </CardHeader>
-                    </CollapsibleTrigger>
-
-                    <CollapsibleContent>
-                      <CardContent className='pt-0'>
-                        <p className='text-gray-700 leading-relaxed'>
-                          {faq.answer}
-                        </p>
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </Card>
-              ))}
-            </div>
-
-            {filteredFaqs?.length === 0 && (
-              <Card className='text-center py-12'>
-                <CardContent>
-                  <Search className='w-12 h-12 text-gray-400 mx-auto mb-4' />
-                  <h3 className='text-lg font-semibold text-gray-900 mb-2'>
-                    Không tìm thấy kết quả
-                  </h3>
-                  <p className='text-gray-600'>
-                    Thử tìm kiếm với từ khóa khác hoặc liên hệ với chúng tôi để
-                    được hỗ trợ
-                  </p>
                 </CardContent>
               </Card>
-            )}
-          </div>
+            );
+          })}
+        </div>
 
-          {/* Contact Section */}
-          <div className='space-y-6'>
+        <div className="grid lg:grid-cols-4 gap-8">
+          {/* Categories Sidebar */}
+          <div className="lg:col-span-1">
             <Card>
               <CardHeader>
-                <CardTitle className='flex items-center'>
-                  <MessageCircle className='w-5 h-5 mr-2' />
-                  Liên Hệ Hỗ Trợ
-                </CardTitle>
-                <CardDescription>
-                  Không tìm thấy câu trả lời? Chúng tôi sẵn sàng giúp bạn!
-                </CardDescription>
+                <CardTitle className="text-lg">Danh mục</CardTitle>
               </CardHeader>
+              <CardContent className="space-y-2">
+                {categories.map((category) => {
+                  const Icon = category.icon;
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => setSelectedCategory(category.id)}
+                      className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                        selectedCategory === category.id
+                          ? 'bg-primary text-primary-foreground'
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span className="font-medium">{category.name}</span>
+                    </button>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          </div>
 
-              <CardContent className='space-y-4'>
-                <div className='flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors'>
-                  <Phone className='w-5 h-5 text-yellow-600' />
-                  <div>
-                    <div className='font-semibold'>Hotline</div>
-                    <div className='text-sm text-gray-600'>
-                      1900-SABO (7226)
-                    </div>
-                  </div>
+          {/* Main Content */}
+          <div className="lg:col-span-3 space-y-8">
+            {/* Search */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    placeholder="Tìm kiếm câu hỏi..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-
-                <div className='flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors'>
-                  <Mail className='w-5 h-5 text-yellow-600' />
-                  <div>
-                    <div className='font-semibold'>Email</div>
-                    <div className='text-sm text-gray-600'>
-                      support@sabopoolarena.com
-                    </div>
-                  </div>
-                </div>
-
-                <Button className='w-full bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black font-bold'>
-                  <MessageCircle className='w-4 h-4 mr-2' />
-                  Chat Trực Tuyến
-                </Button>
               </CardContent>
             </Card>
 
+            {/* FAQ Results */}
             <Card>
               <CardHeader>
-                <CardTitle>Giờ Hỗ Trợ</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  Câu hỏi thường gặp
+                  <Badge variant="secondary">
+                    {filteredFaqs.length} kết quả
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Các câu hỏi được hỏi nhiều nhất từ cộng đồng người chơi
+                </CardDescription>
               </CardHeader>
+              <CardContent>
+                <Accordion type="single" collapsible className="space-y-4">
+                  {filteredFaqs.map((faq, index) => (
+                    <AccordionItem key={index} value={`faq-${index}`} className="border rounded-lg px-4">
+                      <AccordionTrigger className="text-left py-4 hover:no-underline">
+                        <div className="flex items-center space-x-3">
+                          <Badge variant="outline" className="text-xs">
+                            {categories.find(c => c.id === faq.category)?.name}
+                          </Badge>
+                          <span className="font-medium">{faq.question}</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 text-muted-foreground">
+                        {faq.answer}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
 
-              <CardContent className='space-y-2'>
-                <div className='flex justify-between'>
-                  <span>Thứ 2 - Thứ 6:</span>
-                  <span className='font-semibold'>8:00 - 22:00</span>
-                </div>
-                <div className='flex justify-between'>
-                  <span>Thứ 7 - Chủ nhật:</span>
-                  <span className='font-semibold'>9:00 - 21:00</span>
-                </div>
-                <div className='text-sm text-gray-600 mt-3'>
-                  * Hỗ trợ qua email 24/7
+                {filteredFaqs.length === 0 && (
+                  <div className="text-center py-12">
+                    <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Không tìm thấy kết quả</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Thử thay đổi từ khóa hoặc chọn danh mục khác
+                    </p>
+                    <Button onClick={() => {setSearchQuery(''); setSelectedCategory('all');}}>
+                      Xóa bộ lọc
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Contact Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Không tìm thấy câu trả lời?</CardTitle>
+                <CardDescription>
+                  Gửi câu hỏi cho chúng tôi, sẽ có phản hồi trong 24 giờ
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleContactSubmit} className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Họ tên</label>
+                      <Input placeholder="Nhập họ tên của bạn" required />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Email</label>
+                      <Input type="email" placeholder="your-email@example.com" required />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Tiêu đề</label>
+                    <Input placeholder="Tóm tắt vấn đề của bạn" required />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Nội dung</label>
+                    <Textarea 
+                      placeholder="Mô tả chi tiết vấn đề hoặc câu hỏi của bạn..."
+                      rows={4}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full md:w-auto">
+                    <Mail className="w-4 h-4 mr-2" />
+                    Gửi câu hỏi
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Quick Links */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Liên kết hữu ích</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <a 
+                    href="/terms" 
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <span>Điều khoản sử dụng</span>
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                  <a 
+                    href="/privacy" 
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <span>Chính sách bảo mật</span>
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                  <a 
+                    href="/about" 
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <span>Về SABO Pool Arena</span>
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                  <a 
+                    href="/contact" 
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <span>Liên hệ</span>
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
-      </main>
-
-      <Footer />
+      </div>
     </div>
   );
 };
