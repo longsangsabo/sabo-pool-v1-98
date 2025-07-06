@@ -261,7 +261,15 @@ export type Database = {
           verified_at?: string | null
           verified_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_club_profiles_user"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       club_registrations: {
         Row: {
@@ -1170,6 +1178,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_player_rankings_player"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "player_rankings_current_rank_id_fkey"
             columns: ["current_rank_id"]
             isOneToOne: false
@@ -1842,6 +1857,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_rank_verifications_club"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "club_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_rank_verifications_player"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "rank_verifications_club_id_fkey"
             columns: ["club_id"]
             isOneToOne: false
@@ -2122,6 +2151,13 @@ export type Database = {
           source_type?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_spa_points_player"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "spa_points_log_player_id_fkey"
             columns: ["player_id"]
@@ -2639,7 +2675,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_user_settings_user"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       user_streaks: {
         Row: {
