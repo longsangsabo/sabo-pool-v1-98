@@ -10,7 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { Search, Trophy, DollarSign, MapPin, Clock } from 'lucide-react';
+import { Search, Trophy, DollarSign, MapPin, Clock, Users } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 interface CreateChallengeModalProps {
   isOpen: boolean;
@@ -57,6 +58,7 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
   const [betPoints, setBetPoints] = useState(300);
   const [message, setMessage] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
+  const [isOpenChallenge, setIsOpenChallenge] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
 
@@ -65,6 +67,14 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
       fetchClubs();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpenChallenge) {
+      setSelectedPlayer(null);
+      setSearchTerm('');
+      setPlayers([]);
+    }
+  }, [isOpenChallenge]);
 
   useEffect(() => {
     if (searchTerm.length >= 2) {
@@ -201,8 +211,14 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
   };
 
   const handleCreateChallenge = async () => {
-    if (!user || !selectedPlayer || !selectedPlayer.user_id) {
-      toast.error('Vui lòng chọn đối thủ');
+    if (!user) {
+      toast.error('Bạn cần đăng nhập để tạo thách đấu');
+      return;
+    }
+
+    // Validate selected opponent for specific challenges
+    if (!isOpenChallenge && (!selectedPlayer || !selectedPlayer.user_id)) {
+      toast.error('Vui lòng chọn đối thủ hoặc chuyển sang thách đấu mở');
       return;
     }
 
@@ -226,7 +242,8 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
         .from('challenges')
         .insert({
           challenger_id: user.id,
-          opponent_id: selectedPlayer.user_id,
+          opponent_id: isOpenChallenge ? null : selectedPlayer?.user_id,
+          is_open_challenge: isOpenChallenge,
           club_id: selectedClub || null,
           bet_points: betPoints,
           race_to: selectedConfig?.raceTO || 8,
@@ -238,23 +255,30 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
 
       if (error) throw error;
 
-      // Create notification for the opponent
-      await supabase.from('notifications').insert({
-        user_id: selectedPlayer.user_id,
-        type: 'challenge_received',
-        title: 'Thách đấu mới!',
-        message: `${user.user_metadata?.full_name || 'Một người chơi'} đã gửi thách đấu ${betPoints} điểm SPA cho bạn`,
-        action_url: '/challenges',
-        metadata: {
-          challenger_id: user.id,
-          bet_points: betPoints,
-          race_to: selectedConfig?.raceTO || 8,
-          club_name: selectedClub ? clubs.find(c => c.id === selectedClub)?.club_name : null
-        },
-        priority: 'high'
-      });
+      // Create notification based on challenge type
+      if (isOpenChallenge) {
+        // For open challenges, create a general system notification (optional)
+        // We could notify club members if a club is selected, but for now we'll skip this
+        toast.success('Thách đấu mở đã được tạo thành công!');
+      } else if (selectedPlayer) {
+        // Create notification for the specific opponent
+        await supabase.from('notifications').insert({
+          user_id: selectedPlayer.user_id,
+          type: 'challenge_received',
+          title: 'Thách đấu mới!',
+          message: `${user.user_metadata?.full_name || 'Một người chơi'} đã gửi thách đấu ${betPoints} điểm SPA cho bạn`,
+          action_url: '/challenges',
+          metadata: {
+            challenger_id: user.id,
+            bet_points: betPoints,
+            race_to: selectedConfig?.raceTO || 8,
+            club_name: selectedClub ? clubs.find(c => c.id === selectedClub)?.club_name : null
+          },
+          priority: 'high'
+        });
+        toast.success('Thách đấu đã được gửi thành công!');
+      }
 
-      toast.success('Thách đấu đã được gửi thành công!');
       onChallengeCreated();
       handleClose();
       
@@ -282,14 +306,16 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
     setBetPoints(300);
     setMessage('');
     setScheduledTime('');
+    setIsOpenChallenge(false);
     onClose();
   };
 
   const selectedConfig = BET_CONFIGURATIONS.find(config => config.points === betPoints);
 
-  const canCreateChallenge = selectedPlayer && selectedPlayer.user_id && selectedPlayer.user_id.trim() !== '';
+  const canCreateChallenge = isOpenChallenge || (selectedPlayer && selectedPlayer.user_id && selectedPlayer.user_id.trim() !== '');
 
   console.log('Debug - selectedPlayer:', selectedPlayer);
+  console.log('Debug - isOpenChallenge:', isOpenChallenge);
   console.log('Debug - canCreateChallenge:', canCreateChallenge);
 
   return (
@@ -303,7 +329,37 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Player Search */}
+          {/* Challenge Type Toggle */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Loại thách đấu
+              </Label>
+              <div className="flex items-center gap-3">
+                <span className={`text-sm ${!isOpenChallenge ? 'font-medium' : 'text-gray-500'}`}>
+                  Chọn đối thủ
+                </span>
+                <Switch
+                  checked={isOpenChallenge}
+                  onCheckedChange={setIsOpenChallenge}
+                />
+                <span className={`text-sm ${isOpenChallenge ? 'font-medium' : 'text-gray-500'}`}>
+                  Thách đấu mở
+                </span>
+              </div>
+            </div>
+            {isOpenChallenge && (
+              <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                <div className="text-sm text-green-800">
+                  <strong>Thách đấu mở:</strong> Bất kỳ người chơi nào cũng có thể chấp nhận thách đấu của bạn
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Player Search - only show if not open challenge */}
+          {!isOpenChallenge && (
           <div className="space-y-2">
             <Label>Tìm kiếm đối thủ</Label>
             <div className="relative">
@@ -370,6 +426,7 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
               </div>
             )}
           </div>
+          )}
 
           {/* Bet Configuration */}
           <div className="space-y-2">

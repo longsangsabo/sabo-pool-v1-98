@@ -126,9 +126,10 @@ export type Database = {
           handicap_05_rank: number | null
           handicap_1_rank: number | null
           id: string
+          is_open_challenge: boolean | null
           location: string | null
           message: string | null
-          opponent_id: string
+          opponent_id: string | null
           race_to: number | null
           responded_at: string | null
           response_message: string | null
@@ -147,9 +148,10 @@ export type Database = {
           handicap_05_rank?: number | null
           handicap_1_rank?: number | null
           id?: string
+          is_open_challenge?: boolean | null
           location?: string | null
           message?: string | null
-          opponent_id: string
+          opponent_id?: string | null
           race_to?: number | null
           responded_at?: string | null
           response_message?: string | null
@@ -168,9 +170,10 @@ export type Database = {
           handicap_05_rank?: number | null
           handicap_1_rank?: number | null
           id?: string
+          is_open_challenge?: boolean | null
           location?: string | null
           message?: string | null
-          opponent_id?: string
+          opponent_id?: string | null
           race_to?: number | null
           responded_at?: string | null
           response_message?: string | null
