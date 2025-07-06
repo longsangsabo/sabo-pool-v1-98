@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import CreateChallengeModal from '@/components/CreateChallengeModal';
 import ChallengeDetailsModal from '@/components/ChallengeDetailsModal';
+import CreateChallengeButton from '@/components/CreateChallengeButton';
 import TrustScoreBadge from '@/components/TrustScoreBadge';
 import { toast } from 'sonner';
 import {
@@ -382,10 +383,7 @@ const EnhancedChallengesPageV2: React.FC = () => {
               Quản lý và tham gia các thách đấu billiards
             </p>
           </div>
-          <Button onClick={() => setShowCreateModal(true)} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Tạo thách đấu
-          </Button>
+          <CreateChallengeButton onCreateClick={() => setShowCreateModal(true)} />
         </div>
 
         {/* Stats Cards */}

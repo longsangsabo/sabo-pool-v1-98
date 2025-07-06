@@ -128,6 +128,18 @@ const CreateChallengeModal: React.FC<CreateChallengeModalProps> = ({
       return;
     }
 
+    // Check if user has enough SPA points
+    const { data: userRanking } = await supabase
+      .from('player_rankings')
+      .select('spa_points')
+      .eq('player_id', user.id)
+      .single();
+
+    if (!userRanking || userRanking.spa_points < betPoints) {
+      toast.error(`Bạn cần có ít nhất ${betPoints} điểm SPA để tạo thách đấu này!`);
+      return;
+    }
+
     setLoading(true);
     try {
       const selectedConfig = BET_CONFIGURATIONS.find(config => config.points === betPoints);
