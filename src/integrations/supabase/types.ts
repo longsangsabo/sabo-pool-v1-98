@@ -829,13 +829,6 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
           {
-            foreignKeyName: "matches_challenge_id_fkey"
-            columns: ["challenge_id"]
-            isOneToOne: false
-            referencedRelation: "challenges"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "matches_club_id_fkey"
             columns: ["club_id"]
             isOneToOne: false
@@ -982,13 +975,6 @@ export type Database = {
           {
             foreignKeyName: "fk_notifications_user"
             columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "notifications_sender_id_fkey"
-            columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
@@ -1450,13 +1436,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "player_rankings_player_id_fkey"
-            columns: ["player_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
             foreignKeyName: "player_rankings_verified_by_fkey"
             columns: ["verified_by"]
             isOneToOne: false
@@ -1603,13 +1582,6 @@ export type Database = {
             columns: ["parent_comment_id"]
             isOneToOne: false
             referencedRelation: "post_comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
             referencedColumns: ["id"]
           },
         ]
@@ -2128,13 +2100,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
-          {
-            foreignKeyName: "rank_verifications_club_id_fkey"
-            columns: ["club_id"]
-            isOneToOne: false
-            referencedRelation: "club_profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       ranking_history: {
@@ -2411,13 +2376,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fk_spa_points_player"
-            columns: ["player_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "spa_points_log_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "profiles"

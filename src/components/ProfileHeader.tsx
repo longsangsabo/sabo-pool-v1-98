@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Calendar, Trophy, Target, Zap, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Camera, Calendar, Trophy, Target, Zap, CheckCircle, Clock, XCircle, Building2, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import TrustScoreBadge from '@/components/TrustScoreBadge';
@@ -57,11 +58,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     status: 'none'
   });
   const [loading, setLoading] = useState(true);
+  const [hasClubProfile, setHasClubProfile] = useState(false);
+  const [clubLoading, setClubLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
       fetchPlayerStats();
       fetchVerificationStatus();
+      fetchClubProfile();
     }
   }, [user]);
 
@@ -130,6 +134,40 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       }
     } catch (error) {
       console.error('Error fetching verification status:', error);
+    }
+  };
+
+  const fetchClubProfile = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('club_profiles')
+        .select('id, verification_status')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching club profile:', error);
+        setHasClubProfile(false);
+        return;
+      }
+
+      setHasClubProfile(!!data);
+    } catch (error) {
+      console.error('Error fetching club profile:', error);
+      setHasClubProfile(false);
+    } finally {
+      setClubLoading(false);
+    }
+  };
+
+  const handleClubRegistrationClick = () => {
+    // Scroll to the club registration tab
+    const clubTab = document.querySelector('[value="club-registration"]');
+    if (clubTab) {
+      (clubTab as HTMLElement).click();
+      window.scrollTo({ top: 800, behavior: 'smooth' });
     }
   };
 
@@ -239,9 +277,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
 
             {/* Stats Grid */}
-            {loading ? (
-              <div className="grid grid-cols-3 gap-4">
-                {[1, 2, 3].map(i => (
+            {loading || clubLoading ? (
+              <div className="grid grid-cols-4 gap-3">
+                {[1, 2, 3, 4].map(i => (
                   <div key={i} className="bg-gray-50 p-3 rounded-lg animate-pulse">
                     <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
                     <div className="h-6 bg-gray-200 rounded w-1/2"></div>
@@ -249,7 +287,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-3">
                 <div className="bg-gradient-to-br from-green-50 to-green-100 p-3 rounded-lg border border-green-200">
                   <div className="flex items-center justify-between">
                     <div>
@@ -285,6 +323,37 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     <Zap className="w-5 h-5 text-orange-500" />
                   </div>
                 </div>
+
+                {!hasClubProfile && (
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-3 rounded-lg border border-purple-200 cursor-pointer hover:shadow-md transition-shadow" onClick={handleClubRegistrationClick}>
+                    <div className="flex flex-col justify-between h-full">
+                      <div>
+                        <p className="text-xs text-purple-600 font-medium mb-1">Đăng ký CLB</p>
+                        <p className="text-xs text-purple-500 leading-tight">
+                          Nếu bạn là chủ sở hữu hoặc quản lý của CLB
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <ArrowRight className="w-4 h-4 text-purple-500" />
+                        <Building2 className="w-5 h-5 text-purple-500" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {hasClubProfile && (
+                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-3 rounded-lg border border-emerald-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-emerald-600 font-medium">CLB</p>
+                        <p className="text-lg font-bold text-emerald-700">
+                          ✓
+                        </p>
+                      </div>
+                      <Building2 className="w-5 h-5 text-emerald-500" />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
