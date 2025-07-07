@@ -87,6 +87,7 @@ import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminClubs from "./pages/admin/AdminClubs";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminAutomation from "./pages/admin/AdminAutomation";
+import AdminDevelopment from "./pages/admin/AdminDevelopment";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTestRanking from "./pages/admin/AdminTestRanking";
 import AdminLayout from "./components/AdminLayout";
@@ -212,6 +213,7 @@ const App = () => {
                       <Route path="/admin/clubs" element={<AdminClubs />} />
                       <Route path="/admin/analytics" element={<AdminAnalytics />} />
                       <Route path="/admin/automation" element={<AdminAutomation />} />
+                      <Route path="/admin/development" element={<AdminDevelopment />} />
                       <Route path="/admin/settings" element={<AdminSettings />} />
                       <Route path="/admin/test-ranking" element={<AdminTestRanking />} />
                       

@@ -12,6 +12,7 @@ import {
   Home,
   TestTube,
   Bot,
+  Code,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ const AdminSidebar = () => {
     { icon: BarChart3, label: 'Thống kê', path: '/admin/analytics' },
     { icon: Bot, label: 'Automation', path: '/admin/automation' },
     { icon: TestTube, label: 'Test Ranking', path: '/admin/test-ranking' },
+    { icon: Code, label: 'Development Tools', path: '/admin/development' },
     { icon: Settings, label: 'Cài đặt', path: '/admin/settings' },
   ];
 
