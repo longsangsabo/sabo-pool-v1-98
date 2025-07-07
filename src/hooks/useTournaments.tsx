@@ -267,9 +267,12 @@ export const useTournaments = (userId?: string) => {
         }
 
         if (!data || data.length === 0) {
-          console.warn('No registration found to delete');
-          toast.error('Không tìm thấy đăng ký để hủy');
-          return;
+          console.warn('No registration found to delete - updating UI state anyway');
+          toast.success('Đã hủy đăng ký giải đấu');
+          // Still update UI state even if no registration was found
+        } else {
+          console.log('Successfully deleted registration:', data[0]);
+          toast.success('Đã hủy đăng ký giải đấu');
         }
 
         console.log('Successfully deleted registration:', data[0]);

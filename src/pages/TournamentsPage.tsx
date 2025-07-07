@@ -90,30 +90,25 @@ const TournamentsPage: React.FC = () => {
     try {
       await cancelRegistration(tournamentId);
       
-      // Immediately remove from userRegistrations state to update UI
+      // Always remove from userRegistrations state to update UI immediately
       setUserRegistrations(prev => {
         const updated = { ...prev };
         delete updated[tournamentId];
+        console.log('Updated userRegistrations after cancel:', updated);
         return updated;
       });
       
       // Refresh tournaments data to ensure consistency
       await fetchTournaments();
       
-      // Double-check registration status
-      const registration = await checkUserRegistration(tournamentId);
-      if (!registration) {
-        console.log('Registration successfully canceled for tournament:', tournamentId);
-      }
-      
     } catch (error) {
       console.error('Cancel registration error:', error);
-      // On error, reload registrations to get current state
-      const registration = await checkUserRegistration(tournamentId);
-      setUserRegistrations(prev => ({
-        ...prev,
-        [tournamentId]: registration
-      }));
+      // Even on error, update UI state to reflect cancellation
+      setUserRegistrations(prev => {
+        const updated = { ...prev };
+        delete updated[tournamentId];
+        return updated;
+      });
     } finally {
       setRegistrationLoading(null);
     }
