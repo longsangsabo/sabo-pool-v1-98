@@ -3,146 +3,59 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Trophy, Plus, Calendar, MapPin, Users } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Trophy, Plus, Calendar, MapPin, Users, Eye, Settings } from 'lucide-react';
 import { EnhancedTournamentCreator } from '@/components/tournament/EnhancedTournamentCreator';
+import { TournamentRegistrationDashboard } from '@/components/tournament/TournamentRegistrationDashboard';
+import { useTournaments } from '@/hooks/useTournaments';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
-interface Tournament {
-  id: string;
-  name: string;
-  description: string;
-  start_date: Date;
-  end_date: Date;
-  location: string;
-  entry_fee: number;
-  prize_pool: number;
-  max_participants: number;
-  current_participants: number;
-  status: 'upcoming' | 'registration' | 'ongoing' | 'completed';
-  organizer: {
-    id: string;
-    username: string;
-    avatar_url?: string;
-  };
-  category: 'amateur' | 'professional' | 'championship';
-  is_registered: boolean;
-}
+// Using Tournament type from useTournaments hook
 
 const TournamentsPage: React.FC = () => {
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  const { tournaments, loading, registerForTournament } = useTournaments();
   const [selectedFilter, setSelectedFilter] = useState<
-    'all' | 'upcoming' | 'ongoing' | 'completed'
+    'all' | 'upcoming' | 'registration_open' | 'ongoing' | 'completed'
   >('all');
   const [showTournamentCreator, setShowTournamentCreator] = useState(false);
+  const [selectedTournament, setSelectedTournament] = useState<any>(null);
+  const [showRegistrationDashboard, setShowRegistrationDashboard] = useState(false);
 
-  useEffect(() => {
-    fetchTournaments();
-  }, []);
-
-  const fetchTournaments = async () => {
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      setTournaments([
-        {
-          id: '1',
-          name: 'Giải đấu mùa xuân 2024',
-          description: 'Giải đấu thường niên dành cho tất cả người chơi',
-          start_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 1 week from now
-          end_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14), // 2 weeks from now
-          location: 'Club Pool Hà Nội',
-          entry_fee: 50000,
-          prize_pool: 5000000,
-          max_participants: 64,
-          current_participants: 32,
-          status: 'registration',
-          organizer: {
-            id: '1',
-            username: 'pool_club_hanoi',
-            avatar_url: '/avatars/club.jpg',
-          },
-          category: 'amateur',
-          is_registered: false,
-        },
-        {
-          id: '2',
-          name: 'Giải vô địch quốc gia',
-          description:
-            'Giải đấu cấp quốc gia dành cho các tay chơi chuyên nghiệp',
-          start_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // 1 month from now
-          end_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 37), // 1 month + 1 week from now
-          location: 'Trung tâm thể thao quốc gia',
-          entry_fee: 200000,
-          prize_pool: 20000000,
-          max_participants: 32,
-          current_participants: 28,
-          status: 'upcoming',
-          organizer: {
-            id: '2',
-            username: 'vietnam_pool_federation',
-            avatar_url: '/avatars/federation.jpg',
-          },
-          category: 'championship',
-          is_registered: true,
-        },
-        {
-          id: '3',
-          name: 'Giải đấu cuối tuần',
-          description: 'Giải đấu nhanh dành cho người chơi cuối tuần',
-          start_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), // 2 days ago
-          end_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5), // 5 days from now
-          location: 'Club Pool TP.HCM',
-          entry_fee: 30000,
-          prize_pool: 1000000,
-          max_participants: 16,
-          current_participants: 16,
-          status: 'ongoing',
-          organizer: {
-            id: '3',
-            username: 'pool_club_hcm',
-            avatar_url: '/avatars/club_hcm.jpg',
-          },
-          category: 'amateur',
-          is_registered: true,
-        },
-        {
-          id: '4',
-          name: 'Giải đấu mùa đông 2023',
-          description: 'Giải đấu đã kết thúc',
-          start_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 60), // 2 months ago
-          end_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 53), // 2 months - 1 week ago
-          location: 'Club Pool Đà Nẵng',
-          entry_fee: 40000,
-          prize_pool: 2000000,
-          max_participants: 32,
-          current_participants: 32,
-          status: 'completed',
-          organizer: {
-            id: '4',
-            username: 'pool_club_danang',
-            avatar_url: '/avatars/club_danang.jpg',
-          },
-          category: 'professional',
-          is_registered: false,
-        },
-      ]);
-    } catch (error) {
-      console.error('Failed to fetch tournaments:', error);
-    } finally {
-      setIsLoading(false);
+  const handleRegisterTournament = async (tournamentId: string) => {
+    if (!user) {
+      toast.error('Vui lòng đăng nhập để đăng ký giải đấu');
+      return;
     }
+
+    try {
+      await registerForTournament(tournamentId);
+    } catch (error) {
+      console.error('Registration error:', error);
+    }
+  };
+
+  const handleViewRegistrations = (tournament: any) => {
+    setSelectedTournament(tournament);
+    setShowRegistrationDashboard(true);
+  };
+
+  const handleTournamentCreated = (tournament: any) => {
+    setShowTournamentCreator(false);
+    toast.success('Giải đấu đã được tạo thành công!');
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'upcoming':
         return 'bg-blue-100 text-blue-800';
-      case 'registration':
+      case 'registration_open':
         return 'bg-green-100 text-green-800';
-      case 'ongoing':
+      case 'registration_closed':
         return 'bg-yellow-100 text-yellow-800';
+      case 'ongoing':
+        return 'bg-purple-100 text-purple-800';
       case 'completed':
         return 'bg-gray-100 text-gray-800';
       default:
@@ -154,8 +67,10 @@ const TournamentsPage: React.FC = () => {
     switch (status) {
       case 'upcoming':
         return 'Sắp diễn ra';
-      case 'registration':
-        return 'Đang đăng ký';
+      case 'registration_open':
+        return 'Đang mở đăng ký';
+      case 'registration_closed':
+        return 'Đã đóng đăng ký';
       case 'ongoing':
         return 'Đang diễn ra';
       case 'completed':
@@ -198,21 +113,12 @@ const TournamentsPage: React.FC = () => {
     }).format(amount);
   };
 
-  const filteredTournaments = tournaments.filter(tournament => {
+  const filteredTournaments = tournaments?.filter(tournament => {
     if (selectedFilter === 'all') return true;
     return tournament.status === selectedFilter;
-  });
+  }) || [];
 
-  const handleTournamentCreated = (tournament: any) => {
-    setShowTournamentCreator(false);
-    fetchTournaments(); // Refresh tournament list
-  };
-
-  const handleCancelCreator = () => {
-    setShowTournamentCreator(false);
-  };
-
-  if (isLoading) {
+  if (loading) {
     return (
       <div className='flex items-center justify-center min-h-screen'>
         <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500'></div>
@@ -227,7 +133,21 @@ const TournamentsPage: React.FC = () => {
         <div className='max-w-7xl mx-auto px-4 py-6'>
           <EnhancedTournamentCreator 
             onSuccess={handleTournamentCreated}
-            onCancel={handleCancelCreator}
+            onCancel={() => setShowTournamentCreator(false)}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Show Registration Dashboard
+  if (showRegistrationDashboard && selectedTournament) {
+    return (
+      <div className='min-h-screen bg-gray-50'>
+        <div className='max-w-7xl mx-auto px-4 py-6'>
+          <TournamentRegistrationDashboard
+            tournament={selectedTournament}
+            onClose={() => setShowRegistrationDashboard(false)}
           />
         </div>
       </div>
@@ -270,6 +190,12 @@ const TournamentsPage: React.FC = () => {
                 Sắp diễn ra
               </Button>
               <Button
+                variant={selectedFilter === 'registration_open' ? 'default' : 'outline'}
+                onClick={() => setSelectedFilter('registration_open')}
+              >
+                Đang mở đăng ký
+              </Button>
+              <Button
                 variant={selectedFilter === 'ongoing' ? 'default' : 'outline'}
                 onClick={() => setSelectedFilter('ongoing')}
               >
@@ -302,9 +228,11 @@ const TournamentsPage: React.FC = () => {
                       <Badge className={getStatusColor(tournament.status)}>
                         {getStatusName(tournament.status)}
                       </Badge>
-                      <Badge className={getCategoryColor(tournament.category)}>
-                        {getCategoryName(tournament.category)}
-                      </Badge>
+                      {tournament.tier && (
+                        <Badge variant="outline">
+                          Hạng {tournament.tier}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <Trophy className='h-6 w-6 text-yellow-500' />
@@ -317,17 +245,9 @@ const TournamentsPage: React.FC = () => {
                   {tournament.description}
                 </p>
 
-                {/* Organizer */}
-                <div className='flex items-center gap-2'>
-                  <Avatar className='h-6 w-6'>
-                    <AvatarImage src={tournament.organizer.avatar_url} />
-                    <AvatarFallback>
-                      {tournament.organizer.username[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className='text-sm text-gray-600'>
-                    {tournament.organizer.username}
-                  </span>
+                {/* Tournament Info */}
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span>Loại: {tournament.tournament_type === 'single_elimination' ? 'Loại trực tiếp' : tournament.tournament_type}</span>
                 </div>
 
                 {/* Details */}
@@ -335,14 +255,14 @@ const TournamentsPage: React.FC = () => {
                   <div className='flex items-center gap-2 text-sm'>
                     <Calendar className='h-4 w-4 text-gray-500' />
                     <span>
-                      {tournament.start_date.toLocaleDateString('vi-VN')} -{' '}
-                      {tournament.end_date.toLocaleDateString('vi-VN')}
+                      {new Date(tournament.tournament_start).toLocaleDateString('vi-VN')} -{' '}
+                      {new Date(tournament.tournament_end).toLocaleDateString('vi-VN')}
                     </span>
                   </div>
 
                   <div className='flex items-center gap-2 text-sm'>
                     <MapPin className='h-4 w-4 text-gray-500' />
-                    <span>{tournament.location}</span>
+                    <span>{tournament.venue_address || 'Chưa có địa điểm'}</span>
                   </div>
 
                   <div className='flex items-center gap-2 text-sm'>
@@ -397,16 +317,14 @@ const TournamentsPage: React.FC = () => {
 
                 {/* Actions */}
                 <div className='flex gap-2'>
-                  {tournament.status === 'registration' &&
-                    !tournament.is_registered && (
-                      <Button className='flex-1'>Đăng ký tham gia</Button>
-                    )}
-                  {tournament.status === 'registration' &&
-                    tournament.is_registered && (
-                      <Button variant='outline' className='flex-1'>
-                        Đã đăng ký
-                      </Button>
-                    )}
+                  {tournament.status === 'registration_open' && (
+                    <Button 
+                      className='flex-1'
+                      onClick={() => handleRegisterTournament(tournament.id)}
+                    >
+                      Đăng ký tham gia
+                    </Button>
+                  )}
                   {tournament.status === 'ongoing' && (
                     <Button className='flex-1'>Xem bảng đấu</Button>
                   )}
@@ -415,7 +333,21 @@ const TournamentsPage: React.FC = () => {
                       Xem kết quả
                     </Button>
                   )}
+                  
+                  {/* Admin/Organizer Actions */}
+                  {user?.id === tournament.organizer_id && (
+                    <Button 
+                      variant='outline' 
+                      size='sm'
+                      onClick={() => handleViewRegistrations(tournament)}
+                    >
+                      <Settings className='h-4 w-4 mr-1' />
+                      Quản lý
+                    </Button>
+                  )}
+                  
                   <Button variant='outline' size='sm'>
+                    <Eye className='h-4 w-4 mr-1' />
                     Chi tiết
                   </Button>
                 </div>

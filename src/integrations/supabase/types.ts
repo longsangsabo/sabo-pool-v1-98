@@ -4525,6 +4525,10 @@ export type Database = {
         }
         Returns: Json
       }
+      auto_update_tournament_status: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       automated_season_reset: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -4695,6 +4699,10 @@ export type Database = {
         Args: { p_tournament_id: string; p_participants: string[] }
         Returns: string
       }
+      generate_tournament_bracket: {
+        Args: { tournament_uuid: string }
+        Returns: Json
+      }
       get_cron_jobs: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -4716,6 +4724,18 @@ export type Database = {
       get_time_multiplier: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      get_tournament_registrations: {
+        Args: { tournament_uuid: string }
+        Returns: {
+          id: string
+          user_id: string
+          registration_date: string
+          status: string
+          payment_status: string
+          notes: string
+          user_profile: Json
+        }[]
       }
       get_user_admin_status: {
         Args: { user_uuid: string }
