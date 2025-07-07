@@ -93,14 +93,14 @@ export const RegistrationSettingsStep: React.FC<RegistrationSettingsStepProps> =
             <div className="space-y-2">
               <Label className="text-sm font-medium">Hạng tối thiểu</Label>
               <Select
-                value={watchedData.min_rank_requirement || ''}
-                onValueChange={(value) => setValue('min_rank_requirement', value || undefined)}
+                value={watchedData.min_rank_requirement || 'none'}
+                onValueChange={(value) => setValue('min_rank_requirement', value === 'none' ? undefined : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Không giới hạn" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Không giới hạn</SelectItem>
+                  <SelectItem value="none">Không giới hạn</SelectItem>
                   {RANK_OPTIONS.map((rank) => (
                     <SelectItem key={rank.value} value={rank.value}>
                       <div className="flex items-center gap-2">
@@ -116,14 +116,14 @@ export const RegistrationSettingsStep: React.FC<RegistrationSettingsStepProps> =
             <div className="space-y-2">
               <Label className="text-sm font-medium">Hạng tối đa</Label>
               <Select
-                value={watchedData.max_rank_requirement || ''}
-                onValueChange={(value) => setValue('max_rank_requirement', value || undefined)}
+                value={watchedData.max_rank_requirement || 'none'}
+                onValueChange={(value) => setValue('max_rank_requirement', value === 'none' ? undefined : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Không giới hạn" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Không giới hạn</SelectItem>
+                  <SelectItem value="none">Không giới hạn</SelectItem>
                   {RANK_OPTIONS.map((rank) => (
                     <SelectItem key={rank.value} value={rank.value}>
                       <div className="flex items-center gap-2">
