@@ -19,103 +19,85 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('⬆️ Starting auto rank promotion check...');
 
-    // Get all players with SPA points >= 1000 who might be eligible for promotion
+    // Get all players who might be eligible for promotion based on ELO points and matches
     const { data: eligiblePlayers, error: playersError } = await supabase
       .from('player_rankings')
       .select(`
-        player_id, spa_points, current_rank_id,
+        player_id, elo, total_matches, current_rank_id,
         ranks!current_rank_id(id, code, level, name)
       `)
-      .gte('spa_points', 1000);
+      .gte('elo', 1000)
+      .gte('total_matches', 10);
 
     if (playersError) {
       console.error('❌ Error fetching eligible players:', playersError);
       throw playersError;
     }
 
-    console.log(`👥 Found ${eligiblePlayers?.length || 0} players with 1000+ SPA points`);
+    console.log(`👥 Found ${eligiblePlayers?.length || 0} players with 1000+ ELO and 10+ matches`);
 
     let promotionsCount = 0;
     let notifications = [];
 
     for (const player of eligiblePlayers || []) {
-      console.log(`🎯 Checking player: ${player.player_id} with ${player.spa_points} SPA points`);
+      console.log(`🎯 Checking player: ${player.player_id} with ${player.elo} ELO points and ${player.total_matches} matches`);
 
-      // Get next rank
-      const { data: nextRank, error: rankError } = await supabase
-        .from('ranks')
-        .select('*')
-        .eq('level', (player.ranks?.level || 0) + 1)
-        .single();
+      // Check if player meets all promotion criteria using the corrected function
+      const { data: promotionResult, error: promotionError } = await supabase
+        .rpc('check_rank_promotion', { p_player_id: player.player_id });
 
-      if (rankError || !nextRank) {
-        console.log(`⚠️ No next rank available for player ${player.player_id} (current level: ${player.ranks?.level})`);
+      if (promotionError) {
+        console.error(`❌ Error checking promotion for player ${player.player_id}:`, promotionError);
         continue;
       }
 
-      // Calculate how many ranks they can promote (each rank costs 1000 SPA points)
-      const possiblePromotions = Math.floor(player.spa_points / 1000);
-      
-      if (possiblePromotions > 0) {
-        // Promote player using existing function
-        const { data: promotionResult, error: promotionError } = await supabase
-          .rpc('check_rank_promotion', { p_player_id: player.player_id });
+      if (promotionResult) {
+        promotionsCount++;
+        console.log(`🎉 Successfully promoted player ${player.player_id} from ${player.ranks?.code} to next rank`);
 
-        if (promotionError) {
-          console.error(`❌ Error promoting player ${player.player_id}:`, promotionError);
-          continue;
-        }
+        // Get updated player info for notification
+        const { data: updatedPlayer, error: updateError } = await supabase
+          .from('player_rankings')
+          .select(`
+            player_id, elo, current_rank_id,
+            ranks!current_rank_id(id, code, level, name)
+          `)
+          .eq('player_id', player.player_id)
+          .single();
 
-        if (promotionResult) {
-          promotionsCount++;
-          console.log(`🎉 Successfully promoted player ${player.player_id} from ${player.ranks?.code} to next rank`);
+        if (!updateError && updatedPlayer) {
+          notifications.push({
+            user_id: player.player_id,
+            type: 'auto_rank_promotion',
+            title: '🎉 Tự động thăng hạng!',
+            message: `Chúc mừng! Bạn đã được tự động thăng hạng từ ${player.ranks?.code} lên ${updatedPlayer.ranks?.code} nhờ thành tích xuất sắc!`,
+            priority: 'high',
+            action_url: '/profile?tab=ranking',
+            metadata: {
+              old_rank_code: player.ranks?.code,
+              new_rank_code: updatedPlayer.ranks?.code,
+              old_rank_level: player.ranks?.level,
+              new_rank_level: updatedPlayer.ranks?.level,
+              elo_rating: updatedPlayer.elo,
+              promotion_type: 'automatic',
+              promotion_date: new Date().toISOString()
+            }
+          });
 
-          // Get updated player info for notification
-          const { data: updatedPlayer, error: updateError } = await supabase
-            .from('player_rankings')
-            .select(`
-              player_id, spa_points, current_rank_id,
-              ranks!current_rank_id(id, code, level, name)
-            `)
-            .eq('player_id', player.player_id)
-            .single();
-
-          if (!updateError && updatedPlayer) {
-            notifications.push({
-              user_id: player.player_id,
-              type: 'auto_rank_promotion',
-              title: '🎉 Tự động thăng hạng!',
-              message: `Chúc mừng! Bạn đã được tự động thăng hạng từ ${player.ranks?.code} lên ${updatedPlayer.ranks?.code} nhờ đạt đủ 1000 SPA points.`,
-              priority: 'high',
-              action_url: '/profile?tab=ranking',
-              metadata: {
-                old_rank_code: player.ranks?.code,
-                new_rank_code: updatedPlayer.ranks?.code,
-                old_rank_level: player.ranks?.level,
-                new_rank_level: updatedPlayer.ranks?.level,
-                spa_points_used: 1000,
-                remaining_spa_points: updatedPlayer.spa_points,
-                promotion_type: 'automatic',
-                promotion_date: new Date().toISOString()
-              }
+          // Log rank promotion history
+          await supabase
+            .from('ranking_history')
+            .insert({
+              player_id: player.player_id,
+              old_rank_id: player.current_rank_id,
+              new_rank_id: updatedPlayer.current_rank_id,
+              promotion_type: 'automatic',
+              total_points_earned: 1.0,
+              created_at: new Date().toISOString()
             });
-
-            // Log rank promotion history
-            await supabase
-              .from('ranking_history')
-              .insert({
-                player_id: player.player_id,
-                old_rank_id: player.current_rank_id,
-                new_rank_id: updatedPlayer.current_rank_id,
-                promotion_type: 'automatic',
-                spa_points_used: 1000,
-                total_points_earned: 1.0,
-                created_at: new Date().toISOString()
-              });
-          }
-        } else {
-          console.log(`ℹ️ Player ${player.player_id} not promoted - may not meet additional requirements`);
         }
+      } else {
+        console.log(`ℹ️ Player ${player.player_id} not promoted - may not meet ELO or verification requirements`);
       }
     }
 
@@ -163,7 +145,7 @@ const handler = async (req: Request): Promise<Response> => {
         user_id: admin.user_id,
         type: 'auto_promotion_summary',
         title: 'Báo cáo thăng hạng tự động',
-        message: `Hệ thống đã tự động thăng hạng cho ${promotionsCount} người chơi dựa trên SPA points.`,
+        message: `Hệ thống đã tự động thăng hạng cho ${promotionsCount} người chơi dựa trên ELO rating và thành tích.`,
         priority: 'low',
         metadata: {
           promotions_count: promotionsCount,
@@ -189,7 +171,8 @@ const handler = async (req: Request): Promise<Response> => {
           notifications_sent: notifications.length,
           execution_time: new Date().toISOString(),
           promotion_criteria: {
-            spa_points_required: 1000,
+            elo_required: 1000,
+            min_matches: 10,
             automatic_promotion: true
           }
         }
