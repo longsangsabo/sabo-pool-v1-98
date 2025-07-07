@@ -64,11 +64,10 @@ const BulkUserGenerator = () => {
       const { data: { user } } = await supabase.auth.getUser();
       addLog(`👤 User hiện tại: ${user?.email || user?.phone || user?.id}`, 'info');
       
-      // Simplified approach: Create minimal test profiles
-      addLog('⚙️ Tạo dữ liệu người dùng...', 'info');
-      const timestamp = Date.now();
-      const profiles = [];
+      // TRIỆT ĐỂ: Tạo test profiles hoàn toàn độc lập, không liên quan đến wallets
+      addLog('⚙️ Tạo dữ liệu test profiles (KHÔNG có wallet)...', 'info');
       
+      const profiles = [];
       for (let i = 0; i < userCount; i++) {
         const fullName = generateVietnameseName();
         const phone = generatePhoneNumber();
@@ -80,8 +79,9 @@ const BulkUserGenerator = () => {
           skillLevel = skillDistribution;
         }
 
-        // Minimal profile data - only required fields
+        // CHẮC CHẮN: Chỉ tạo profile, KHÔNG có user_id (để tránh trigger)
         const profileData = {
+          // user_id: NULL - Cố tình để NULL để tránh mọi trigger wallet
           phone: phone,
           display_name: fullName.split(' ').slice(-2).join(' '),
           full_name: fullName,
@@ -89,55 +89,64 @@ const BulkUserGenerator = () => {
           skill_level: skillLevel,
           city: ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'Hải Phòng'][Math.floor(Math.random() * 5)],
           district: `Quận ${Math.floor(Math.random() * 12) + 1}`,
-          bio: `Test user ${skillLevel}`,
+          bio: `Test user ${skillLevel} - NO WALLET`,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
 
         profiles.push(profileData);
-        setProgress(((i + 1) / userCount) * 50);
+        setProgress(((i + 1) / userCount) * 60);
         
-        // Log every 5 users or the last one
         if ((i + 1) % 5 === 0 || i === userCount - 1) {
-          addLog(`📝 Đã tạo ${i + 1}/${userCount} records`, 'info');
+          addLog(`📝 Đã tạo ${i + 1}/${userCount} test profiles`, 'info');
         }
       }
 
-      addLog(`✅ Hoàn thành tạo ${profiles.length} records`, 'success');
+      addLog(`✅ Hoàn thành tạo ${profiles.length} test profiles (KHÔNG có wallet)`, 'success');
 
-      // Insert profiles with proper error handling
-      addLog('💾 Lưu vào database...', 'info');
-      const { data: insertedProfiles, error: insertError } = await supabase
-        .from('profiles')
-        .insert(profiles)
-        .select('id, phone, display_name, full_name, role');
-
-      if (insertError) {
-        addLog(`❌ Lỗi database: ${insertError.message}`, 'error');
-        addLog(`🔍 Chi tiết: ${insertError.code} - ${insertError.details || 'N/A'}`, 'error');
+      // TRIỆT ĐỂ: Insert trực tiếp với xử lý lỗi chi tiết
+      addLog('💾 Lưu test profiles vào database (BỎ QUA wallet)...', 'info');
+      
+      // Thử insert từng batch nhỏ để tránh lỗi
+      const batchSize = 5;
+      const insertedProfiles = [];
+      
+      for (let i = 0; i < profiles.length; i += batchSize) {
+        const batch = profiles.slice(i, i + batchSize);
+        addLog(`📦 Đang lưu batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(profiles.length/batchSize)}...`, 'info');
         
-        // Try alternative approach if RLS blocks it
-        if (insertError.code === '42501' || insertError.message.includes('policy')) {
-          addLog('🔄 Lỗi phân quyền - cần cấu hình admin', 'warning');
-          throw new Error('RLS Policy Error: Admin permissions may need to be configured');
+        const { data: batchResult, error: batchError } = await supabase
+          .from('profiles')
+          .insert(batch)
+          .select('id, phone, display_name, full_name, role');
+
+        if (batchError) {
+          addLog(`❌ Lỗi batch ${Math.floor(i/batchSize) + 1}: ${batchError.message}`, 'error');
+          addLog(`🔍 Chi tiết lỗi: ${JSON.stringify(batchError)}`, 'error');
+          throw batchError;
+        }
+
+        if (batchResult) {
+          insertedProfiles.push(...batchResult);
+          addLog(`✅ Batch ${Math.floor(i/batchSize) + 1} thành công: ${batchResult.length} profiles`, 'success');
         }
         
-        throw insertError;
+        setProgress(60 + ((i + batchSize) / profiles.length) * 25);
       }
 
-      addLog(`🎉 Thành công! Đã lưu ${insertedProfiles?.length || 0} người dùng`, 'success');
-      setProgress(75);
+      addLog(`🎉 THÀNH CÔNG! Đã lưu ${insertedProfiles.length} test profiles`, 'success');
+      setProgress(85);
 
-      // Generate rankings if requested (using profile IDs as player_id)
-      if (includeRanks && insertedProfiles) {
-        addLog('🏆 Tạo dữ liệu xếp hạng...', 'info');
+      // Generate rankings if requested
+      if (includeRanks && insertedProfiles.length > 0) {
+        addLog('🏆 Tạo dữ liệu xếp hạng cho test profiles...', 'info');
         
         const rankings = insertedProfiles.map((profile) => {
-          const elo = 800 + Math.floor(Math.random() * 1200); // 800-2000 ELO
+          const elo = 800 + Math.floor(Math.random() * 1200);
           const spaPoints = includeSpaPoints ? Math.floor(Math.random() * 500) : 0;
           
           return {
-            player_id: profile.id, // Use profile.id for test data
+            player_id: profile.id, // Sử dụng profile.id
             elo: elo,
             spa_points: spaPoints,
             total_matches: Math.floor(Math.random() * 50),
@@ -154,34 +163,31 @@ const BulkUserGenerator = () => {
         if (rankingError) {
           addLog(`⚠️ Không tạo được ranking: ${rankingError.message}`, 'warning');
         } else {
-          addLog(`✅ Đã tạo ranking cho ${rankings.length} người dùng`, 'success');
+          addLog(`✅ Đã tạo ranking cho ${rankings.length} test profiles`, 'success');
         }
       }
 
       setProgress(100);
-      setGeneratedUsers(insertedProfiles || []);
-      addLog('🎊 Hoàn thành tất cả!', 'success');
+      setGeneratedUsers(insertedProfiles);
+      addLog('🎊 HOÀN THÀNH TRIỆT ĐỂ! Không có wallet nào được tạo!', 'success');
       
-      toast.success(t('dev.success_generate', `Successfully generated ${userCount} test users!`).replace('{count}', userCount.toString()));
+      toast.success(`Thành công tạo ${insertedProfiles.length} test profiles (KHÔNG có wallet)!`);
 
     } catch (error) {
-      addLog(`💥 Thất bại: ${error.message}`, 'error');
-      console.error('❌ Detailed error analysis:', {
+      addLog(`💥 THẤT BẠI TRIỆT ĐỂ: ${error.message}`, 'error');
+      addLog(`🔍 Chi tiết lỗi: ${JSON.stringify(error)}`, 'error');
+      
+      console.error('❌ PHÂN TÍCH LỖI CHI TIẾT:', {
         message: error.message,
         code: error.code,
         details: error.details,
         hint: error.hint,
+        stack: error.stack,
         userCount,
         skillDistribution
       });
       
-      let errorMessage = t('dev.failed_generate', 'Failed to generate users. Check console for details.');
-      
-      if (error.message.includes('RLS Policy')) {
-        errorMessage = 'Cần cấu hình quyền admin để tạo người dùng hàng loạt.';
-      }
-      
-      toast.error(errorMessage);
+      toast.error(`Thất bại: ${error.message}`);
     } finally {
       setIsGenerating(false);
     }
