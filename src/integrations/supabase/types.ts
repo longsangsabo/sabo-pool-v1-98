@@ -4218,6 +4218,50 @@ export type Database = {
           },
         ]
       }
+      tournament_seeding: {
+        Row: {
+          created_at: string | null
+          elo_rating: number | null
+          id: string
+          is_bye: boolean | null
+          player_id: string | null
+          registration_order: number
+          seed_position: number
+          tournament_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          elo_rating?: number | null
+          id?: string
+          is_bye?: boolean | null
+          player_id?: string | null
+          registration_order: number
+          seed_position: number
+          tournament_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          elo_rating?: number | null
+          id?: string
+          is_bye?: boolean | null
+          player_id?: string | null
+          registration_order?: number
+          seed_position?: number
+          tournament_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_seeding_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournaments: {
         Row: {
           banner_image: string | null
@@ -4810,6 +4854,10 @@ export type Database = {
         Args: { player_uuid: string }
         Returns: undefined
       }
+      can_generate_bracket: {
+        Args: { p_tournament_id: string }
+        Returns: Json
+      }
       check_and_award_milestones: {
         Args: { p_player_id: string }
         Returns: Json
@@ -4910,6 +4958,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      generate_advanced_tournament_bracket: {
+        Args: {
+          p_tournament_id: string
+          p_seeding_method?: string
+          p_force_regenerate?: boolean
+        }
+        Returns: Json
+      }
       generate_referral_code: {
         Args: { p_user_id: string }
         Returns: string
@@ -4996,6 +5052,10 @@ export type Database = {
       refresh_current_month_leaderboard: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      reseed_tournament: {
+        Args: { p_tournament_id: string; p_seeding_method?: string }
+        Returns: Json
       }
       reset_daily_challenges: {
         Args: Record<PropertyKey, never>
