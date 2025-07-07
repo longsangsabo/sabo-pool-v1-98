@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Trophy, Plus, Calendar, MapPin, Users } from 'lucide-react';
+import { EnhancedTournamentCreator } from '@/components/tournament/EnhancedTournamentCreator';
 
 interface Tournament {
   id: string;
@@ -32,6 +33,7 @@ const TournamentsPage: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState<
     'all' | 'upcoming' | 'ongoing' | 'completed'
   >('all');
+  const [showTournamentCreator, setShowTournamentCreator] = useState(false);
 
   useEffect(() => {
     fetchTournaments();
@@ -201,10 +203,33 @@ const TournamentsPage: React.FC = () => {
     return tournament.status === selectedFilter;
   });
 
+  const handleTournamentCreated = (tournament: any) => {
+    setShowTournamentCreator(false);
+    fetchTournaments(); // Refresh tournament list
+  };
+
+  const handleCancelCreator = () => {
+    setShowTournamentCreator(false);
+  };
+
   if (isLoading) {
     return (
       <div className='flex items-center justify-center min-h-screen'>
         <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500'></div>
+      </div>
+    );
+  }
+
+  // Show Tournament Creator
+  if (showTournamentCreator) {
+    return (
+      <div className='min-h-screen bg-gray-50'>
+        <div className='max-w-7xl mx-auto px-4 py-6'>
+          <EnhancedTournamentCreator 
+            onSuccess={handleTournamentCreated}
+            onCancel={handleCancelCreator}
+          />
+        </div>
       </div>
     );
   }
@@ -221,7 +246,7 @@ const TournamentsPage: React.FC = () => {
                 Tham gia các giải đấu và thi đấu với người chơi khác
               </p>
             </div>
-            <Button>
+            <Button onClick={() => setShowTournamentCreator(true)}>
               <Plus className='h-4 w-4 mr-2' />
               Tạo giải đấu
             </Button>
@@ -410,7 +435,7 @@ const TournamentsPage: React.FC = () => {
                 ? 'Chưa có giải đấu nào được tạo'
                 : `Không có giải đấu nào ở trạng thái "${getStatusName(selectedFilter)}"`}
             </p>
-            <Button>
+            <Button onClick={() => setShowTournamentCreator(true)}>
               <Plus className='h-4 w-4 mr-2' />
               Tạo giải đấu đầu tiên
             </Button>
