@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLanguage } from '@/contexts/LanguageContext';
-import BulkUserGenerator from './BulkUserGenerator';
+import QuickRealUserCreator from './QuickRealUserCreator';
 import QuickClubCreator from './QuickClubCreator';
 import TestDataPopulator from './TestDataPopulator';
 import DatabaseResetTools from './DatabaseResetTools';
@@ -35,7 +35,7 @@ const DevelopmentTools = () => {
         </TabsList>
         
         <TabsContent value="users" className="space-y-4">
-          <BulkUserGenerator />
+          <QuickRealUserCreator />
         </TabsContent>
         
         <TabsContent value="clubs" className="space-y-4">
