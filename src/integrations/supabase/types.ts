@@ -1516,6 +1516,180 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_logs: {
+        Row: {
+          action_url: string | null
+          category: string
+          channels_failed: Json | null
+          channels_sent: Json | null
+          created_at: string | null
+          delivered_at: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          priority: string | null
+          read_at: string | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string | null
+          title: string
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          category: string
+          channels_failed?: Json | null
+          channels_sent?: Json | null
+          created_at?: string | null
+          delivered_at?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          priority?: string | null
+          read_at?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          title: string
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          category?: string
+          channels_failed?: Json | null
+          channels_sent?: Json | null
+          created_at?: string | null
+          delivered_at?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          priority?: string | null
+          read_at?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          title?: string
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          challenge_level: string | null
+          created_at: string | null
+          email: boolean | null
+          id: string
+          in_app: boolean | null
+          match_level: string | null
+          push_notification: boolean | null
+          quiet_end_time: string | null
+          quiet_hours_enabled: boolean | null
+          quiet_start_time: string | null
+          ranking_level: string | null
+          sms: boolean | null
+          social_level: string | null
+          timezone: string | null
+          tournament_level: string | null
+          updated_at: string | null
+          user_id: string
+          zalo: boolean | null
+        }
+        Insert: {
+          challenge_level?: string | null
+          created_at?: string | null
+          email?: boolean | null
+          id?: string
+          in_app?: boolean | null
+          match_level?: string | null
+          push_notification?: boolean | null
+          quiet_end_time?: string | null
+          quiet_hours_enabled?: boolean | null
+          quiet_start_time?: string | null
+          ranking_level?: string | null
+          sms?: boolean | null
+          social_level?: string | null
+          timezone?: string | null
+          tournament_level?: string | null
+          updated_at?: string | null
+          user_id: string
+          zalo?: boolean | null
+        }
+        Update: {
+          challenge_level?: string | null
+          created_at?: string | null
+          email?: boolean | null
+          id?: string
+          in_app?: boolean | null
+          match_level?: string | null
+          push_notification?: boolean | null
+          quiet_end_time?: string | null
+          quiet_hours_enabled?: boolean | null
+          quiet_start_time?: string | null
+          ranking_level?: string | null
+          sms?: boolean | null
+          social_level?: string | null
+          timezone?: string | null
+          tournament_level?: string | null
+          updated_at?: string | null
+          user_id?: string
+          zalo?: boolean | null
+        }
+        Relationships: []
+      }
+      notification_templates: {
+        Row: {
+          category: string
+          created_at: string | null
+          default_priority: string | null
+          email_template: string | null
+          id: string
+          is_active: boolean | null
+          locale: string | null
+          message_template: string
+          sms_template: string | null
+          supported_channels: Json | null
+          template_key: string
+          title_template: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          default_priority?: string | null
+          email_template?: string | null
+          id?: string
+          is_active?: boolean | null
+          locale?: string | null
+          message_template: string
+          sms_template?: string | null
+          supported_channels?: Json | null
+          template_key: string
+          title_template: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          default_priority?: string | null
+          email_template?: string | null
+          id?: string
+          is_active?: boolean | null
+          locale?: string | null
+          message_template?: string
+          sms_template?: string | null
+          supported_channels?: Json | null
+          template_key?: string
+          title_template?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           action_url: string | null
@@ -4168,6 +4342,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_communication_channels: {
+        Row: {
+          channel_address: string
+          channel_type: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_verified: boolean | null
+          last_used_at: string | null
+          updated_at: string | null
+          user_id: string
+          verification_expires_at: string | null
+          verification_token: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          channel_address: string
+          channel_type: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          last_used_at?: string | null
+          updated_at?: string | null
+          user_id: string
+          verification_expires_at?: string | null
+          verification_token?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          channel_address?: string
+          channel_type?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          last_used_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+          verification_expires_at?: string | null
+          verification_token?: string | null
+          verified_at?: string | null
+        }
+        Relationships: []
       }
       user_follows: {
         Row: {
