@@ -15,22 +15,24 @@ import {
   Code,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 
 const AdminSidebar = () => {
   const { signOut } = useAuth();
+  const { t } = useLanguage();
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
-    { icon: Users, label: 'Quản lý Users', path: '/admin/users' },
-    { icon: Trophy, label: 'Giải đấu', path: '/admin/tournaments' },
-    { icon: Building2, label: 'Câu lạc bộ', path: '/admin/clubs' },
-    { icon: CreditCard, label: 'Giao dịch', path: '/admin/transactions' },
-    { icon: BarChart3, label: 'Thống kê', path: '/admin/analytics' },
-    { icon: Bot, label: 'Automation', path: '/admin/automation' },
-    { icon: TestTube, label: 'Test Ranking', path: '/admin/test-ranking' },
-    { icon: Code, label: 'Development Tools', path: '/admin/development' },
-    { icon: Settings, label: 'Cài đặt', path: '/admin/settings' },
+    { icon: LayoutDashboard, key: 'admin.dashboard', path: '/admin' },
+    { icon: Users, key: 'admin.users', path: '/admin/users' },
+    { icon: Trophy, key: 'admin.tournaments', path: '/admin/tournaments' },
+    { icon: Building2, key: 'admin.clubs', path: '/admin/clubs' },
+    { icon: CreditCard, key: 'admin.transactions', path: '/admin/transactions' },
+    { icon: BarChart3, key: 'admin.analytics', path: '/admin/analytics' },
+    { icon: Bot, key: 'admin.automation', path: '/admin/automation' },
+    { icon: TestTube, key: 'admin.test_ranking', path: '/admin/test-ranking' },
+    { icon: Code, key: 'admin.development', path: '/admin/development' },
+    { icon: Settings, key: 'admin.settings', path: '/admin/settings' },
   ];
 
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -41,7 +43,7 @@ const AdminSidebar = () => {
   return (
     <div className='w-64 bg-white border-r min-h-screen flex flex-col'>
       <div className='p-6 border-b'>
-        <h2 className='text-xl font-bold text-gray-900'>Admin Panel</h2>
+        <h2 className='text-xl font-bold text-gray-900'>{t('admin.panel')}</h2>
         <p className='text-sm text-gray-500'>SABO POOL ARENA</p>
       </div>
 
@@ -56,7 +58,7 @@ const AdminSidebar = () => {
               end={item.path === '/admin'}
             >
               <Icon className='h-5 w-5' />
-              <span>{item.label}</span>
+              <span>{t(item.key)}</span>
             </NavLink>
           );
         })}
@@ -69,7 +71,7 @@ const AdminSidebar = () => {
             className='w-full justify-start gap-3 text-gray-600 hover:bg-gray-100'
           >
             <Home className='h-5 w-5' />
-            Về trang chủ
+            {t('admin.home')}
           </Button>
         </NavLink>
         <Button
@@ -78,7 +80,7 @@ const AdminSidebar = () => {
           onClick={signOut}
         >
           <LogOut className='h-5 w-5' />
-          Đăng xuất
+          {t('admin.logout')}
         </Button>
       </div>
     </div>

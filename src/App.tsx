@@ -10,6 +10,7 @@ import { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/hooks/useAuth";
 import { AvatarProvider } from "@/contexts/AvatarContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import MainLayout from "@/components/MainLayout";
 import DailyNotificationSystem from "@/components/DailyNotificationSystem";
 
@@ -125,6 +126,7 @@ const App = () => {
             <TooltipProvider>
               <AuthProvider>
                 <AvatarProvider>
+                <LanguageProvider>
                 <BrowserRouter>
                   <Suspense fallback={<LoadingFallback />}>
                     <Routes>
@@ -248,6 +250,7 @@ const App = () => {
                   <Toaster />
                   <Sonner />
                 </BrowserRouter>
+                </LanguageProvider>
                 </AvatarProvider>
               </AuthProvider>
             </TooltipProvider>

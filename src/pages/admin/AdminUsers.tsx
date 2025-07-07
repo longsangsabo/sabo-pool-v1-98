@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Search, Filter, MoreHorizontal, UserCheck, UserX, Crown, AlertTriangle } from 'lucide-react';
+import { useLanguage, interpolate } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,6 +37,7 @@ import { useAdminUsers, type AdminUser } from '@/hooks/useAdminUsers';
 const AdminUsers = () => {
   const { data: isAdmin, isLoading: adminLoading } = useAdminCheck();
   const { users, isLoading: usersLoading, updateUserBan, updateUserRole, isUpdatingBan, isUpdatingRole } = useAdminUsers();
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -106,8 +108,8 @@ const AdminUsers = () => {
       <AdminLayout>
         <div className='flex items-center justify-center h-64'>
           <div className='text-center'>
-            <h2 className='text-2xl font-bold text-gray-900 mb-4'>Access Denied</h2>
-            <p className='text-gray-600'>You don't have permission to access this page.</p>
+            <h2 className='text-2xl font-bold text-gray-900 mb-4'>{t('common.access_denied')}</h2>
+            <p className='text-gray-600'>{t('common.no_permission')}</p>
           </div>
         </div>
       </AdminLayout>
@@ -128,11 +130,11 @@ const AdminUsers = () => {
   const getStatusText = (banStatus: string | null) => {
     switch (banStatus) {
       case 'banned':
-        return 'Đã khóa';
+        return t('admin.banned');
       case 'inactive':
-        return 'Không hoạt động';
+        return t('admin.inactive');
       default:
-        return 'Hoạt động';
+        return t('admin.active');
     }
   };
 
@@ -149,8 +151,8 @@ const AdminUsers = () => {
       <div className='space-y-6'>
         <div className='flex justify-between items-center'>
           <div>
-            <h1 className='text-3xl font-bold text-gray-900'>Quản Lý Người Dùng</h1>
-            <p className='text-gray-600'>Quản lý thông tin và trạng thái người dùng</p>
+            <h1 className='text-3xl font-bold text-gray-900'>{t('admin.user_management')}</h1>
+            <p className='text-gray-600'>{t('admin.user_management_desc')}</p>
           </div>
         </div>
 
@@ -158,7 +160,7 @@ const AdminUsers = () => {
           <div className='flex-1 relative'>
             <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
             <Input
-              placeholder='Tìm kiếm người dùng...'
+              placeholder={t('admin.search_users')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className='pl-10'
@@ -166,21 +168,21 @@ const AdminUsers = () => {
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className='w-48'>
-              <SelectValue placeholder='Trạng thái' />
+              <SelectValue placeholder={t('admin.status')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value='all'>Tất cả</SelectItem>
-              <SelectItem value='active'>Hoạt động</SelectItem>
-              <SelectItem value='inactive'>Không hoạt động</SelectItem>
-              <SelectItem value='banned'>Đã khóa</SelectItem>
+              <SelectItem value='all'>{t('admin.all')}</SelectItem>
+              <SelectItem value='active'>{t('admin.active')}</SelectItem>
+              <SelectItem value='inactive'>{t('admin.inactive')}</SelectItem>
+              <SelectItem value='banned'>{t('admin.banned')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Danh sách người dùng</CardTitle>
-            <CardDescription>Tổng cộng {filteredUsers.length} người dùng</CardDescription>
+            <CardTitle>{t('admin.user_list')}</CardTitle>
+            <CardDescription>{interpolate(t('admin.total_users'), { count: filteredUsers.length })}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className='space-y-4'>
@@ -196,12 +198,12 @@ const AdminUsers = () => {
                     </Avatar>
                     <div>
                       <div className='flex items-center space-x-2'>
-                        <h3 className='font-medium'>{user.full_name || 'Chưa cập nhật'}</h3>
+                        <h3 className='font-medium'>{user.full_name || t('admin.not_updated')}</h3>
                         {getRoleIcon(user.role)}
                         {user.is_admin && <Badge variant="secondary" className="text-xs">Admin</Badge>}
                       </div>
                       <p className='text-sm text-gray-500'>{user.user_id}</p>
-                      <p className='text-sm text-gray-500'>{user.phone || 'Chưa có SĐT'}</p>
+                      <p className='text-sm text-gray-500'>{user.phone || t('admin.no_phone')}</p>
                       {user.ban_reason && (
                         <p className='text-sm text-red-500 flex items-center'>
                           <AlertTriangle className="w-3 h-3 mr-1" />
@@ -213,15 +215,15 @@ const AdminUsers = () => {
 
                   <div className='flex items-center space-x-4'>
                     <div className='text-right'>
-                      <Badge className='mb-1'>{user.verified_rank || 'Chưa xác thực'}</Badge>
-                      <p className='text-sm text-gray-500'>{user.city || 'Chưa cập nhật'}</p>
+                      <Badge className='mb-1'>{user.verified_rank || t('admin.not_verified')}</Badge>
+                      <p className='text-sm text-gray-500'>{user.city || t('admin.not_updated')}</p>
                     </div>
                     <Badge className={getStatusColor(user.ban_status)}>
                       {getStatusText(user.ban_status)}
                     </Badge>
                     <div className='text-right text-sm text-gray-500'>
-                      <p>Tham gia: {formatDate(user.created_at)}</p>
-                      <p>Cập nhật: {formatDate(user.updated_at)}</p>
+                      <p>{t('admin.joined')}: {formatDate(user.created_at)}</p>
+                      <p>{t('admin.updated')}: {formatDate(user.updated_at)}</p>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -232,24 +234,24 @@ const AdminUsers = () => {
                       <DropdownMenuContent>
                         <DropdownMenuItem onClick={() => console.log('View details', user.user_id)}>
                           <UserCheck className='w-4 h-4 mr-2' />
-                          Xem chi tiết
+                          {t('admin.view_details')}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {user.ban_status === 'banned' ? (
                           <DropdownMenuItem onClick={() => handleUnbanUser(user)}>
                             <UserCheck className='w-4 h-4 mr-2' />
-                            Mở khóa tài khoản
+                            {t('admin.unlock_account')}
                           </DropdownMenuItem>
                         ) : (
                           <DropdownMenuItem onClick={() => handleBanUser(user)}>
                             <UserX className='w-4 h-4 mr-2' />
-                            Khóa tài khoản
+                            {t('admin.ban_account')}
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleChangeRole(user, user.role === 'premium' ? 'player' : 'premium')}>
                           <Crown className='w-4 h-4 mr-2' />
-                          {user.role === 'premium' ? 'Hủy Premium' : 'Nâng cấp Premium'}
+                          {user.role === 'premium' ? t('admin.cancel_premium') : t('admin.upgrade_premium')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -258,7 +260,7 @@ const AdminUsers = () => {
               ))}
               {filteredUsers.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  Không tìm thấy người dùng nào
+                  {t('admin.no_users_found')}
                 </div>
               )}
             </div>
@@ -269,15 +271,14 @@ const AdminUsers = () => {
         <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Khóa tài khoản người dùng</DialogTitle>
+              <DialogTitle>{t('admin.ban_user_title')}</DialogTitle>
               <DialogDescription>
-                Bạn có chắc chắn muốn khóa tài khoản của {selectedUser?.full_name}?
-                Vui lòng nhập lý do khóa tài khoản.
+                {interpolate(t('admin.ban_user_desc'), { name: selectedUser?.full_name || '' })}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <Textarea
-                placeholder="Nhập lý do khóa tài khoản..."
+                placeholder={t('admin.ban_reason_placeholder')}
                 value={banReason}
                 onChange={(e) => setBanReason(e.target.value)}
                 className="min-h-[100px]"
@@ -285,14 +286,14 @@ const AdminUsers = () => {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setBanDialogOpen(false)}>
-                Hủy
+                {t('admin.cancel')}
               </Button>
               <Button 
                 variant="destructive" 
                 onClick={confirmBanUser}
                 disabled={!banReason.trim() || isUpdatingBan}
               >
-                {isUpdatingBan ? 'Đang xử lý...' : 'Khóa tài khoản'}
+                {isUpdatingBan ? t('admin.processing') : t('admin.ban_account')}
               </Button>
             </DialogFooter>
           </DialogContent>
