@@ -17,7 +17,6 @@ import {
   Archive,
   Trash2,
   Check,
-  Check,
   Star,
   Clock,
   Trophy,
