@@ -2311,10 +2311,14 @@ export type Database = {
       }
       player_rankings: {
         Row: {
+          average_opponent_strength: number | null
+          club_verified: boolean | null
           created_at: string | null
           current_rank_id: string | null
           daily_challenges: number | null
+          elo_points: number | null
           id: string
+          performance_quality: number | null
           player_id: string | null
           rank_points: number | null
           season_start: string | null
@@ -2327,10 +2331,14 @@ export type Database = {
           wins: number | null
         }
         Insert: {
+          average_opponent_strength?: number | null
+          club_verified?: boolean | null
           created_at?: string | null
           current_rank_id?: string | null
           daily_challenges?: number | null
+          elo_points?: number | null
           id?: string
+          performance_quality?: number | null
           player_id?: string | null
           rank_points?: number | null
           season_start?: string | null
@@ -2343,10 +2351,14 @@ export type Database = {
           wins?: number | null
         }
         Update: {
+          average_opponent_strength?: number | null
+          club_verified?: boolean | null
           created_at?: string | null
           current_rank_id?: string | null
           daily_challenges?: number | null
+          elo_points?: number | null
           id?: string
+          performance_quality?: number | null
           player_id?: string | null
           rank_points?: number | null
           season_start?: string | null
@@ -3290,6 +3302,7 @@ export type Database = {
         Row: {
           code: string
           created_at: string | null
+          elo_points_required: number | null
           id: string
           level: number
           name: string
@@ -3299,6 +3312,7 @@ export type Database = {
         Insert: {
           code: string
           created_at?: string | null
+          elo_points_required?: number | null
           id?: string
           level: number
           name: string
@@ -3308,6 +3322,7 @@ export type Database = {
         Update: {
           code?: string
           created_at?: string | null
+          elo_points_required?: number | null
           id?: string
           level?: number
           name?: string
@@ -4826,6 +4841,14 @@ export type Database = {
         }
         Returns: number
       }
+      calculate_achievement_points: {
+        Args: { placement: string }
+        Returns: number
+      }
+      calculate_average_opponent_strength: {
+        Args: { p_player_id: string }
+        Returns: number
+      }
       calculate_challenge_spa: {
         Args: {
           p_winner_id: string
@@ -4847,6 +4870,10 @@ export type Database = {
       calculate_match_elo: {
         Args: { p_match_result_id: string }
         Returns: Json
+      }
+      calculate_performance_quality: {
+        Args: { p_player_id: string }
+        Returns: number
       }
       calculate_streak_bonus: {
         Args: { p_player_id: string; p_base_points: number }
