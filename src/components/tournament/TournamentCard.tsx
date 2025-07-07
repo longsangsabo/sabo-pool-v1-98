@@ -26,6 +26,7 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
 
   // Initialize registration status when component mounts
   useEffect(() => {
+    console.log('TournamentCard: Initializing registration status for tournament:', tournament.id);
     initializeRegistrationStatus([tournament.id]);
   }, [tournament.id, initializeRegistrationStatus]);
 
@@ -33,6 +34,16 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
   const isRegistering = isPending(tournamentId);
   const userIsRegistered = isRegistered(tournamentId);
   const eligibility = checkRegistrationEligibility(tournament);
+
+  // Debug logging
+  console.log('TournamentCard Debug:', {
+    tournamentId,
+    isRegistering,
+    userIsRegistered,
+    buttonText: getButtonText(tournamentId),
+    eligibility,
+    managementStatus: tournament.management_status
+  });
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':

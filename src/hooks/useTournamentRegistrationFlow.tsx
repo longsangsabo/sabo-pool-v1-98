@@ -292,16 +292,26 @@ export const useTournamentRegistrationFlow = () => {
 
   // Initialize registration status from database
   const initializeRegistrationStatus = useCallback(async (tournamentIds: string[]) => {
-    if (!user?.id || tournamentIds.length === 0) return;
+    if (!user?.id || tournamentIds.length === 0) {
+      console.log('Cannot initialize registration status: no user or tournament IDs', { userId: user?.id, tournamentIds });
+      return;
+    }
+
+    console.log('Initializing registration status for tournaments:', tournamentIds, 'User ID:', user.id);
 
     try {
       const { data, error } = await supabase
         .from('tournament_registrations')
-        .select('tournament_id')
+        .select('tournament_id, registration_status')
         .eq('player_id', user.id)
         .in('tournament_id', tournamentIds);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error checking registrations:', error);
+        throw error;
+      }
+
+      console.log('Registration data from database:', data);
 
       const newStatus: Record<string, RegistrationStatus> = {};
       
@@ -310,15 +320,23 @@ export const useTournamentRegistrationFlow = () => {
         newStatus[id] = 'NOT_REGISTERED';
       });
 
-      // Mark registered ones
+      // Mark registered ones (any status other than cancelled means registered)
       data?.forEach(registration => {
-        newStatus[registration.tournament_id] = 'REGISTERED';
+        if (registration.registration_status !== 'cancelled') {
+          newStatus[registration.tournament_id] = 'REGISTERED';
+        }
       });
 
-      setRegistrationStatus(prev => ({
-        ...prev,
-        ...newStatus
-      }));
+      console.log('Setting registration status:', newStatus);
+
+      setRegistrationStatus(prev => {
+        const updated = {
+          ...prev,
+          ...newStatus
+        };
+        console.log('Updated registration status state:', updated);
+        return updated;
+      });
     } catch (error) {
       console.error('Error initializing registration status:', error);
     }
