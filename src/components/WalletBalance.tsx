@@ -1,54 +1,75 @@
+
 import React, { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Coins, TrendingUp, Clock, ArrowUpRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Wallet, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface WalletData {
   balance: number;
-  recent_transactions: Array<{
-    amount: number;
-    transaction_type: string;
-    transaction_category: string;
-    description: string;
-    created_at: string;
-  }>;
+  total_earned: number;
+  total_spent: number;
+}
+
+interface RecentTransaction {
+  id: string;
+  amount: number;
+  transaction_type: string;
+  description: string;
+  created_at: string;
 }
 
 export const WalletBalance: React.FC = () => {
   const { user } = useAuth();
-  const [walletData, setWalletData] = useState<WalletData | null>(null);
+  const [walletData, setWalletData] = useState<WalletData>({
+    balance: 0,
+    total_earned: 0,
+    total_spent: 0
+  });
+  const [recentTransactions, setRecentTransactions] = useState<RecentTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchWalletData = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       try {
-        setLoading(true);
-        
-        // Get wallet data and recent transactions
-        const { data: walletResult } = await supabase
+        console.log('Fetching wallet data for user:', user.id);
+
+        // Fetch wallet balance
+        const { data: walletData, error: walletError } = await supabase
           .from('wallets')
-          .select(`
-            balance,
-            id,
-            wallet_transactions (
-              amount,
-              transaction_type,
-              transaction_category,
-              description,
-              created_at
-            )
-          `)
+          .select('balance, total_earned, total_spent')
           .eq('user_id', user.id)
           .single();
 
-        setWalletData({
-          balance: walletResult?.balance || 0,
-          recent_transactions: walletResult?.wallet_transactions?.slice(0, 5) || [],
-        });
+        if (walletError && walletError.code !== 'PGRST116') {
+          console.error('Error fetching wallet:', walletError);
+        } else if (walletData) {
+          setWalletData({
+            balance: walletData.balance || 0,
+            total_earned: walletData.total_earned || 0,
+            total_spent: walletData.total_spent || 0
+          });
+        }
+
+        // Fetch recent transactions
+        const { data: transactions, error: transError } = await supabase
+          .from('wallet_transactions')
+          .select('id, amount, transaction_type, description, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (transError) {
+          console.error('Error fetching transactions:', transError);
+        } else {
+          setRecentTransactions(transactions || []);
+        }
+
       } catch (error) {
         console.error('Error fetching wallet data:', error);
       } finally {
@@ -57,68 +78,130 @@ export const WalletBalance: React.FC = () => {
     };
 
     fetchWalletData();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('wallet-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wallets',
+          filter: `user_id=eq.${user?.id}`,
+        },
+        (payload) => {
+          console.log('Wallet updated via realtime:', payload);
+          if (payload.new && 'balance' in payload.new) {
+            setWalletData(prev => ({
+              ...prev,
+              balance: payload.new.balance as number,
+              total_earned: payload.new.total_earned as number || prev.total_earned,
+              total_spent: payload.new.total_spent as number || prev.total_spent
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
+
+  if (!user) {
+    return null;
+  }
 
   if (loading) {
     return (
-      <Card className="p-6">
-        <div className="animate-pulse">
-          <div className="h-4 bg-muted rounded w-1/3 mb-4"></div>
-          <div className="h-8 bg-muted rounded w-1/2 mb-4"></div>
-          <div className="space-y-2">
-            <div className="h-3 bg-muted rounded"></div>
-            <div className="h-3 bg-muted rounded w-5/6"></div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Coins className="w-5 h-5 mr-2" />
+            Ví SPA Points
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-sm text-gray-500 mt-2">Đang tải...</p>
           </div>
-        </div>
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Wallet className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold">Số dư SPA</h3>
-      </div>
-      
-      <div className="text-center mb-4">
-        <div className="text-3xl font-bold text-primary mb-1">
-          {walletData?.balance || 0} SPA
-        </div>
-        <div className="text-sm text-muted-foreground">Số dư hiện tại</div>
-      </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Coins className="w-5 h-5 mr-2" />
+          Ví SPA Points
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {/* Current Balance */}
+          <div className="text-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
+            <div className="text-2xl font-bold text-green-700">{walletData.balance}</div>
+            <div className="text-sm text-green-600">Số dư hiện tại</div>
+          </div>
 
-      {walletData?.recent_transactions && walletData.recent_transactions.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium text-muted-foreground">Giao dịch gần đây</h4>
-          <div className="space-y-1">
-            {walletData.recent_transactions.slice(0, 3).map((transaction, index) => (
-              <div key={index} className="flex items-center justify-between py-1">
-                <div className="flex items-center gap-2">
-                  {transaction.transaction_type === 'credit' ? (
-                    <TrendingUp className="h-3 w-3 text-green-600" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 text-red-600" />
-                  )}
-                  <span className="text-xs text-muted-foreground">
-                    {transaction.description || transaction.transaction_category}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className={`text-xs font-medium ${
-                    transaction.transaction_type === 'credit' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {transaction.transaction_type === 'credit' ? '+' : '-'}{transaction.amount}
-                  </span>
-                  <Badge variant="outline" className="text-xs">
-                    {transaction.transaction_category}
-                  </Badge>
-                </div>
-              </div>
-            ))}
+          {/* Total Earned */}
+          <div className="text-center p-4 bg-gradient-to-r from-blue-50 to-sky-50 rounded-lg">
+            <div className="text-2xl font-bold text-blue-700">{walletData.total_earned}</div>
+            <div className="text-sm text-blue-600">Tổng đã kiếm</div>
+          </div>
+
+          {/* Total Spent */}
+          <div className="text-center p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg">
+            <div className="text-2xl font-bold text-orange-700">{walletData.total_spent}</div>
+            <div className="text-sm text-orange-600">Tổng đã chi</div>
           </div>
         </div>
-      )}
+
+        {/* Recent Transactions */}
+        {recentTransactions.length > 0 && (
+          <div>
+            <h4 className="font-semibold mb-3 flex items-center">
+              <Clock className="w-4 h-4 mr-2" />
+              Giao dịch gần đây
+            </h4>
+            <div className="space-y-2">
+              {recentTransactions.map((transaction) => (
+                <div key={transaction.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{transaction.description}</div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(transaction.created_at).toLocaleDateString('vi-VN')}
+                    </div>
+                  </div>
+                  <div className={`flex items-center ${
+                    transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {transaction.amount > 0 ? (
+                      <TrendingUp className="w-3 h-3 mr-1" />
+                    ) : (
+                      <ArrowUpRight className="w-3 h-3 mr-1 rotate-45" />
+                    )}
+                    <span className="font-medium">
+                      {transaction.amount > 0 ? '+' : ''}{transaction.amount}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {recentTransactions.length === 0 && (
+          <div className="text-center py-4 text-gray-500">
+            <Coins className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">Chưa có giao dịch nào</p>
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 };

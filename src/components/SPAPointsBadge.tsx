@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Coins } from 'lucide-react';
@@ -11,9 +12,14 @@ export const SPAPointsBadge: React.FC = () => {
 
   useEffect(() => {
     const fetchBalance = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       try {
+        console.log('Fetching wallet balance for user:', user.id);
+        
         const { data, error } = await supabase
           .from('wallets')
           .select('balance')
@@ -22,12 +28,15 @@ export const SPAPointsBadge: React.FC = () => {
 
         if (error && error.code !== 'PGRST116') {
           console.error('Error fetching wallet balance:', error);
-          return;
+          setBalance(0);
+        } else {
+          const newBalance = data?.balance || 0;
+          console.log('Wallet balance fetched:', newBalance);
+          setBalance(newBalance);
         }
-
-        setBalance(data?.balance || 0);
       } catch (error) {
         console.error('Error fetching wallet balance:', error);
+        setBalance(0);
       } finally {
         setLoading(false);
       }
@@ -47,6 +56,7 @@ export const SPAPointsBadge: React.FC = () => {
           filter: `user_id=eq.${user?.id}`,
         },
         (payload) => {
+          console.log('Wallet balance updated via realtime:', payload);
           if (payload.new && 'balance' in payload.new) {
             setBalance(payload.new.balance as number);
           }
@@ -59,13 +69,17 @@ export const SPAPointsBadge: React.FC = () => {
     };
   }, [user]);
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
         <Coins className="w-3 h-3 mr-1" />
         <span>...</span>
       </Badge>
     );
+  }
+
+  if (!user) {
+    return null;
   }
 
   return (
