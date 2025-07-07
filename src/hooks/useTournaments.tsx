@@ -250,13 +250,29 @@ export const useTournaments = (userId?: string) => {
       try {
         if (!user?.id) throw new Error('Must be logged in');
 
-        const { error } = await supabase
+        console.log('Attempting to cancel registration for tournament:', tournamentId, 'user:', user.id);
+        
+        const { data, error } = await supabase
           .from('tournament_registrations')
           .delete()
           .eq('tournament_id', tournamentId)
-          .eq('player_id', user.id);
+          .eq('player_id', user.id)
+          .select(); // Add select to see what was deleted
 
-        if (error) throw error;
+        console.log('Delete result:', { data, error });
+
+        if (error) {
+          console.error('Delete error:', error);
+          throw error;
+        }
+
+        if (!data || data.length === 0) {
+          console.warn('No registration found to delete');
+          toast.error('Không tìm thấy đăng ký để hủy');
+          return;
+        }
+
+        console.log('Successfully deleted registration:', data[0]);
 
         setTournaments(prev =>
           prev.map(tournament =>
@@ -274,6 +290,7 @@ export const useTournaments = (userId?: string) => {
 
         toast.success('Đã hủy đăng ký giải đấu');
       } catch (err) {
+        console.error('Cancel registration error:', err);
         setError(
           err instanceof Error ? err.message : 'Failed to cancel registration'
         );
