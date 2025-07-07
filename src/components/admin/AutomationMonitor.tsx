@@ -16,7 +16,9 @@ import {
   RefreshCw,
   Calendar,
   Settings,
-  TrendingUp
+  TrendingUp,
+  Trophy,
+  Bell
 } from 'lucide-react';
 
 interface CronJob {
@@ -119,6 +121,12 @@ const AutomationMonitor = () => {
           break;
         case 'automated_season_reset':
           result = await supabase.rpc('automated_season_reset');
+          break;
+        case 'auto_bracket_generation':
+          result = await supabase.functions.invoke('auto-bracket-generation');
+          break;
+        case 'tournament_reminder_system':
+          result = await supabase.functions.invoke('tournament-reminder-system');
           break;
         default:
           throw new Error(`Unknown function: ${functionName}`);
@@ -370,6 +378,24 @@ const AutomationMonitor = () => {
                 >
                   <Calendar className="w-4 h-4 mr-2" />
                   Test Monthly Reports
+                </Button>
+                
+                <Button 
+                  onClick={() => testAutomationFunction('auto_bracket_generation')}
+                  variant="outline"
+                  className="w-full justify-start"
+                >
+                  <Trophy className="w-4 h-4 mr-2" />
+                  Test Auto Bracket Generation
+                </Button>
+                
+                <Button 
+                  onClick={() => testAutomationFunction('tournament_reminder_system')}
+                  variant="outline"
+                  className="w-full justify-start"
+                >
+                  <Bell className="w-4 h-4 mr-2" />
+                  Test Tournament Reminders
                 </Button>
               </CardContent>
             </Card>

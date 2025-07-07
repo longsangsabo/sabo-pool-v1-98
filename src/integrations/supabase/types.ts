@@ -4265,6 +4265,7 @@ export type Database = {
       tournaments: {
         Row: {
           banner_image: string | null
+          bracket_generated: boolean | null
           club_id: string | null
           contact_info: Json | null
           created_at: string
@@ -4303,6 +4304,7 @@ export type Database = {
         }
         Insert: {
           banner_image?: string | null
+          bracket_generated?: boolean | null
           club_id?: string | null
           contact_info?: Json | null
           created_at?: string
@@ -4341,6 +4343,7 @@ export type Database = {
         }
         Update: {
           banner_image?: string | null
+          bracket_generated?: boolean | null
           club_id?: string | null
           contact_info?: Json | null
           created_at?: string
