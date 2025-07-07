@@ -128,6 +128,18 @@ const AutomationMonitor = () => {
         case 'tournament_reminder_system':
           result = await supabase.functions.invoke('tournament-reminder-system');
           break;
+        case 'match_scheduling_automation':
+          result = await supabase.functions.invoke('match-scheduling-automation');
+          break;
+        case 'inactive_player_cleanup':
+          result = await supabase.functions.invoke('inactive-player-cleanup');
+          break;
+        case 'auto_rank_promotion':
+          result = await supabase.functions.invoke('auto-rank-promotion');
+          break;
+        case 'database_health_monitoring':
+          result = await supabase.functions.invoke('database-health-monitoring');
+          break;
         default:
           throw new Error(`Unknown function: ${functionName}`);
       }
@@ -396,6 +408,42 @@ const AutomationMonitor = () => {
                 >
                   <Bell className="w-4 h-4 mr-2" />
                   Test Tournament Reminders
+                </Button>
+                
+                <Button 
+                  onClick={() => testAutomationFunction('match_scheduling_automation')}
+                  variant="outline"
+                  className="w-full justify-start"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Test Match Scheduling
+                </Button>
+                
+                <Button 
+                  onClick={() => testAutomationFunction('inactive_player_cleanup')}
+                  variant="outline"
+                  className="w-full justify-start"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Test Player Cleanup
+                </Button>
+                
+                <Button 
+                  onClick={() => testAutomationFunction('auto_rank_promotion')}
+                  variant="outline"
+                  className="w-full justify-start"
+                >
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  Test Auto Rank Promotion
+                </Button>
+                
+                <Button 
+                  onClick={() => testAutomationFunction('database_health_monitoring')}
+                  variant="outline"
+                  className="w-full justify-start"
+                >
+                  <Database className="w-4 h-4 mr-2" />
+                  Test Database Health Check
                 </Button>
               </CardContent>
             </Card>

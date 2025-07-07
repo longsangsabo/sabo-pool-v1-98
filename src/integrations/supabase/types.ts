@@ -2903,6 +2903,7 @@ export type Database = {
       profiles: {
         Row: {
           active_role: string | null
+          activity_status: string | null
           avatar_url: string | null
           ban_expires_at: string | null
           ban_reason: string | null
@@ -2917,6 +2918,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_admin: boolean | null
+          last_activity_check: string | null
           member_since: string | null
           my_referral_code: string | null
           nickname: string | null
@@ -2933,6 +2935,7 @@ export type Database = {
         }
         Insert: {
           active_role?: string | null
+          activity_status?: string | null
           avatar_url?: string | null
           ban_expires_at?: string | null
           ban_reason?: string | null
@@ -2947,6 +2950,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_admin?: boolean | null
+          last_activity_check?: string | null
           member_since?: string | null
           my_referral_code?: string | null
           nickname?: string | null
@@ -2963,6 +2967,7 @@ export type Database = {
         }
         Update: {
           active_role?: string | null
+          activity_status?: string | null
           avatar_url?: string | null
           ban_expires_at?: string | null
           ban_reason?: string | null
@@ -2977,6 +2982,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_admin?: boolean | null
+          last_activity_check?: string | null
           member_since?: string | null
           my_referral_code?: string | null
           nickname?: string | null
@@ -4278,6 +4284,7 @@ export type Database = {
           game_format: string | null
           id: string
           is_public: boolean | null
+          matches_scheduled: boolean | null
           max_participants: number | null
           max_rank_requirement: string | null
           min_rank_requirement: string | null
@@ -4317,6 +4324,7 @@ export type Database = {
           game_format?: string | null
           id?: string
           is_public?: boolean | null
+          matches_scheduled?: boolean | null
           max_participants?: number | null
           max_rank_requirement?: string | null
           min_rank_requirement?: string | null
@@ -4356,6 +4364,7 @@ export type Database = {
           game_format?: string | null
           id?: string
           is_public?: boolean | null
+          matches_scheduled?: boolean | null
           max_participants?: number | null
           max_rank_requirement?: string | null
           min_rank_requirement?: string | null
@@ -4993,6 +5002,13 @@ export type Database = {
           username: string
           active: boolean
           jobname: string
+        }[]
+      }
+      get_inactive_players: {
+        Args: { days_threshold: number }
+        Returns: {
+          user_id: string
+          last_activity: string
         }[]
       }
       get_notification_stats: {
