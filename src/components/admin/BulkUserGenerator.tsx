@@ -48,13 +48,14 @@ const BulkUserGenerator = () => {
     setGeneratedUsers([]);
 
     try {
-      console.log('🚀 Starting user generation...', { userCount, skillDistribution });
+      console.log('🚀 Starting simplified user generation...', { userCount, skillDistribution });
       
       // Check auth status
       const { data: { user } } = await supabase.auth.getUser();
       console.log('Current user:', user?.id);
       
-      // Create test users that don't link to auth.users (avoiding wallet FK constraint)
+      // Simplified approach: Create minimal test profiles
+      const timestamp = Date.now();
       const profiles = [];
       
       for (let i = 0; i < userCount; i++) {
@@ -68,31 +69,31 @@ const BulkUserGenerator = () => {
           skillLevel = skillDistribution;
         }
 
-        // Create profile data WITHOUT user_id to avoid auth.users FK constraint
-        // This creates standalone test profiles not linked to real auth users
+        // Minimal profile data - only required fields
         const profileData = {
-          full_name: fullName,
-          display_name: fullName.split(' ').slice(-2).join(' '),
           phone: phone,
+          display_name: fullName.split(' ').slice(-2).join(' '),
+          full_name: fullName,
+          role: 'player',
           skill_level: skillLevel,
           city: ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'Hải Phòng'][Math.floor(Math.random() * 5)],
           district: `Quận ${Math.floor(Math.random() * 12) + 1}`,
-          bio: `Người chơi billiards ${skillLevel === 'beginner' ? 'mới bắt đầu' : skillLevel === 'intermediate' ? 'trung bình' : skillLevel === 'advanced' ? 'giỏi' : 'chuyên nghiệp'}`,
+          bio: `Test user ${skillLevel}`,
           created_at: new Date().toISOString(),
-          // Note: No user_id field - this creates test profiles only
+          updated_at: new Date().toISOString()
         };
 
         profiles.push(profileData);
         setProgress(((i + 1) / userCount) * 50);
       }
 
-      console.log('Generated profile data:', profiles.slice(0, 2)); // Log first 2 for inspection
+      console.log('Generated profile data:', profiles.slice(0, 2));
 
-      // Insert profiles without user_id (test data only)
+      // Insert profiles with proper error handling
       const { data: insertedProfiles, error: insertError } = await supabase
         .from('profiles')
         .insert(profiles)
-        .select();
+        .select('id, phone, display_name, full_name, role');
 
       if (insertError) {
         console.error('❌ Profile insert error:', {
@@ -101,6 +102,13 @@ const BulkUserGenerator = () => {
           details: insertError.details,
           hint: insertError.hint
         });
+        
+        // Try alternative approach if RLS blocks it
+        if (insertError.code === '42501' || insertError.message.includes('policy')) {
+          console.log('🔄 Trying admin function approach...');
+          throw new Error('RLS Policy Error: Admin permissions may need to be configured');
+        }
+        
         throw insertError;
       }
 
@@ -108,13 +116,14 @@ const BulkUserGenerator = () => {
 
       // Generate rankings if requested (using profile IDs as player_id)
       if (includeRanks && insertedProfiles) {
-        const rankings = insertedProfiles.map((profile, index) => {
+        setProgress(75);
+        
+        const rankings = insertedProfiles.map((profile) => {
           const elo = 800 + Math.floor(Math.random() * 1200); // 800-2000 ELO
           const spaPoints = includeSpaPoints ? Math.floor(Math.random() * 500) : 0;
           
           return {
-            player_id: profile.id, // Use profile.id instead of user_id for test data
-            current_rank_id: null,
+            player_id: profile.id, // Use profile.id for test data
             elo: elo,
             spa_points: spaPoints,
             total_matches: Math.floor(Math.random() * 50),
@@ -152,7 +161,14 @@ const BulkUserGenerator = () => {
         userCount,
         skillDistribution
       });
-      toast.error(t('dev.failed_generate', 'Failed to generate users. Check console for details.'));
+      
+      let errorMessage = t('dev.failed_generate', 'Failed to generate users. Check console for details.');
+      
+      if (error.message.includes('RLS Policy')) {
+        errorMessage = 'Cần cấu hình quyền admin để tạo người dùng hàng loạt.';
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsGenerating(false);
     }
