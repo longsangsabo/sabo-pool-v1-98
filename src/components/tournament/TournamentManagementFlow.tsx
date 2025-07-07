@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,7 @@ import { Calendar, Users, Trophy, DollarSign, MapPin, AlertCircle, Play, UserPlu
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTournamentManagement } from '@/hooks/useTournamentManagement';
 import { useAuth } from '@/hooks/useAuth';
+import { TournamentRegistrationModal } from './TournamentRegistrationModal';
 
 interface TournamentManagementFlowProps {
   tournamentId: string;
@@ -14,13 +15,15 @@ interface TournamentManagementFlowProps {
 
 const TournamentManagementFlow: React.FC<TournamentManagementFlowProps> = ({ tournamentId }) => {
   const { user } = useAuth();
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const {
     tournament,
     workflowSteps,
     realtimeStats,
     loading,
     updating,
-    updateManagementStatus
+    updateManagementStatus,
+    refetch
   } = useTournamentManagement(tournamentId);
 
   if (loading) {
@@ -94,6 +97,10 @@ const TournamentManagementFlow: React.FC<TournamentManagementFlowProps> = ({ tou
 
   const handleStatusChange = async (newStatus: string) => {
     await updateManagementStatus(newStatus);
+  };
+
+  const handleRegistrationSuccess = () => {
+    refetch(); // Refresh tournament data to update participant count
   };
 
   const formatDate = (dateString: string) => {
@@ -237,6 +244,20 @@ const TournamentManagementFlow: React.FC<TournamentManagementFlowProps> = ({ tou
                   </Button>
                 ))}
               </div>
+              
+              {/* Registration Button for Open Tournaments */}
+              {tournament.management_status === 'open' && tournament.status === 'registration_open' && (
+                <div className="pt-2 border-t">
+                  <Button 
+                    onClick={() => setShowRegistrationModal(true)}
+                    className="w-full"
+                    size="sm"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Đăng ký tham gia
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -327,6 +348,16 @@ const TournamentManagementFlow: React.FC<TournamentManagementFlowProps> = ({ tou
           </div>
         </CardContent>
       </Card>
+
+      {/* Registration Modal */}
+      {tournament && (
+        <TournamentRegistrationModal
+          tournament={tournament}
+          isOpen={showRegistrationModal}
+          onClose={() => setShowRegistrationModal(false)}
+          onRegistrationSuccess={handleRegistrationSuccess}
+        />
+      )}
     </div>
   );
 };
