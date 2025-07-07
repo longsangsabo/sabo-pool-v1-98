@@ -34,13 +34,15 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
 }) => {
   const { watch, setValue, formState: { errors } } = form;
   const watchedData = watch();
-  const [selectedMethod, setSelectedMethod] = useState(watchedData.payment_method || 'vnpay');
+  const [selectedMethod, setSelectedMethod] = useState<'vnpay' | 'cash' | 'transfer'>(
+    (watchedData.payment_method as 'vnpay' | 'cash' | 'transfer') || 'vnpay'
+  );
 
   const entryFee = selectedTournament?.entry_fee || 0;
   const processingFee = selectedMethod === 'vnpay' ? Math.round(entryFee * 0.02) : 0; // 2% for VNPAY
   const totalAmount = entryFee + processingFee;
 
-  const handlePaymentMethodSelect = (method: string) => {
+  const handlePaymentMethodSelect = (method: 'vnpay' | 'cash' | 'transfer') => {
     setSelectedMethod(method);
     setValue('payment_method', method as any);
   };
@@ -175,7 +177,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                     ? 'border-primary bg-primary/5 shadow-sm' 
                     : 'border-border hover:border-primary/50'
                 }`}
-                onClick={() => handlePaymentMethodSelect(method.value)}
+                onClick={() => handlePaymentMethodSelect(method.value as 'vnpay' | 'cash' | 'transfer')}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
