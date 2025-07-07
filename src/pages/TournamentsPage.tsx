@@ -51,7 +51,7 @@ const TournamentsPage: React.FC = () => {
 
   const handleViewTournament = (tournamentId: string) => {
     // Navigate to tournament details page
-    console.log('Viewing tournament:', tournamentId);
+    window.location.href = `/tournaments/${tournamentId}`;
   };
 
   const handleViewRegistrations = (tournament: any) => {

@@ -4142,6 +4142,53 @@ export type Database = {
           },
         ]
       }
+      tournament_realtime_stats: {
+        Row: {
+          bracket_generated: boolean | null
+          checked_in_participants: number | null
+          completed_matches: number | null
+          current_participants: number | null
+          id: string
+          last_activity: string | null
+          prize_distributed: boolean | null
+          total_matches: number | null
+          tournament_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bracket_generated?: boolean | null
+          checked_in_participants?: number | null
+          completed_matches?: number | null
+          current_participants?: number | null
+          id?: string
+          last_activity?: string | null
+          prize_distributed?: boolean | null
+          total_matches?: number | null
+          tournament_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bracket_generated?: boolean | null
+          checked_in_participants?: number | null
+          completed_matches?: number | null
+          current_participants?: number | null
+          id?: string
+          last_activity?: string | null
+          prize_distributed?: boolean | null
+          total_matches?: number | null
+          tournament_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_realtime_stats_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: true
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_registrations: {
         Row: {
           created_at: string | null
@@ -4283,6 +4330,56 @@ export type Database = {
           },
         ]
       }
+      tournament_workflow_steps: {
+        Row: {
+          automation_data: Json | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          step_name: string
+          step_number: number
+          step_status: string | null
+          tournament_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          automation_data?: Json | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          step_name: string
+          step_number: number
+          step_status?: string | null
+          tournament_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          automation_data?: Json | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          step_name?: string
+          step_number?: number
+          step_status?: string | null
+          tournament_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_workflow_steps_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournaments: {
         Row: {
           banner_image: string | null
@@ -4299,6 +4396,7 @@ export type Database = {
           game_format: string | null
           id: string
           is_public: boolean | null
+          management_status: string | null
           matches_scheduled: boolean | null
           max_participants: number | null
           max_rank_requirement: string | null
@@ -4339,6 +4437,7 @@ export type Database = {
           game_format?: string | null
           id?: string
           is_public?: boolean | null
+          management_status?: string | null
           matches_scheduled?: boolean | null
           max_participants?: number | null
           max_rank_requirement?: string | null
@@ -4379,6 +4478,7 @@ export type Database = {
           game_format?: string | null
           id?: string
           is_public?: boolean | null
+          management_status?: string | null
           matches_scheduled?: boolean | null
           max_participants?: number | null
           max_rank_requirement?: string | null
@@ -5146,6 +5246,14 @@ export type Database = {
           verification_id: string
           new_status: string
           verifier_id: string
+        }
+        Returns: Json
+      }
+      update_tournament_management_status: {
+        Args: {
+          p_tournament_id: string
+          p_new_status: string
+          p_completed_by?: string
         }
         Returns: Json
       }

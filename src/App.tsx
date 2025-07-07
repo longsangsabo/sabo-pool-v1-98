@@ -91,6 +91,7 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTestRanking from "./pages/admin/AdminTestRanking";
 import AdminLayout from "./components/AdminLayout";
 import ClubManagementPage from "./pages/ClubManagementPage";
+import TournamentDetailsPage from "./pages/TournamentDetailsPage";
 
 // Simple loading fallback
 const LoadingFallback = () => (
@@ -142,6 +143,7 @@ const App = () => {
                         
                         {/* Tournaments & Challenges */}
                         <Route path="tournaments" element={<TournamentsPage />} />
+                        <Route path="tournaments/:id" element={<TournamentDetailsPage />} />
                         <Route path="tournament-discovery" element={<TournamentDiscoveryPage />} />
                         <Route path="create-tournament" element={<CreateTournamentPage />} />
                         <Route path="challenges" element={<EnhancedChallengesPageV2 />} />
