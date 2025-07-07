@@ -568,6 +568,33 @@ export type Database = {
           },
         ]
       }
+      daily_challenge_stats: {
+        Row: {
+          challenge_count: number | null
+          challenge_date: string
+          created_at: string | null
+          id: string
+          player_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          challenge_count?: number | null
+          challenge_date: string
+          created_at?: string | null
+          id?: string
+          player_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          challenge_count?: number | null
+          challenge_date?: string
+          created_at?: string | null
+          id?: string
+          player_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       event_registrations: {
         Row: {
           created_at: string | null
@@ -4082,6 +4109,20 @@ export type Database = {
         }
         Returns: number
       }
+      calculate_challenge_spa: {
+        Args: {
+          p_winner_id: string
+          p_loser_id: string
+          p_wager_amount: number
+          p_race_to: number
+        }
+        Returns: {
+          winner_spa: number
+          loser_spa: number
+          daily_count: number
+          reduction_applied: boolean
+        }[]
+      }
       calculate_comeback_bonus: {
         Args: { p_player_id: string }
         Returns: number
@@ -4091,7 +4132,13 @@ export type Database = {
         Returns: number
       }
       calculate_tournament_spa: {
-        Args: { p_position: number; p_rank_code: string }
+        Args:
+          | {
+              p_position: number
+              p_player_rank: string
+              p_tournament_type?: string
+            }
+          | { p_position: number; p_rank_code: string }
         Returns: number
       }
       calculate_trust_score: {
@@ -4129,6 +4176,16 @@ export type Database = {
           p_winner_id: string
           p_loser_id: string
           p_base_points?: number
+        }
+        Returns: Json
+      }
+      complete_challenge_with_daily_limits: {
+        Args: {
+          p_match_id: string
+          p_winner_id: string
+          p_loser_id: string
+          p_wager_amount: number
+          p_race_to: number
         }
         Returns: Json
       }

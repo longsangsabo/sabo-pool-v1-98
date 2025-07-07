@@ -13,6 +13,15 @@ interface SPABreakdown {
   loserPenalty: number;
 }
 
+interface ChallengeBreakdown {
+  winner_spa: number;
+  loser_spa: number;
+  daily_count: number;
+  reduction_applied: boolean;
+  wager_amount: number;
+  race_to: number;
+}
+
 interface Milestone {
   id: string;
   milestone_type: string;
@@ -123,6 +132,49 @@ export function useAdvancedSPAPoints() {
     }
   });
 
+  // Complete challenge with daily limits
+  const completeChallengeWithLimitsMutation = useMutation({
+    mutationFn: async ({
+      matchId,
+      winnerId,
+      loserId,
+      wagerAmount,
+      raceTo
+    }: {
+      matchId: string;
+      winnerId: string;
+      loserId: string;
+      wagerAmount: number;
+      raceTo: number;
+    }) => {
+      const { data, error } = await supabase.rpc('complete_challenge_with_daily_limits', {
+        p_match_id: matchId,
+        p_winner_id: winnerId,
+        p_loser_id: loserId,
+        p_wager_amount: wagerAmount,
+        p_race_to: raceTo
+      });
+
+      if (error) throw error;
+      return data as unknown as ChallengeBreakdown;
+    },
+    onSuccess: (breakdown, variables) => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['wallets'] });
+      queryClient.invalidateQueries({ queryKey: ['spa-wallet-updates'] });
+      queryClient.invalidateQueries({ queryKey: ['player-rankings'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-challenges'] });
+      
+      // Check for new milestones
+      if (user) {
+        checkMilestones(user.id);
+      }
+    },
+    onError: (error) => {
+      console.error('Error completing challenge with limits:', error);
+      toast.error('Lỗi khi hoàn thành thách đấu');
+    }
+  });
   // Check and award milestones
   const checkMilestonesMutation = useMutation({
     mutationFn: async (playerId: string) => {
@@ -184,6 +236,16 @@ export function useAdvancedSPAPoints() {
     return data as number;
   };
 
+  const completeChallengeWithLimits = (params: {
+    matchId: string;
+    winnerId: string;
+    loserId: string;
+    wagerAmount: number;
+    raceTo: number;
+  }) => {
+    return completeChallengeWithLimitsMutation.mutateAsync(params);
+  };
+
   const completeChallenge = (params: {
     matchId: string;
     winnerId: string;
@@ -204,10 +266,11 @@ export function useAdvancedSPAPoints() {
     timeMultiplier,
     
     // State
-    loading: loading || completeChallengeMutation.isPending || checkMilestonesMutation.isPending,
+    loading: loading || completeChallengeMutation.isPending || completeChallengeWithLimitsMutation.isPending || checkMilestonesMutation.isPending,
     
     // Functions
     completeChallenge,
+    completeChallengeWithLimits,
     checkMilestones,
     calculateStreakPreview,
     calculateComebackPreview,

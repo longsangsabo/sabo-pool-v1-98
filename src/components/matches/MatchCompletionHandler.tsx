@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAdvancedSPAPoints } from '@/hooks/useAdvancedSPAPoints';
 import { SPAPointsBreakdown } from '@/components/SPAPointsBreakdown';
+import { DailyChallengeStatus } from '@/components/DailyChallengeStatus';
 
 interface MatchCompletionHandlerProps {
   match: {
@@ -20,17 +21,19 @@ interface MatchCompletionHandlerProps {
     status: string;
   };
   wagerPoints?: number;
+  raceTo?: number;
   onComplete: () => void;
 }
 
 export const MatchCompletionHandler = ({ 
   match, 
-  wagerPoints = 100, 
+  wagerPoints = 100,
+  raceTo = 5,
   onComplete 
 }: MatchCompletionHandlerProps) => {
   const [completing, setCompleting] = useState(false);
   const [completedBreakdown, setCompletedBreakdown] = useState<any>(null);
-  const { completeChallenge } = useAdvancedSPAPoints();
+  const { completeChallenge, completeChallengeWithLimits } = useAdvancedSPAPoints();
 
   const handleComplete = async (winnerId: string) => {
     if (completing) return;
@@ -51,13 +54,14 @@ export const MatchCompletionHandler = ({
 
       if (matchError) throw matchError;
 
-      // If this is a challenge match, award SPA points with bonuses
+      // If this is a challenge match, award SPA points with daily limits
       if (match.challenge_id) {
-        const breakdown = await completeChallenge({
+        const breakdown = await completeChallengeWithLimits({
           matchId: match.id,
           winnerId,
           loserId,
-          basePoints: wagerPoints
+          wagerAmount: wagerPoints,
+          raceTo
         });
         
         setCompletedBreakdown(breakdown);
@@ -69,6 +73,18 @@ export const MatchCompletionHandler = ({
           .eq('id', match.challenge_id);
           
         if (challengeError) throw challengeError;
+        
+        // Show detailed success message
+        toast.success(
+          <div className="space-y-1">
+            <p className="font-medium">Thắng: +{breakdown.winner_spa} SPA</p>
+            {breakdown.reduction_applied && (
+              <p className="text-xs text-warning">
+                Đã giảm 70% - kèo thứ {breakdown.daily_count} trong ngày
+              </p>
+            )}
+          </div>
+        );
       } else {
         toast.success('Trận đấu đã hoàn thành!');
       }
@@ -112,18 +128,23 @@ export const MatchCompletionHandler = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {match.challenge_id && (
-          <div className="p-3 bg-muted rounded-lg">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Thách đấu</span>
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <Zap className="h-3 w-3" />
-                {wagerPoints} SPA Points
-              </Badge>
+          <>
+            <DailyChallengeStatus />
+            
+            <div className="p-3 bg-muted rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Thách đấu</span>
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <Zap className="h-3 w-3" />
+                  {wagerPoints} SPA Points
+                </Badge>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 space-y-1">
+                <p>Người thắng sẽ nhận SPA points (có thể giảm nếu đã chơi 2+ kèo hôm nay)</p>
+                <p>Race to: {raceTo} • Người thua mất 50% tiền cược</p>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Người thắng sẽ nhận SPA points (có thể giảm nếu đã chơi 2+ kèo hôm nay)
-            </p>
-          </div>
+          </>
         )}
 
         <div className="space-y-2">
