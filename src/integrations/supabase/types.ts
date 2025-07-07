@@ -4058,21 +4058,30 @@ export type Database = {
           first_prize: number | null
           game_format: string | null
           id: string
+          is_public: boolean | null
           max_participants: number | null
+          max_rank_requirement: string | null
+          min_rank_requirement: string | null
           min_trust_score: number | null
           name: string
           prize_pool: number | null
           rank_requirement: string[] | null
           registration_deadline: string | null
+          registration_end: string | null
           registration_start: string | null
+          requires_approval: boolean | null
           rules: string | null
           second_prize: number | null
           start_date: string | null
           status: string | null
           third_prize: number | null
+          tier: string | null
+          tournament_end: string | null
+          tournament_start: string | null
           tournament_type: string | null
           updated_at: string
           venue_address: string | null
+          venue_name: string | null
         }
         Insert: {
           banner_image?: string | null
@@ -4087,21 +4096,30 @@ export type Database = {
           first_prize?: number | null
           game_format?: string | null
           id?: string
+          is_public?: boolean | null
           max_participants?: number | null
+          max_rank_requirement?: string | null
+          min_rank_requirement?: string | null
           min_trust_score?: number | null
           name: string
           prize_pool?: number | null
           rank_requirement?: string[] | null
           registration_deadline?: string | null
+          registration_end?: string | null
           registration_start?: string | null
+          requires_approval?: boolean | null
           rules?: string | null
           second_prize?: number | null
           start_date?: string | null
           status?: string | null
           third_prize?: number | null
+          tier?: string | null
+          tournament_end?: string | null
+          tournament_start?: string | null
           tournament_type?: string | null
           updated_at?: string
           venue_address?: string | null
+          venue_name?: string | null
         }
         Update: {
           banner_image?: string | null
@@ -4116,21 +4134,30 @@ export type Database = {
           first_prize?: number | null
           game_format?: string | null
           id?: string
+          is_public?: boolean | null
           max_participants?: number | null
+          max_rank_requirement?: string | null
+          min_rank_requirement?: string | null
           min_trust_score?: number | null
           name?: string
           prize_pool?: number | null
           rank_requirement?: string[] | null
           registration_deadline?: string | null
+          registration_end?: string | null
           registration_start?: string | null
+          requires_approval?: boolean | null
           rules?: string | null
           second_prize?: number | null
           start_date?: string | null
           status?: string | null
           third_prize?: number | null
+          tier?: string | null
+          tournament_end?: string | null
+          tournament_start?: string | null
           tournament_type?: string | null
           updated_at?: string
           venue_address?: string | null
+          venue_name?: string | null
         }
         Relationships: [
           {

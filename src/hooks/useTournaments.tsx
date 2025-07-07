@@ -77,16 +77,13 @@ export const useTournaments = (userId?: string) => {
       const { data, error } = await supabase
         .from('tournaments')
         .select('*')
-        .order('start_date', { ascending: true });
+        .order('tournament_start', { ascending: true });
 
       if (error) throw error;
       
       // Map database response to Tournament type
       const mappedTournaments = (data || []).map(tournament => ({
         ...tournament,
-        tournament_start: tournament.start_date,
-        tournament_end: tournament.end_date,
-        registration_end: tournament.registration_deadline,
         organizer_id: tournament.created_by,
         tournament_type: tournament.tournament_type as Tournament['tournament_type'],
         game_format: tournament.game_format as Tournament['game_format'],
@@ -119,19 +116,21 @@ export const useTournaments = (userId?: string) => {
             tournament_type: data.tournament_type,
             game_format: data.game_format,
             max_participants: data.max_participants,
-            start_date: data.tournament_start,
-            end_date: data.tournament_end,
+            tournament_start: data.tournament_start,
+            tournament_end: data.tournament_end,
             registration_start: data.registration_start,
-            registration_deadline: data.registration_end,
+            registration_end: data.registration_end,
             entry_fee: data.entry_fee,
             prize_pool: data.prize_pool,
             first_prize: Math.floor(data.prize_pool * 0.5),
             second_prize: Math.floor(data.prize_pool * 0.3),
             third_prize: Math.floor(data.prize_pool * 0.2),
             venue_address: data.venue_address,
+            venue_name: data.venue_name,
             rules: data.rules,
             created_by: user.id,
             status: 'upcoming',
+            is_public: true,
           })
           .select()
           .single();
