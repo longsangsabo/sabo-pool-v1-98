@@ -3933,6 +3933,8 @@ export type Database = {
           id: string
           points_balance: number | null
           status: string | null
+          total_earned: number | null
+          total_spent: number | null
           updated_at: string | null
           user_id: string
         }
@@ -3942,6 +3944,8 @@ export type Database = {
           id?: string
           points_balance?: number | null
           status?: string | null
+          total_earned?: number | null
+          total_spent?: number | null
           updated_at?: string | null
           user_id: string
         }
@@ -3951,6 +3955,8 @@ export type Database = {
           id?: string
           points_balance?: number | null
           status?: string | null
+          total_earned?: number | null
+          total_spent?: number | null
           updated_at?: string | null
           user_id?: string
         }
@@ -4053,9 +4059,29 @@ export type Database = {
         }
         Returns: string
       }
+      credit_spa_points: {
+        Args: {
+          p_user_id: string
+          p_amount: number
+          p_category: string
+          p_description: string
+          p_reference_id?: string
+        }
+        Returns: undefined
+      }
       daily_checkin: {
         Args: { user_uuid: string }
         Returns: Json
+      }
+      debit_spa_points: {
+        Args: {
+          p_user_id: string
+          p_amount: number
+          p_category: string
+          p_description: string
+          p_reference_id?: string
+        }
+        Returns: boolean
       }
       decay_inactive_spa_points: {
         Args: Record<PropertyKey, never>

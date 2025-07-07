@@ -22,7 +22,7 @@ export const SPAPointsBadge: React.FC = () => {
         
         const { data, error } = await supabase
           .from('wallets')
-          .select('balance')
+          .select('points_balance')
           .eq('user_id', user.id)
           .single();
 
@@ -30,7 +30,7 @@ export const SPAPointsBadge: React.FC = () => {
           console.error('Error fetching wallet balance:', error);
           setBalance(0);
         } else {
-          const newBalance = data?.balance || 0;
+          const newBalance = data?.points_balance || 0;
           console.log('Wallet balance fetched:', newBalance);
           setBalance(newBalance);
         }
@@ -57,8 +57,8 @@ export const SPAPointsBadge: React.FC = () => {
         },
         (payload) => {
           console.log('Wallet balance updated via realtime:', payload);
-          if (payload.new && 'balance' in payload.new) {
-            setBalance(payload.new.balance as number);
+          if (payload.new && 'points_balance' in payload.new) {
+            setBalance(payload.new.points_balance as number);
           }
         }
       )

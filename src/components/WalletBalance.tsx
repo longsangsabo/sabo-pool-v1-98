@@ -42,7 +42,7 @@ export const WalletBalance: React.FC = () => {
         // Fetch wallet balance
         const { data: walletData, error: walletError } = await supabase
           .from('wallets')
-          .select('balance, total_earned, total_spent')
+          .select('id, points_balance, total_earned, total_spent')
           .eq('user_id', user.id)
           .single();
 
@@ -50,24 +50,31 @@ export const WalletBalance: React.FC = () => {
           console.error('Error fetching wallet:', walletError);
         } else if (walletData) {
           setWalletData({
-            balance: walletData.balance || 0,
+            balance: walletData.points_balance || 0,
             total_earned: walletData.total_earned || 0,
             total_spent: walletData.total_spent || 0
           });
         }
 
-        // Fetch recent transactions
-        const { data: transactions, error: transError } = await supabase
-          .from('wallet_transactions')
-          .select('id, amount, transaction_type, description, created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(5);
+        // Fetch recent transactions via wallet_id
+        if (walletData?.id) {
+          const { data: transactions, error: transError } = await supabase
+            .from('wallet_transactions')
+            .select('id, points_amount, transaction_type, description, created_at')
+            .eq('wallet_id', walletData.id)
+            .order('created_at', { ascending: false })
+            .limit(5);
 
-        if (transError) {
-          console.error('Error fetching transactions:', transError);
-        } else {
-          setRecentTransactions(transactions || []);
+          if (transError) {
+            console.error('Error fetching transactions:', transError);
+          } else {
+            // Map points_amount to amount for component consistency
+            const mappedTransactions = (transactions || []).map(t => ({
+              ...t,
+              amount: t.points_amount
+            }));
+            setRecentTransactions(mappedTransactions);
+          }
         }
 
       } catch (error) {
@@ -92,13 +99,16 @@ export const WalletBalance: React.FC = () => {
         },
         (payload) => {
           console.log('Wallet updated via realtime:', payload);
-          if (payload.new && 'balance' in payload.new) {
-            setWalletData(prev => ({
-              ...prev,
-              balance: payload.new.balance as number,
-              total_earned: payload.new.total_earned as number || prev.total_earned,
-              total_spent: payload.new.total_spent as number || prev.total_spent
-            }));
+          if (payload.new && typeof payload.new === 'object') {
+            const newData = payload.new as any;
+            if ('points_balance' in newData) {
+              setWalletData(prev => ({
+                ...prev,
+                balance: newData.points_balance as number,
+                total_earned: (newData.total_earned as number) || prev.total_earned,
+                total_spent: (newData.total_spent as number) || prev.total_spent
+              }));
+            }
           }
         }
       )
