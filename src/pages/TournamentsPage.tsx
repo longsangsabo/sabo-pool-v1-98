@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 
 const TournamentsPage: React.FC = () => {
   const { user } = useAuth();
-  const { tournaments, loading, registerForTournament, cancelRegistration, checkUserRegistration } = useTournaments();
+  const { tournaments, loading, registerForTournament, cancelRegistration, checkUserRegistration, fetchTournaments } = useTournaments();
   const [selectedFilter, setSelectedFilter] = useState<
     'all' | 'upcoming' | 'registration_open' | 'ongoing' | 'completed'
   >('all');
@@ -71,12 +71,14 @@ const TournamentsPage: React.FC = () => {
     setRegistrationLoading(tournamentId);
     try {
       await cancelRegistration(tournamentId);
-      // Remove from user registrations
+      // Remove from user registrations and force re-fetch tournaments
       setUserRegistrations(prev => {
         const updated = { ...prev };
         delete updated[tournamentId];
         return updated;
       });
+      // Force re-fetch to ensure UI state is consistent
+      await fetchTournaments();
     } catch (error) {
       console.error('Cancel registration error:', error);
     } finally {
