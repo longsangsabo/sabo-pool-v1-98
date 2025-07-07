@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Target, Zap } from 'lucide-react';
-import { completeChallengeMatch } from '@/utils/challengeUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAdvancedSPAPoints } from '@/hooks/useAdvancedSPAPoints';
+import { SPAPointsBreakdown } from '@/components/SPAPointsBreakdown';
 
 interface MatchCompletionHandlerProps {
   match: {
@@ -28,6 +29,8 @@ export const MatchCompletionHandler = ({
   onComplete 
 }: MatchCompletionHandlerProps) => {
   const [completing, setCompleting] = useState(false);
+  const [completedBreakdown, setCompletedBreakdown] = useState<any>(null);
+  const { completeChallenge } = useAdvancedSPAPoints();
 
   const handleComplete = async (winnerId: string) => {
     if (completing) return;
@@ -48,9 +51,16 @@ export const MatchCompletionHandler = ({
 
       if (matchError) throw matchError;
 
-      // If this is a challenge match, award SPA points
+      // If this is a challenge match, award SPA points with bonuses
       if (match.challenge_id) {
-        await completeChallengeMatch(match.id, winnerId, loserId, wagerPoints);
+        const breakdown = await completeChallenge({
+          matchId: match.id,
+          winnerId,
+          loserId,
+          basePoints: wagerPoints
+        });
+        
+        setCompletedBreakdown(breakdown);
         
         // Update challenge status
         const { error: challengeError } = await supabase
@@ -59,9 +69,10 @@ export const MatchCompletionHandler = ({
           .eq('id', match.challenge_id);
           
         if (challengeError) throw challengeError;
+      } else {
+        toast.success('Trận đấu đã hoàn thành!');
       }
 
-      toast.success('Trận đấu đã hoàn thành!');
       onComplete();
     } catch (error) {
       console.error('Error completing match:', error);
@@ -73,14 +84,21 @@ export const MatchCompletionHandler = ({
 
   if (match.status === 'completed') {
     return (
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-center gap-2 text-green-600">
-            <Trophy className="h-5 w-5" />
-            <span className="font-semibold">Trận đấu đã hoàn thành</span>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-center gap-2 text-green-600">
+              <Trophy className="h-5 w-5" />
+              <span className="font-semibold">Trận đấu đã hoàn thành</span>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Show breakdown if available */}
+        {completedBreakdown && (
+          <SPAPointsBreakdown matchId={match.id} />
+        )}
+      </div>
     );
   }
 

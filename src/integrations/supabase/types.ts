@@ -1782,6 +1782,44 @@ export type Database = {
           },
         ]
       }
+      player_milestones: {
+        Row: {
+          achieved_at: string | null
+          claimed: boolean | null
+          created_at: string | null
+          id: string
+          milestone_id: string
+          player_id: string
+          progress: number | null
+        }
+        Insert: {
+          achieved_at?: string | null
+          claimed?: boolean | null
+          created_at?: string | null
+          id?: string
+          milestone_id: string
+          player_id: string
+          progress?: number | null
+        }
+        Update: {
+          achieved_at?: string | null
+          claimed?: boolean | null
+          created_at?: string | null
+          id?: string
+          milestone_id?: string
+          player_id?: string
+          progress?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_milestones_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "spa_milestones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_rankings: {
         Row: {
           created_at: string | null
@@ -3195,6 +3233,36 @@ export type Database = {
           },
         ]
       }
+      spa_milestones: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          milestone_type: string
+          reward_spa: number
+          threshold: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          milestone_type: string
+          reward_spa: number
+          threshold: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          milestone_type?: string
+          reward_spa?: number
+          threshold?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       spa_points_log: {
         Row: {
           created_at: string | null
@@ -4014,6 +4082,14 @@ export type Database = {
         }
         Returns: number
       }
+      calculate_comeback_bonus: {
+        Args: { p_player_id: string }
+        Returns: number
+      }
+      calculate_streak_bonus: {
+        Args: { p_player_id: string; p_base_points: number }
+        Returns: number
+      }
       calculate_tournament_spa: {
         Args: { p_position: number; p_rank_code: string }
         Returns: number
@@ -4021,6 +4097,10 @@ export type Database = {
       calculate_trust_score: {
         Args: { player_uuid: string }
         Returns: undefined
+      }
+      check_and_award_milestones: {
+        Args: { p_player_id: string }
+        Returns: Json
       }
       check_rank_promotion: {
         Args: { p_player_id: string }
@@ -4040,6 +4120,15 @@ export type Database = {
           p_winner_id: string
           p_loser_id: string
           p_wager_points?: number
+        }
+        Returns: Json
+      }
+      complete_challenge_match_with_bonuses: {
+        Args: {
+          p_match_id: string
+          p_winner_id: string
+          p_loser_id: string
+          p_base_points?: number
         }
         Returns: Json
       }
@@ -4120,6 +4209,10 @@ export type Database = {
       get_notification_summary: {
         Args: { target_user_id: string }
         Returns: Json
+      }
+      get_time_multiplier: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       get_user_admin_status: {
         Args: { user_uuid: string }
