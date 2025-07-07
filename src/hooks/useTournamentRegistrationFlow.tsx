@@ -50,12 +50,12 @@ export const useTournamentRegistrationFlow = () => {
     }
 
     // Điều kiện 3: Trạng thái giải đấu
-    if (tournament.status !== 'registration_open') {
-      switch (tournament.status) {
-        case 'upcoming':
+    if (tournament.management_status !== 'open') {
+      switch (tournament.management_status) {
+        case 'draft':
           reasons.push('Giải đấu chưa mở đăng ký');
           break;
-        case 'registration_closed':
+        case 'locked':
           reasons.push('Đã đóng đăng ký');
           break;
         case 'ongoing':
@@ -63,9 +63,6 @@ export const useTournamentRegistrationFlow = () => {
           break;
         case 'completed':
           reasons.push('Giải đấu đã kết thúc');
-          break;
-        case 'cancelled':
-          reasons.push('Giải đấu đã bị hủy');
           break;
         default:
           reasons.push('Giải đấu không mở đăng ký');

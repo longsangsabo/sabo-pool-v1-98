@@ -28,6 +28,7 @@ export interface Tournament {
     | 'ongoing'
     | 'completed'
     | 'cancelled';
+  management_status?: 'draft' | 'open' | 'locked' | 'ongoing' | 'completed';
   rules?: string;
   contact_info?: any;
   banner_image?: string;

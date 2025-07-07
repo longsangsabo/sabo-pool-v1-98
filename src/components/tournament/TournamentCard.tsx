@@ -35,12 +35,14 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
   const eligibility = checkRegistrationEligibility(tournament);
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'upcoming':
+      case 'draft':
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'registration_open':
+      case 'open':
         return 'bg-green-100 text-green-800 border-green-200';
-      case 'in_progress':
+      case 'locked':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'ongoing':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'completed':
         return 'bg-gray-100 text-gray-800 border-gray-200';
       default:
@@ -50,11 +52,13 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'upcoming':
+      case 'draft':
         return 'Sắp diễn ra';
-      case 'registration_open':
+      case 'open':
         return 'Đang mở đăng ký';
-      case 'in_progress':
+      case 'locked':
+        return 'Đã đóng đăng ký';
+      case 'ongoing':
         return 'Đang thi đấu';
       case 'completed':
         return 'Đã kết thúc';
@@ -111,7 +115,7 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
     }
   };
 
-  const isRegistrationOpen = tournament.status === 'registration_open';
+  const isRegistrationOpen = tournament.management_status === 'open';
   const isRegistrationClosed = new Date(tournament.registration_end || '') < new Date();
   const isFull = tournament.current_participants >= tournament.max_participants;
   const canShowRegistrationButton = isRegistrationOpen && !isRegistrationClosed && !isFull;
@@ -126,8 +130,8 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
             className="w-full h-full object-cover"
           />
           <div className="absolute top-2 right-2">
-            <Badge className={getStatusColor(tournament.status)}>
-              {getStatusText(tournament.status)}
+            <Badge className={getStatusColor(tournament.management_status || tournament.status)}>
+              {getStatusText(tournament.management_status || tournament.status)}
             </Badge>
           </div>
         </div>
@@ -136,8 +140,8 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
       <CardHeader className="pb-3">
         {!tournament.banner_image && (
           <div className="flex justify-between items-start mb-2">
-            <Badge className={getStatusColor(tournament.status)}>
-              {getStatusText(tournament.status)}
+            <Badge className={getStatusColor(tournament.management_status || tournament.status)}>
+              {getStatusText(tournament.management_status || tournament.status)}
             </Badge>
           </div>
         )}
