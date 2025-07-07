@@ -48,7 +48,9 @@ const BulkUserGenerator = () => {
     setGeneratedUsers([]);
 
     try {
-      const users = [];
+      // First create auth users, then profiles
+      const authUsers = [];
+      const profiles = [];
       
       for (let i = 0; i < userCount; i++) {
         const fullName = generateVietnameseName();
@@ -62,7 +64,10 @@ const BulkUserGenerator = () => {
           skillLevel = skillDistribution;
         }
 
-        const userData = {
+        // Create profile data with user_id set to a UUID
+        const userId = crypto.randomUUID();
+        const profileData = {
+          user_id: userId,
           full_name: fullName,
           display_name: fullName.split(' ').slice(-2).join(' '),
           phone: phone,
@@ -73,27 +78,26 @@ const BulkUserGenerator = () => {
           created_at: new Date().toISOString(),
         };
 
-        users.push(userData);
+        profiles.push(profileData);
         setProgress(((i + 1) / userCount) * 50); // First 50% for generation
       }
 
-      // Insert users into profiles table
-      const { data: insertedUsers, error: insertError } = await supabase
+      // Insert profiles with user_id already set
+      const { data: insertedProfiles, error: insertError } = await supabase
         .from('profiles')
-        .insert(users)
+        .insert(profiles)
         .select();
 
       if (insertError) throw insertError;
 
       // Generate rankings if requested
-      if (includeRanks && insertedUsers) {
-        const rankings = insertedUsers.map((user, index) => {
-          const rankIndex = Math.floor(Math.random() * rankCodes.length);
+      if (includeRanks && insertedProfiles) {
+        const rankings = insertedProfiles.map((profile, index) => {
           const elo = 800 + Math.floor(Math.random() * 1200); // 800-2000 ELO
           const spaPoints = includeSpaPoints ? Math.floor(Math.random() * 500) : 0;
           
           return {
-            player_id: user.user_id,
+            player_id: profile.user_id,
             current_rank_id: null, // Would need to link to actual rank IDs
             elo: elo,
             spa_points: spaPoints,
@@ -114,12 +118,12 @@ const BulkUserGenerator = () => {
       }
 
       setProgress(100);
-      setGeneratedUsers(insertedUsers || []);
-      toast.success(`Successfully generated ${userCount} test users!`);
+      setGeneratedUsers(insertedProfiles || []);
+      toast.success(t('dev.success_generate', `Successfully generated ${userCount} test users!`).replace('{count}', userCount.toString()));
 
     } catch (error) {
       console.error('Error generating users:', error);
-      toast.error('Failed to generate users. Check console for details.');
+      toast.error(t('dev.failed_generate', 'Failed to generate users. Check console for details.'));
     } finally {
       setIsGenerating(false);
     }
@@ -157,11 +161,11 @@ const BulkUserGenerator = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="mixed">Mixed Levels</SelectItem>
-                <SelectItem value="beginner">All Beginner</SelectItem>
-                <SelectItem value="intermediate">All Intermediate</SelectItem>
-                <SelectItem value="advanced">All Advanced</SelectItem>
-                <SelectItem value="professional">All Professional</SelectItem>
+                <SelectItem value="mixed">{t('dev.mixed_levels', 'Mixed Levels')}</SelectItem>
+                <SelectItem value="beginner">{t('dev.all_beginner', 'All Beginner')}</SelectItem>
+                <SelectItem value="intermediate">{t('dev.all_intermediate', 'All Intermediate')}</SelectItem>
+                <SelectItem value="advanced">{t('dev.all_advanced', 'All Advanced')}</SelectItem>
+                <SelectItem value="professional">{t('dev.all_professional', 'All Professional')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -174,7 +178,7 @@ const BulkUserGenerator = () => {
               checked={includeRanks}
               onCheckedChange={(checked) => setIncludeRanks(checked as boolean)}
             />
-            <Label htmlFor="includeRanks">Generate ranking data</Label>
+            <Label htmlFor="includeRanks">{t('dev.generate_ranking', 'Generate ranking data')}</Label>
           </div>
           
           <div className="flex items-center space-x-2">
@@ -183,7 +187,7 @@ const BulkUserGenerator = () => {
               checked={includeSpaPoints}
               onCheckedChange={(checked) => setIncludeSpaPoints(checked as boolean)}
             />
-            <Label htmlFor="includeSpaPoints">Include SPA points</Label>
+            <Label htmlFor="includeSpaPoints">{t('dev.include_spa_points', 'Include SPA points')}</Label>
           </div>
         </div>
 
@@ -191,7 +195,7 @@ const BulkUserGenerator = () => {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Generating users... {progress.toFixed(0)}%</span>
+              <span className="text-sm">{t('dev.generating_users', 'Generating users...')} {progress.toFixed(0)}%</span>
             </div>
             <Progress value={progress} className="w-full" />
           </div>
@@ -205,12 +209,12 @@ const BulkUserGenerator = () => {
           {isGenerating ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Generating...
+              {t('dev.generating', 'Generating...')}
             </>
           ) : (
             <>
               <Play className="h-4 w-4 mr-2" />
-              Generate {userCount} Users
+              {t('dev.generate_users', 'Generate {count} Users').replace('{count}', userCount.toString())}
             </>
           )}
         </Button>
@@ -219,12 +223,12 @@ const BulkUserGenerator = () => {
           <div className="mt-6 p-4 bg-green-50 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
-              <h3 className="font-medium text-green-800">Generation Complete</h3>
+              <h3 className="font-medium text-green-800">{t('dev.generation_complete', 'Generation Complete')}</h3>
             </div>
             <p className="text-sm text-green-700">
-              Successfully created {generatedUsers.length} test users with profiles
-              {includeRanks && ' and ranking data'}
-              {includeSpaPoints && ' including SPA points'}.
+              {t('dev.users_created', 'Successfully created {count} test users with profiles').replace('{count}', generatedUsers.length.toString())}
+              {includeRanks && ` ${t('dev.with_ranking', 'and ranking data')}`}
+              {includeSpaPoints && ` ${t('dev.with_spa_points', 'including SPA points')}`}.
             </p>
           </div>
         )}
