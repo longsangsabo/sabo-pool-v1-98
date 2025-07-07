@@ -9,7 +9,8 @@ import { EnhancedTournamentCreator } from '@/components/tournament/EnhancedTourn
 import { TournamentRegistrationDashboard } from '@/components/tournament/TournamentRegistrationDashboard';
 import { useTournaments } from '@/hooks/useTournaments';
 import { useAuth } from '@/hooks/useAuth';
-import { useTournamentRegistrationState } from '@/hooks/useTournamentRegistrationState';
+import { useRealTimeTournamentState } from '@/hooks/useRealTimeTournamentState';
+import { useTournamentRealtimeSync } from '@/hooks/useTournamentRealtimeSync';
 import { toast } from 'sonner';
 
 // Using Tournament type from useTournaments hook
@@ -22,8 +23,9 @@ const TournamentsPage: React.FC = () => {
     setRegistrationStatus,
     setLoadingState,
     isRegistered,
-    isLoading
-  } = useTournamentRegistrationState();
+    isLoading,
+    refreshTournamentStatus
+  } = useRealTimeTournamentState();
   
   const [selectedFilter, setSelectedFilter] = useState<
     'all' | 'upcoming' | 'registration_open' | 'ongoing' | 'completed'
@@ -31,6 +33,9 @@ const TournamentsPage: React.FC = () => {
   const [showTournamentCreator, setShowTournamentCreator] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showRegistrationDashboard, setShowRegistrationDashboard] = useState(false);
+
+  // Real-time sync for registration changes
+  useTournamentRealtimeSync(setRegistrationStatus);
 
   // Load user registrations using new hook
   useEffect(() => {
@@ -77,6 +82,12 @@ const TournamentsPage: React.FC = () => {
       // Immediately update UI state to remove registration
       setRegistrationStatus(tournamentId, false);
       
+      // Double-verification: refresh actual status from database
+      setTimeout(async () => {
+        const actualStatus = await refreshTournamentStatus(tournamentId);
+        console.log('Double-verification result:', actualStatus);
+      }, 1000);
+      
       // Refresh tournaments data
       await fetchTournaments();
       
@@ -84,8 +95,9 @@ const TournamentsPage: React.FC = () => {
       
     } catch (error) {
       console.error('Cancel registration error:', error);
-      // Even on error, assume cancellation worked and update UI
+      // Even on error, update UI and verify
       setRegistrationStatus(tournamentId, false);
+      setTimeout(() => refreshTournamentStatus(tournamentId), 1000);
     } finally {
       setLoadingState(tournamentId, false);
     }

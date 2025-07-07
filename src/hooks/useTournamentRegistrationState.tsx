@@ -7,6 +7,15 @@ export const useTournamentRegistrationState = () => {
   const [registrationState, setRegistrationState] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
 
+  // Auto-clear state when user logs out
+  useEffect(() => {
+    if (!user) {
+      setRegistrationState({});
+      setLoading({});
+      console.log('User logged out - cleared registration state');
+    }
+  }, [user]);
+
   // Direct database check function
   const checkRegistrationStatus = useCallback(async (tournamentId: string): Promise<boolean> => {
     if (!user?.id) return false;
