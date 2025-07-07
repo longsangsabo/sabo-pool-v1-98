@@ -20,6 +20,7 @@ const BulkUserGenerator = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generatedUsers, setGeneratedUsers] = useState<any[]>([]);
+  const [logs, setLogs] = useState<Array<{message: string, type: 'info' | 'error' | 'success' | 'warning', timestamp: string}>>([]);
 
   const vietnamesePrefixes = ['Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Huỳnh', 'Phan', 'Vũ', 'Võ', 'Đặng'];
   const vietnameseFirstNames = ['Văn', 'Thị', 'Minh', 'Tuấn', 'Hương', 'Lan', 'Hùng', 'Linh', 'Nam', 'Mai'];
@@ -42,19 +43,29 @@ const BulkUserGenerator = () => {
     return `${prefix}${number}`;
   };
 
+  const addLog = (message: string, type: 'info' | 'error' | 'success' | 'warning' = 'info') => {
+    const timestamp = new Date().toLocaleTimeString('vi-VN');
+    setLogs(prev => [...prev, { message, type, timestamp }]);
+  };
+
   const generateUsers = async () => {
     setIsGenerating(true);
     setProgress(0);
     setGeneratedUsers([]);
+    setLogs([]); // Clear previous logs
 
     try {
-      console.log('🚀 Starting simplified user generation...', { userCount, skillDistribution });
+      addLog('🚀 Bắt đầu tạo người dùng...', 'info');
+      addLog(`📊 Số lượng: ${userCount} người dùng`, 'info');
+      addLog(`🎯 Kỹ năng: ${skillDistribution}`, 'info');
       
       // Check auth status
+      addLog('🔒 Kiểm tra quyền admin...', 'info');
       const { data: { user } } = await supabase.auth.getUser();
-      console.log('Current user:', user?.id);
+      addLog(`👤 User hiện tại: ${user?.email || user?.phone || user?.id}`, 'info');
       
       // Simplified approach: Create minimal test profiles
+      addLog('⚙️ Tạo dữ liệu người dùng...', 'info');
       const timestamp = Date.now();
       const profiles = [];
       
@@ -85,38 +96,41 @@ const BulkUserGenerator = () => {
 
         profiles.push(profileData);
         setProgress(((i + 1) / userCount) * 50);
+        
+        // Log every 5 users or the last one
+        if ((i + 1) % 5 === 0 || i === userCount - 1) {
+          addLog(`📝 Đã tạo ${i + 1}/${userCount} records`, 'info');
+        }
       }
 
-      console.log('Generated profile data:', profiles.slice(0, 2));
+      addLog(`✅ Hoàn thành tạo ${profiles.length} records`, 'success');
 
       // Insert profiles with proper error handling
+      addLog('💾 Lưu vào database...', 'info');
       const { data: insertedProfiles, error: insertError } = await supabase
         .from('profiles')
         .insert(profiles)
         .select('id, phone, display_name, full_name, role');
 
       if (insertError) {
-        console.error('❌ Profile insert error:', {
-          message: insertError.message,
-          code: insertError.code,
-          details: insertError.details,
-          hint: insertError.hint
-        });
+        addLog(`❌ Lỗi database: ${insertError.message}`, 'error');
+        addLog(`🔍 Chi tiết: ${insertError.code} - ${insertError.details || 'N/A'}`, 'error');
         
         // Try alternative approach if RLS blocks it
         if (insertError.code === '42501' || insertError.message.includes('policy')) {
-          console.log('🔄 Trying admin function approach...');
+          addLog('🔄 Lỗi phân quyền - cần cấu hình admin', 'warning');
           throw new Error('RLS Policy Error: Admin permissions may need to be configured');
         }
         
         throw insertError;
       }
 
-      console.log('✅ Profiles inserted successfully:', insertedProfiles?.length);
+      addLog(`🎉 Thành công! Đã lưu ${insertedProfiles?.length || 0} người dùng`, 'success');
+      setProgress(75);
 
       // Generate rankings if requested (using profile IDs as player_id)
       if (includeRanks && insertedProfiles) {
-        setProgress(75);
+        addLog('🏆 Tạo dữ liệu xếp hạng...', 'info');
         
         const rankings = insertedProfiles.map((profile) => {
           const elo = 800 + Math.floor(Math.random() * 1200); // 800-2000 ELO
@@ -133,26 +147,25 @@ const BulkUserGenerator = () => {
           };
         });
 
-        console.log('Creating rankings for profiles:', rankings.slice(0, 2));
-
         const { error: rankingError } = await supabase
           .from('player_rankings')
           .insert(rankings);
 
         if (rankingError) {
-          console.warn('❌ Failed to create rankings:', rankingError);
+          addLog(`⚠️ Không tạo được ranking: ${rankingError.message}`, 'warning');
         } else {
-          console.log('✅ Rankings created successfully');
+          addLog(`✅ Đã tạo ranking cho ${rankings.length} người dùng`, 'success');
         }
       }
 
       setProgress(100);
       setGeneratedUsers(insertedProfiles || []);
+      addLog('🎊 Hoàn thành tất cả!', 'success');
       
-      console.log('🎉 User generation completed successfully!');
       toast.success(t('dev.success_generate', `Successfully generated ${userCount} test users!`).replace('{count}', userCount.toString()));
 
     } catch (error) {
+      addLog(`💥 Thất bại: ${error.message}`, 'error');
       console.error('❌ Detailed error analysis:', {
         message: error.message,
         code: error.code,
@@ -263,6 +276,50 @@ const BulkUserGenerator = () => {
             </>
           )}
         </Button>
+
+        {/* Real-time Log Display */}
+        {logs.length > 0 && (
+          <div className="mt-4 space-y-2">
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border max-h-60 overflow-y-auto">
+              <h4 className="font-medium mb-3 text-sm text-gray-700 dark:text-gray-300">
+                Quá trình tạo người dùng:
+              </h4>
+              <div className="space-y-1">
+                {logs.map((log, index) => (
+                  <div 
+                    key={index} 
+                    className={`text-xs font-mono flex items-start gap-2 p-2 rounded ${
+                      log.type === 'error' 
+                        ? 'bg-red-50 text-red-700 border-l-2 border-red-300' 
+                        : log.type === 'success'
+                        ? 'bg-green-50 text-green-700 border-l-2 border-green-300'
+                        : log.type === 'warning'
+                        ? 'bg-yellow-50 text-yellow-700 border-l-2 border-yellow-300'
+                        : 'bg-blue-50 text-blue-700 border-l-2 border-blue-300'
+                    }`}
+                  >
+                    <span className="text-gray-500 min-w-fit">
+                      [{log.timestamp}]
+                    </span>
+                    <span className="flex-1">
+                      {log.message}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Current Status Indicator */}
+        {isGenerating && (
+          <div className="flex items-center justify-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              Đang xử lý... {progress.toFixed(0)}%
+            </span>
+          </div>
+        )}
 
         {generatedUsers.length > 0 && (
           <div className="mt-6 p-4 bg-green-50 rounded-lg">
