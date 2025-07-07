@@ -11,11 +11,9 @@ import TournamentCard from '@/components/tournament/TournamentCard';
 import { useTournaments } from '@/hooks/useTournaments';
 import { useAuth } from '@/hooks/useAuth';
 import { useRealTimeTournamentState } from '@/hooks/useRealTimeTournamentState';
-import { useTournamentRealtimeSync } from '@/hooks/useTournamentRealtimeSync';
+import { useRealTimeTournamentSync } from '@/hooks/useRealTimeTournamentSync';
 import { useTournamentRegistrationFlow } from '@/hooks/useTournamentRegistrationFlow';
 import { toast } from 'sonner';
-
-// Using Tournament type from useTournaments hook
 
 const TournamentsPage: React.FC = () => {
   const { user } = useAuth();
@@ -37,8 +35,19 @@ const TournamentsPage: React.FC = () => {
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showRegistrationDashboard, setShowRegistrationDashboard] = useState(false);
 
-  // Real-time sync for registration changes
-  useTournamentRealtimeSync(setRegistrationStatus);
+  // Enhanced real-time sync with better state management
+  useRealTimeTournamentSync((tournamentId: string, isRegistered: boolean) => {
+    console.log('Tournament registration state changed:', { tournamentId, isRegistered });
+    setRegistrationStatus(tournamentId, isRegistered);
+    
+    // Force refresh tournaments data to get updated participant counts
+    fetchTournaments();
+    
+    // Show appropriate toast message
+    if (isRegistered) {
+      toast.success('Trạng thái đăng ký đã được cập nhật!');
+    }
+  });
 
   // Load user registrations using new hook
   useEffect(() => {
@@ -62,6 +71,8 @@ const TournamentsPage: React.FC = () => {
   const handleTournamentCreated = (tournament: any) => {
     setShowTournamentCreator(false);
     toast.success('Giải đấu đã được tạo thành công!');
+    // Refresh tournaments list
+    fetchTournaments();
   };
 
   const getStatusColor = (status: string) => {

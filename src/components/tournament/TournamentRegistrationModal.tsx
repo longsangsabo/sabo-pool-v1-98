@@ -58,7 +58,9 @@ export const TournamentRegistrationModal: React.FC<TournamentRegistrationModalPr
 
       if (error) {
         if (error.code === '23505') {
-          toast.error('Bạn đã đăng ký giải đấu này rồi');
+          toast.success('Bạn đã đăng ký giải đấu này thành công!');
+          onRegistrationSuccess();
+          onClose();
           return;
         }
         throw error;
@@ -97,7 +99,9 @@ export const TournamentRegistrationModal: React.FC<TournamentRegistrationModalPr
 
       if (registrationError) {
         if (registrationError.code === '23505') {
-          toast.error('Bạn đã đăng ký giải đấu này rồi');
+          toast.success('Bạn đã đăng ký giải đấu này thành công!');
+          onRegistrationSuccess();
+          onClose();
           return;
         }
         throw registrationError;
