@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,14 +65,10 @@ export const TournamentBracketViewer: React.FC<TournamentBracketViewerProps> = (
 
       setBracketData(bracket);
 
-      // Fetch matches
+      // Fetch matches with simplified query to avoid relation issues
       const { data: matchesData, error: matchesError } = await supabase
         .from('tournament_matches')
-        .select(`
-          *,
-          player1:profiles!tournament_matches_player1_id_fkey(user_id, full_name, avatar_url),
-          player2:profiles!tournament_matches_player2_id_fkey(user_id, full_name, avatar_url)
-        `)
+        .select('*')
         .eq('tournament_id', tournamentId)
         .order('round_number')
         .order('match_number');
@@ -86,20 +83,12 @@ export const TournamentBracketViewer: React.FC<TournamentBracketViewerProps> = (
         player1_id: match.player1_id,
         player2_id: match.player2_id,
         winner_id: match.winner_id,
-        player1_score: match.player1_score || 0,
-        player2_score: match.player2_score || 0,
+        player1_score: match.score_player1 || 0, // Use actual field name
+        player2_score: match.score_player2 || 0, // Use actual field name
         status: (match.status as 'scheduled' | 'ongoing' | 'completed' | 'cancelled') || 'scheduled',
         scheduled_time: match.scheduled_time,
-        player1: match.player1 ? {
-          id: match.player1.user_id,
-          full_name: match.player1.full_name,
-          avatar_url: match.player1.avatar_url
-        } : undefined,
-        player2: match.player2 ? {
-          id: match.player2.user_id,
-          full_name: match.player2.full_name,
-          avatar_url: match.player2.avatar_url
-        } : undefined
+        player1: undefined, // Will fetch separately if needed
+        player2: undefined  // Will fetch separately if needed
       }));
       
       setMatches(transformedMatches);

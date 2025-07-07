@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -106,7 +107,7 @@ export const TournamentRegistrationDashboard: React.FC<TournamentRegistrationDas
       setActionLoading(registrationId);
       const { error } = await supabase
         .from('tournament_registrations')
-        .update({ status: 'confirmed' })
+        .update({ registration_status: 'confirmed' })
         .eq('id', registrationId);
 
       if (error) throw error;
@@ -128,7 +129,7 @@ export const TournamentRegistrationDashboard: React.FC<TournamentRegistrationDas
       setActionLoading(registrationId);
       const { error } = await supabase
         .from('tournament_registrations')
-        .update({ status: 'cancelled' })
+        .update({ registration_status: 'cancelled' })
         .eq('id', registrationId);
 
       if (error) throw error;
