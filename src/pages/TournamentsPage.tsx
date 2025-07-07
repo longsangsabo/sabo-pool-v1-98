@@ -7,17 +7,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Trophy, Plus, Calendar, MapPin, Users, Eye, Settings, Check, Clock } from 'lucide-react';
 import { EnhancedTournamentCreator } from '@/components/tournament/EnhancedTournamentCreator';
 import { TournamentRegistrationDashboard } from '@/components/tournament/TournamentRegistrationDashboard';
+import TournamentCard from '@/components/tournament/TournamentCard';
 import { useTournaments } from '@/hooks/useTournaments';
 import { useAuth } from '@/hooks/useAuth';
 import { useRealTimeTournamentState } from '@/hooks/useRealTimeTournamentState';
 import { useTournamentRealtimeSync } from '@/hooks/useTournamentRealtimeSync';
+import { useTournamentRegistrationFlow } from '@/hooks/useTournamentRegistrationFlow';
 import { toast } from 'sonner';
 
 // Using Tournament type from useTournaments hook
 
 const TournamentsPage: React.FC = () => {
   const { user } = useAuth();
-  const { tournaments, loading, registerForTournament, cancelRegistration, fetchTournaments } = useTournaments();
+  const { tournaments, loading, fetchTournaments } = useTournaments();
   const {
     loadRegistrationStatus,
     setRegistrationStatus,
@@ -26,6 +28,7 @@ const TournamentsPage: React.FC = () => {
     isLoading,
     refreshTournamentStatus
   } = useRealTimeTournamentState();
+  const { initializeRegistrationStatus } = useTournamentRegistrationFlow();
   
   const [selectedFilter, setSelectedFilter] = useState<
     'all' | 'upcoming' | 'registration_open' | 'ongoing' | 'completed'
@@ -43,64 +46,12 @@ const TournamentsPage: React.FC = () => {
     
     const tournamentIds = tournaments.map(t => t.id);
     loadRegistrationStatus(tournamentIds);
-  }, [user?.id, tournaments, loadRegistrationStatus]);
+    initializeRegistrationStatus(tournamentIds);
+  }, [user?.id, tournaments, loadRegistrationStatus, initializeRegistrationStatus]);
 
-  const handleRegisterTournament = async (tournamentId: string) => {
-    if (!user) {
-      toast.error('Vui lòng đăng nhập để đăng ký giải đấu');
-      return;
-    }
-
-    setLoadingState(tournamentId, true);
-    try {
-      await registerForTournament(tournamentId);
-      
-      // Immediately update UI state
-      setRegistrationStatus(tournamentId, true);
-      
-      // Refresh tournaments data
-      await fetchTournaments();
-      
-      console.log('Registration successful for tournament:', tournamentId);
-      
-    } catch (error) {
-      console.error('Registration error:', error);
-      // On error, ensure state is correct
-      setRegistrationStatus(tournamentId, false);
-    } finally {
-      setLoadingState(tournamentId, false);
-    }
-  };
-
-  const handleCancelRegistration = async (tournamentId: string) => {
-    if (!user) return;
-
-    setLoadingState(tournamentId, true);
-    try {
-      await cancelRegistration(tournamentId);
-      
-      // Immediately update UI state to remove registration
-      setRegistrationStatus(tournamentId, false);
-      
-      // Double-verification: refresh actual status from database
-      setTimeout(async () => {
-        const actualStatus = await refreshTournamentStatus(tournamentId);
-        console.log('Double-verification result:', actualStatus);
-      }, 1000);
-      
-      // Refresh tournaments data
-      await fetchTournaments();
-      
-      console.log('Successfully canceled registration for tournament:', tournamentId);
-      
-    } catch (error) {
-      console.error('Cancel registration error:', error);
-      // Even on error, update UI and verify
-      setRegistrationStatus(tournamentId, false);
-      setTimeout(() => refreshTournamentStatus(tournamentId), 1000);
-    } finally {
-      setLoadingState(tournamentId, false);
-    }
+  const handleViewTournament = (tournamentId: string) => {
+    // Navigate to tournament details page
+    console.log('Viewing tournament:', tournamentId);
   };
 
   const handleViewRegistrations = (tournament: any) => {
@@ -281,191 +232,11 @@ const TournamentsPage: React.FC = () => {
         {/* Tournaments Grid */}
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
           {filteredTournaments.map(tournament => (
-            <Card
+            <TournamentCard
               key={tournament.id}
-              className='hover:shadow-lg transition-shadow'
-            >
-              <CardHeader>
-                <div className='flex items-start justify-between'>
-                  <div className='flex-1'>
-                    <CardTitle className='text-lg mb-2'>
-                      {tournament.name}
-                    </CardTitle>
-                    <div className='flex items-center gap-2 mb-2'>
-                      <Badge className={getStatusColor(tournament.status)}>
-                        {getStatusName(tournament.status)}
-                      </Badge>
-                    </div>
-                  </div>
-                  <Trophy className='h-6 w-6 text-yellow-500' />
-                </div>
-              </CardHeader>
-
-              <CardContent className='space-y-4'>
-                {/* Description */}
-                <p className='text-sm text-gray-600'>
-                  {tournament.description}
-                </p>
-
-                {/* Tournament Info */}
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <span>Loại: {tournament.tournament_type === 'single_elimination' ? 'Loại trực tiếp' : tournament.tournament_type}</span>
-                </div>
-
-                {/* Details */}
-                <div className='space-y-2'>
-                  <div className='flex items-center gap-2 text-sm'>
-                    <Calendar className='h-4 w-4 text-gray-500' />
-                    <span>
-                      {new Date(tournament.tournament_start).toLocaleDateString('vi-VN')} -{' '}
-                      {new Date(tournament.tournament_end).toLocaleDateString('vi-VN')}
-                    </span>
-                  </div>
-
-                  <div className='flex items-center gap-2 text-sm'>
-                    <MapPin className='h-4 w-4 text-gray-500' />
-                    <span>{tournament.venue_address || 'Chưa có địa điểm'}</span>
-                  </div>
-
-                  <div className='flex items-center gap-2 text-sm'>
-                    <Users className='h-4 w-4 text-gray-500' />
-                    <span>
-                      {tournament.current_participants}/
-                      {tournament.max_participants} người tham gia
-                    </span>
-                  </div>
-                </div>
-
-                {/* Prize Pool */}
-                <div className='bg-gradient-to-r from-yellow-50 to-orange-50 p-3 rounded-lg'>
-                  <div className='flex items-center justify-between'>
-                    <div>
-                      <div className='text-sm text-gray-600'>Giải thưởng</div>
-                      <div className='font-bold text-lg text-yellow-800'>
-                        {formatCurrency(tournament.prize_pool)}
-                      </div>
-                    </div>
-                    <div className='text-right'>
-                      <div className='text-sm text-gray-600'>Phí tham gia</div>
-                      <div className='font-medium text-gray-800'>
-                        {formatCurrency(tournament.entry_fee)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Progress Bar */}
-                <div>
-                  <div className='flex justify-between text-sm text-gray-600 mb-1'>
-                    <span>Tiến độ đăng ký</span>
-                    <span>
-                      {Math.round(
-                        (tournament.current_participants /
-                          tournament.max_participants) *
-                          100
-                      )}
-                      %
-                    </span>
-                  </div>
-                  <div className='w-full bg-gray-200 rounded-full h-2'>
-                    <div
-                      className='bg-blue-500 h-2 rounded-full transition-all'
-                      style={{
-                        width: `${(tournament.current_participants / tournament.max_participants) * 100}%`,
-                      }}
-                    ></div>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className='flex gap-2'>
-                  {/* Check if registration is open by dates */}
-                  {(() => {
-                    const now = new Date();
-                    const regStart = new Date(tournament.registration_start);
-                    const regEnd = new Date(tournament.registration_end);
-                    const isRegistrationOpen = now >= regStart && now <= regEnd;
-                    
-                    return (tournament.status === 'registration_open' || tournament.status === 'upcoming') && isRegistrationOpen && (
-                      isRegistered(tournament.id) ? (
-                        <div className='flex-1 flex gap-2'>
-                          <Button 
-                            variant='outline'
-                            className='flex-1'
-                            onClick={() => handleCancelRegistration(tournament.id)}
-                            disabled={isLoading(tournament.id)}
-                          >
-                            {isLoading(tournament.id) ? 'Đang hủy...' : 'Hủy đăng ký'}
-                          </Button>
-                          <div className='flex items-center px-3 py-2 bg-green-100 text-green-800 rounded-md text-sm'>
-                            <Check className='h-4 w-4 mr-1' />
-                            Đã đăng ký
-                          </div>
-                        </div>
-                      ) : (
-                        <Button 
-                          className='flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70'
-                          onClick={() => handleRegisterTournament(tournament.id)}
-                          disabled={isLoading(tournament.id) || tournament.current_participants >= tournament.max_participants}
-                        >
-                          {isLoading(tournament.id) ? 'Đang đăng ký...' : 
-                           tournament.current_participants >= tournament.max_participants ? 'Đã đầy' : 'Đăng ký tham gia'}
-                        </Button>
-                      )
-                    );
-                  })()}
-                  
-                  {tournament.status === 'ongoing' && (
-                    <Button 
-                      className='flex-1'
-                      onClick={() => {
-                        setSelectedTournament(tournament);
-                        // Add bracket viewer logic here
-                      }}
-                    >
-                      Xem bảng đấu
-                    </Button>
-                  )}
-                  
-                  {tournament.status === 'completed' && (
-                    <Button variant='outline' className='flex-1'>
-                      Xem kết quả
-                    </Button>
-                  )}
-                  
-                  {(() => {
-                    const now = new Date();
-                    const regStart = new Date(tournament.registration_start);
-                    const regEnd = new Date(tournament.registration_end);
-                    const isRegistrationClosed = now > regEnd;
-                    
-                    return (tournament.status === 'registration_closed' || isRegistrationClosed) && tournament.status !== 'ongoing' && tournament.status !== 'completed' && (
-                      <div className='flex-1 flex items-center justify-center px-3 py-2 bg-yellow-100 text-yellow-800 rounded-md text-sm'>
-                        <Clock className='h-4 w-4 mr-1' />
-                        Đã đóng đăng ký
-                      </div>
-                    );
-                  })()}
-                  
-                  {/* Admin/Organizer Actions */}
-                  {user?.id === tournament.organizer_id && (
-                    <Button 
-                      variant='outline' 
-                      size='sm'
-                      onClick={() => handleViewRegistrations(tournament)}
-                    >
-                      <Settings className='h-4 w-4 mr-1' />
-                      Quản lý
-                    </Button>
-                  )}
-                  
-                  <Button variant='outline' size='sm'>
-                    <Eye className='h-4 w-4 mr-1' />
-                    Chi tiết
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              tournament={tournament}
+              onView={handleViewTournament}
+            />
           ))}
         </div>
 

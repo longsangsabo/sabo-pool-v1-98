@@ -1,25 +1,38 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Calendar, MapPin, Users, Trophy, DollarSign, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tournament } from '@/types/tournament';
+import { useTournamentRegistrationFlow } from '@/hooks/useTournamentRegistrationFlow';
 
 interface TournamentCardProps {
   tournament: Tournament;
-  onRegister?: (tournamentId: string) => void;
   onView?: (tournamentId: string) => void;
-  isRegistering?: boolean;
-  isRegistered?: boolean;
 }
 
 const TournamentCard: React.FC<TournamentCardProps> = ({
   tournament,
-  onRegister,
   onView,
-  isRegistering,
-  isRegistered,
 }) => {
+  const {
+    handleRegistrationFlow,
+    isPending,
+    isRegistered,
+    getButtonText,
+    initializeRegistrationStatus,
+    checkRegistrationEligibility
+  } = useTournamentRegistrationFlow();
+
+  // Initialize registration status when component mounts
+  useEffect(() => {
+    initializeRegistrationStatus([tournament.id]);
+  }, [tournament.id, initializeRegistrationStatus]);
+
+  const tournamentId = tournament.id;
+  const isRegistering = isPending(tournamentId);
+  const userIsRegistered = isRegistered(tournamentId);
+  const eligibility = checkRegistrationEligibility(tournament);
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'upcoming':
@@ -101,6 +114,7 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
   const isRegistrationOpen = tournament.status === 'registration_open';
   const isRegistrationClosed = new Date(tournament.registration_end || '') < new Date();
   const isFull = tournament.current_participants >= tournament.max_participants;
+  const canShowRegistrationButton = isRegistrationOpen && !isRegistrationClosed && !isFull;
 
   return (
     <Card className="hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
@@ -202,30 +216,42 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
             Xem chi tiết
           </Button>
           
-          {isRegistrationOpen && !isRegistered && !isRegistrationClosed && !isFull && (
+          {/* Smart Registration Button */}
+          {canShowRegistrationButton && eligibility.eligible && (
             <Button
               size="sm"
-              onClick={() => onRegister?.(tournament.id)}
+              onClick={() => handleRegistrationFlow(tournament)}
               disabled={isRegistering}
               className="flex-1"
+              variant={userIsRegistered ? "destructive" : "default"}
             >
-              {isRegistering ? 'Đang đăng ký...' : 'Đăng ký'}
+              {getButtonText(tournamentId)}
             </Button>
           )}
 
-          {isRegistered && (
-            <Button size="sm" variant="secondary" disabled className="flex-1">
-              Đã đăng ký
+          {/* Disabled States */}
+          {!eligibility.eligible && (
+            <Button 
+              size="sm" 
+              variant="secondary" 
+              disabled 
+              className="flex-1"
+              title={eligibility.reason}
+            >
+              {eligibility.reason === 'Hết hạn đăng ký' ? 'Hết hạn đăng ký' :
+               eligibility.reason === 'Đã đủ người' ? 'Đã đủ người' :
+               eligibility.reason === 'Chưa đến thời gian đăng ký' ? 'Chưa mở đăng ký' :
+               'Không thể đăng ký'}
             </Button>
           )}
 
-          {isRegistrationClosed && !isRegistered && (
+          {isRegistrationClosed && (
             <Button size="sm" variant="secondary" disabled className="flex-1">
               Hết hạn đăng ký
             </Button>
           )}
 
-          {isFull && !isRegistered && (
+          {isFull && (
             <Button size="sm" variant="secondary" disabled className="flex-1">
               Đã đủ người
             </Button>
