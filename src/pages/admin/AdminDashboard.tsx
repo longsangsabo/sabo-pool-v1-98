@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Users, Trophy, Building2, CreditCard, BarChart3, TrendingUp, AlertTriangle, CheckCircle, Clock, Activity } from 'lucide-react';
 import AdminLayout from '@/components/AdminLayout';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useEnhancedNotifications } from '@/hooks/useEnhancedNotifications';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { toast } from 'sonner';
 const AdminDashboard = () => {
   const { data: isAdmin, isLoading: adminLoading } = useAdminCheck();
   const { unreadCount, highPriorityCount } = useEnhancedNotifications();
+  const { t } = useLanguage();
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [systemHealth, setSystemHealth] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -95,8 +97,8 @@ const AdminDashboard = () => {
       <AdminLayout>
         <div className='flex items-center justify-center h-64'>
           <div className='text-center'>
-            <h2 className='text-2xl font-bold text-gray-900 mb-4'>Access Denied</h2>
-            <p className='text-gray-600'>You don't have permission to access this page.</p>
+            <h2 className='text-2xl font-bold text-gray-900 mb-4'>{t('common.access_denied')}</h2>
+            <p className='text-gray-600'>{t('common.no_permission')}</p>
           </div>
         </div>
       </AdminLayout>
@@ -133,7 +135,7 @@ const AdminDashboard = () => {
 
   const stats = [
     {
-      title: 'Tổng người dùng',
+      title: t('admin.total_users'),
       value: systemHealth?.total_users?.toLocaleString() || '0',
       change: '+12%',
       icon: Users,
@@ -141,25 +143,25 @@ const AdminDashboard = () => {
       status: 'stable'
     },
     {
-      title: 'Đăng ký CLB chờ duyệt',
+      title: t('admin.pending_club_registrations'),
       value: clubStats.pending || '0',
-      change: `${clubStats.today_submissions || 0} hôm nay`,
+      change: `${clubStats.today_submissions || 0} ${t('admin.today')}`,
       icon: Building2,
       color: 'text-yellow-600',
       status: clubStats.pending > 0 ? 'warning' : 'stable'
     },
     {
-      title: 'CLB đã duyệt',
+      title: t('admin.approved_clubs'),
       value: clubStats.approved || '0',
-      change: `${clubStats.approval_rate || 0}% tỷ lệ duyệt`,
+      change: `${clubStats.approval_rate || 0}% ${t('admin.approval_rate')}`,
       icon: CheckCircle,
       color: 'text-green-600',
       status: 'stable'
     },
     {
-      title: 'Thông báo chưa đọc',
+      title: t('admin.unread_notifications'),
       value: notificationStats.unread || '0',
-      change: `${notificationStats.high_priority || 0} ưu tiên cao`,
+      change: `${notificationStats.high_priority || 0} ${t('admin.high_priority')}`,
       icon: AlertTriangle,
       color: highPriorityCount > 0 ? 'text-red-600' : 'text-gray-600',
       status: highPriorityCount > 0 ? 'alert' : 'stable'
@@ -181,8 +183,8 @@ const AdminDashboard = () => {
       <div className='space-y-6'>
         <div className='flex justify-between items-center'>
           <div>
-            <h1 className='text-3xl font-bold text-gray-900'>Admin Dashboard</h1>
-            <p className='text-gray-600'>Tổng quan hệ thống SABO Pool Arena</p>
+            <h1 className='text-3xl font-bold text-gray-900'>{t('admin.dashboard_title')}</h1>
+            <p className='text-gray-600'>{t('admin.dashboard_desc')}</p>
           </div>
           <div className='flex gap-3'>
             <Button 
@@ -191,7 +193,7 @@ const AdminDashboard = () => {
               className='gap-2'
             >
               <Activity className='w-4 h-4' />
-              Cập nhật thống kê
+              {t('admin.refresh_stats')}
             </Button>
           </div>
         </div>
@@ -201,7 +203,7 @@ const AdminDashboard = () => {
           <CardHeader>
             <CardTitle className='flex items-center gap-2'>
               <Activity className='w-5 h-5' />
-              Trạng thái hệ thống
+              {t('admin.system_status')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -212,12 +214,12 @@ const AdminDashboard = () => {
                   systemHealth?.system_status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
                 }`}></div>
                 <span className='text-sm font-medium'>
-                  {systemHealth?.system_status === 'healthy' ? 'Hệ thống hoạt động tốt' :
-                   systemHealth?.system_status === 'warning' ? 'Cảnh báo hệ thống' : 'Lỗi hệ thống'}
+                  {systemHealth?.system_status === 'healthy' ? t('admin.system_healthy') :
+                   systemHealth?.system_status === 'warning' ? t('admin.system_warning') : t('admin.system_error')}
                 </span>
               </div>
               <div className='text-sm text-gray-500'>
-                Cập nhật: {new Date().toLocaleString('vi-VN')}
+                {t('admin.last_updated')}: {new Date().toLocaleString('vi-VN')}
               </div>
             </div>
           </CardContent>
@@ -255,8 +257,8 @@ const AdminDashboard = () => {
           {/* Quick Actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Hành động nhanh</CardTitle>
-              <CardDescription>Các thao tác thường dùng</CardDescription>
+              <CardTitle>{t('admin.quick_actions')}</CardTitle>
+              <CardDescription>{t('admin.common_actions')}</CardDescription>
             </CardHeader>
             <CardContent className='space-y-3'>
               <Button 
@@ -265,7 +267,7 @@ const AdminDashboard = () => {
                 onClick={() => window.location.href = '/admin/clubs'}
               >
                 <Building2 className='w-4 h-4' />
-                Duyệt đăng ký CLB ({clubStats.pending || 0})
+                {t('admin.approve_clubs')} ({clubStats.pending || 0})
               </Button>
               <Button 
                 variant="outline" 
@@ -273,7 +275,7 @@ const AdminDashboard = () => {
                 onClick={() => window.location.href = '/admin/tournaments'}
               >
                 <Trophy className='w-4 h-4' />
-                Quản lý giải đấu
+                {t('admin.manage_tournaments')}
               </Button>
               <Button 
                 variant="outline" 
@@ -281,7 +283,7 @@ const AdminDashboard = () => {
                 onClick={() => window.location.href = '/admin/users'}
               >
                 <Users className='w-4 h-4' />
-                Quản lý người dùng
+                {t('admin.manage_users')}
               </Button>
             </CardContent>
           </Card>
@@ -289,30 +291,30 @@ const AdminDashboard = () => {
           {/* Registration Status */}
           <Card>
             <CardHeader>
-              <CardTitle>Trạng thái đăng ký CLB</CardTitle>
-              <CardDescription>Thống kê đăng ký câu lạc bộ</CardDescription>
+              <CardTitle>{t('admin.club_registration_status')}</CardTitle>
+              <CardDescription>{t('admin.club_stats')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className='space-y-4'>
                 <div className='flex justify-between items-center'>
-                  <span className='text-sm text-gray-600'>Tổng đăng ký</span>
+                  <span className='text-sm text-gray-600'>{t('admin.total_registrations')}</span>
                   <span className='text-sm font-medium'>{clubStats.total || 0}</span>
                 </div>
                 <div className='flex justify-between items-center'>
-                  <span className='text-sm text-gray-600'>Chờ duyệt</span>
+                  <span className='text-sm text-gray-600'>{t('admin.pending')}</span>
                   <span className='text-sm font-medium text-yellow-600'>{clubStats.pending || 0}</span>
                 </div>
                 <div className='flex justify-between items-center'>
-                  <span className='text-sm text-gray-600'>Đã duyệt</span>
+                  <span className='text-sm text-gray-600'>{t('admin.approved')}</span>
                   <span className='text-sm font-medium text-green-600'>{clubStats.approved || 0}</span>
                 </div>
                 <div className='flex justify-between items-center'>
-                  <span className='text-sm text-gray-600'>Bị từ chối</span>
+                  <span className='text-sm text-gray-600'>{t('admin.rejected')}</span>
                   <span className='text-sm font-medium text-red-600'>{clubStats.rejected || 0}</span>
                 </div>
                 <div className='pt-2 border-t'>
                   <div className='flex justify-between items-center'>
-                    <span className='text-sm text-gray-600'>Tỷ lệ duyệt</span>
+                    <span className='text-sm text-gray-600'>{t('admin.approval_rate')}</span>
                     <span className='text-sm font-medium'>{clubStats.approval_rate || 0}%</span>
                   </div>
                 </div>
@@ -323,25 +325,25 @@ const AdminDashboard = () => {
           {/* System Notifications */}
           <Card>
             <CardHeader>
-              <CardTitle>Thông báo hệ thống</CardTitle>
-              <CardDescription>Tình trạng thông báo</CardDescription>
+              <CardTitle>{t('admin.system_notifications')}</CardTitle>
+              <CardDescription>{t('admin.notification_status')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className='space-y-4'>
                 <div className='flex justify-between items-center'>
-                  <span className='text-sm text-gray-600'>Tổng thông báo</span>
+                  <span className='text-sm text-gray-600'>{t('admin.total_notifications')}</span>
                   <span className='text-sm font-medium'>{notificationStats.total || 0}</span>
                 </div>
                 <div className='flex justify-between items-center'>
-                  <span className='text-sm text-gray-600'>Chưa đọc</span>
+                  <span className='text-sm text-gray-600'>{t('admin.unread')}</span>
                   <span className='text-sm font-medium text-blue-600'>{notificationStats.unread || 0}</span>
                 </div>
                 <div className='flex justify-between items-center'>
-                  <span className='text-sm text-gray-600'>Ưu tiên cao</span>
+                  <span className='text-sm text-gray-600'>{t('admin.high_priority')}</span>
                   <span className='text-sm font-medium text-red-600'>{notificationStats.high_priority || 0}</span>
                 </div>
                 <div className='flex justify-between items-center'>
-                  <span className='text-sm text-gray-600'>Hôm nay</span>
+                  <span className='text-sm text-gray-600'>{t('admin.today')}</span>
                   <span className='text-sm font-medium'>{notificationStats.today_notifications || 0}</span>
                 </div>
               </div>

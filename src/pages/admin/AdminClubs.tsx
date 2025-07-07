@@ -4,11 +4,13 @@ import AdminLayout from '@/components/AdminLayout';
 import AdminClubRegistrations from '@/pages/admin/AdminClubRegistrations';
 import AdminApprovedClubs from '@/pages/admin/AdminApprovedClubs';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Building, CheckCircle, Clock } from 'lucide-react';
 
 const AdminClubs = () => {
   const { data: isAdmin, isLoading: adminLoading } = useAdminCheck();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('pending');
 
   if (adminLoading) {
@@ -26,8 +28,8 @@ const AdminClubs = () => {
       <AdminLayout>
         <div className='flex items-center justify-center h-64'>
           <div className='text-center'>
-            <h2 className='text-2xl font-bold text-gray-900 mb-4'>Access Denied</h2>
-            <p className='text-gray-600'>You don't have permission to access this page.</p>
+            <h2 className='text-2xl font-bold text-gray-900 mb-4'>{t('common.access_denied')}</h2>
+            <p className='text-gray-600'>{t('common.no_permission')}</p>
           </div>
         </div>
       </AdminLayout>
@@ -39,18 +41,18 @@ const AdminClubs = () => {
       <div className="space-y-6">
         <div className="flex items-center gap-2">
           <Building className="w-6 h-6 text-blue-600" />
-          <h1 className="text-2xl font-bold">Quản lý câu lạc bộ</h1>
+          <h1 className="text-2xl font-bold">{t('admin.club_management')}</h1>
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="pending" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              Đăng ký chờ duyệt
+              {t('admin.pending_registrations')}
             </TabsTrigger>
             <TabsTrigger value="approved" className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4" />
-              CLB đã duyệt
+              {t('admin.approved_clubs_tab')}
             </TabsTrigger>
           </TabsList>
           

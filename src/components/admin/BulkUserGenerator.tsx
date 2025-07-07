@@ -9,8 +9,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useLanguage, interpolate } from '@/contexts/LanguageContext';
 
 const BulkUserGenerator = () => {
+  const { t } = useLanguage();
   const [userCount, setUserCount] = useState(10);
   const [includeRanks, setIncludeRanks] = useState(true);
   const [includeSpaPoints, setIncludeSpaPoints] = useState(true);
@@ -128,16 +130,16 @@ const BulkUserGenerator = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
-          Bulk User Generator
+          {t('dev.bulk_user_title')}
         </CardTitle>
         <CardDescription>
-          Generate multiple test users with realistic Vietnamese names and profiles
+          {t('dev.bulk_user_desc')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="userCount">Number of Users (10-100)</Label>
+            <Label htmlFor="userCount">{t('dev.user_count')}</Label>
             <Input
               id="userCount"
               type="number"
@@ -149,7 +151,7 @@ const BulkUserGenerator = () => {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="skillDistribution">Skill Distribution</Label>
+            <Label htmlFor="skillDistribution">{t('dev.skill_distribution')}</Label>
             <Select value={skillDistribution} onValueChange={setSkillDistribution}>
               <SelectTrigger>
                 <SelectValue />

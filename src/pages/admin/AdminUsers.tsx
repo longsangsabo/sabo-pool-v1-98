@@ -182,7 +182,7 @@ const AdminUsers = () => {
         <Card>
           <CardHeader>
             <CardTitle>{t('admin.user_list')}</CardTitle>
-            <CardDescription>{interpolate(t('admin.total_users'), { count: filteredUsers.length })}</CardDescription>
+            <CardDescription>{interpolate(t('admin.total_users_count'), { count: filteredUsers.length })}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className='space-y-4'>
