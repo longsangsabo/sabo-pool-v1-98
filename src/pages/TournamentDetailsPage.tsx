@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import TournamentManagementFlow from '@/components/tournament/TournamentManagementFlow';
 import TournamentCard from '@/components/tournament/TournamentCard';
+import TournamentParticipantsList from '@/components/tournament/TournamentParticipantsList';
 import { useTournaments } from '@/hooks/useTournaments';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -83,17 +84,10 @@ const TournamentDetailsPage: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="participants" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Danh sách người tham gia</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Hiện có {tournament.current_participants} / {tournament.max_participants} người tham gia
-                </p>
-                {/* Add participant list component here */}
-              </CardContent>
-            </Card>
+            <TournamentParticipantsList 
+              tournamentId={tournament.id}
+              maxParticipants={tournament.max_participants}
+            />
           </TabsContent>
 
           <TabsContent value="bracket" className="space-y-6">
