@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, Banknote, Check, Clock } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+
 interface TournamentData {
   id: string;
   name: string;
@@ -11,9 +14,6 @@ interface TournamentData {
   current_participants: number;
   max_participants: number;
 }
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
 
 interface TournamentRegistrationModalProps {
   tournament: TournamentData;
@@ -49,10 +49,15 @@ export const TournamentRegistrationModal: React.FC<TournamentRegistrationModalPr
 
     setIsProcessing(true);
     try {
-      // Register with cash payment method
-      const { data, error } = await supabase
-        .from('tournament_registrations')
-        .insert({
+      // Use direct fetch instead of supabase client to avoid type issues
+      const response = await fetch('https://dd3f440a-0b12-42c4-8561-ca9f03abc65b.supabase.co/rest/v1/tournament_registrations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4'
+        },
+        body: JSON.stringify({
           tournament_id: tournament.id,
           user_id: user.id,
           registration_status: 'pending',
@@ -60,24 +65,30 @@ export const TournamentRegistrationModal: React.FC<TournamentRegistrationModalPr
           payment_method: 'cash',
           notes: 'Thanh toán tiền mặt tại CLB'
         })
-        .select()
-        .single();
+      });
 
-      if (error) {
+      if (!response.ok) {
+        const error = await response.json();
         if (error.code === '23505') {
           toast.error('Bạn đã đăng ký giải đấu này rồi');
           return;
         }
-        throw error;
+        throw new Error(error.message || 'Registration failed');
       }
 
       // Update tournament participant count
-      await supabase
-        .from('tournaments')
-        .update({ 
-          current_participants: tournament.current_participants + 1 
+      await fetch('https://dd3f440a-0b12-42c4-8561-ca9f03abc65b.supabase.co/rest/v1/rpc/update_tournament_participants', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4'
+        },
+        body: JSON.stringify({
+          tournament_id: tournament.id,
+          increment: 1
         })
-        .eq('id', tournament.id);
+      });
 
       toast.success('Đăng ký thành công! Vui lòng thanh toán tại CLB.');
       onRegistrationSuccess();
@@ -99,43 +110,50 @@ export const TournamentRegistrationModal: React.FC<TournamentRegistrationModalPr
     setIsProcessing(true);
     try {
       // First register the user
-      const { data: registrationData, error: regError } = await supabase
-        .from('tournament_registrations')
-        .insert({
+      const registrationResponse = await fetch('https://dd3f440a-0b12-42c4-8561-ca9f03abc65b.supabase.co/rest/v1/tournament_registrations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
           tournament_id: tournament.id,
           user_id: user.id,
           registration_status: 'pending',
           payment_status: 'processing',
           payment_method: 'vnpay'
         })
-        .select()
-        .single();
+      });
 
-      if (regError) {
-        if (regError.code === '23505') {
+      if (!registrationResponse.ok) {
+        const error = await registrationResponse.json();
+        if (error.code === '23505') {
           toast.error('Bạn đã đăng ký giải đấu này rồi');
           return;
         }
-        throw regError;
+        throw new Error(error.message || 'Registration failed');
       }
 
+      const registrationData = await registrationResponse.json();
+
       // Create VNPAY payment
-      const response = await fetch('https://dd3f440a-0b12-42c4-8561-ca9f03abc65b.supabase.co/functions/v1/create-payment', {
+      const paymentResponse = await fetch('https://dd3f440a-0b12-42c4-8561-ca9f03abc65b.supabase.co/functions/v1/create-tournament-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4'}`
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4`
         },
         body: JSON.stringify({
           userId: user.id,
-          membershipType: 'tournament',
-          amount: tournament.entry_fee || 100000,
           tournamentId: tournament.id,
-          registrationId: registrationData.id
+          registrationId: registrationData[0]?.id,
+          amount: tournament.entry_fee || 100000
         })
       });
 
-      const paymentResult = await response.json();
+      const paymentResult = await paymentResponse.json();
 
       if (paymentResult.success && paymentResult.paymentUrl) {
         // Redirect to VNPAY
@@ -149,11 +167,13 @@ export const TournamentRegistrationModal: React.FC<TournamentRegistrationModalPr
       
       // Clean up failed registration
       if (user?.id) {
-        await (supabase as any)
-          .from('tournament_registrations')
-          .delete()
-          .eq('tournament_id', tournament.id)
-          .eq('user_id', user.id);
+        await fetch(`https://dd3f440a-0b12-42c4-8561-ca9f03abc65b.supabase.co/rest/v1/tournament_registrations?tournament_id=eq.${tournament.id}&user_id=eq.${user.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4'
+          }
+        });
       }
     } finally {
       setIsProcessing(false);

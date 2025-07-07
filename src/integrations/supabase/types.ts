@@ -5257,6 +5257,10 @@ export type Database = {
         }
         Returns: Json
       }
+      update_tournament_participants: {
+        Args: { tournament_id: string; increment?: number }
+        Returns: undefined
+      }
       update_weekly_leaderboard: {
         Args: Record<PropertyKey, never>
         Returns: undefined
