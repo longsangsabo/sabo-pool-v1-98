@@ -292,12 +292,7 @@ export const useTournamentRegistrationFlow = () => {
 
   // Initialize registration status from database
   const initializeRegistrationStatus = useCallback(async (tournamentIds: string[]) => {
-    if (!user?.id || tournamentIds.length === 0) {
-      console.log('Cannot initialize registration status: no user or tournament IDs', { userId: user?.id, tournamentIds });
-      return;
-    }
-
-    console.log('Initializing registration status for tournaments:', tournamentIds, 'User ID:', user.id);
+    if (!user?.id || tournamentIds.length === 0) return;
 
     try {
       const { data, error } = await supabase
@@ -306,12 +301,7 @@ export const useTournamentRegistrationFlow = () => {
         .eq('player_id', user.id)
         .in('tournament_id', tournamentIds);
 
-      if (error) {
-        console.error('Database error checking registrations:', error);
-        throw error;
-      }
-
-      console.log('Registration data from database:', data);
+      if (error) throw error;
 
       const newStatus: Record<string, RegistrationStatus> = {};
       
@@ -327,16 +317,10 @@ export const useTournamentRegistrationFlow = () => {
         }
       });
 
-      console.log('Setting registration status:', newStatus);
-
-      setRegistrationStatus(prev => {
-        const updated = {
-          ...prev,
-          ...newStatus
-        };
-        console.log('Updated registration status state:', updated);
-        return updated;
-      });
+      setRegistrationStatus(prev => ({
+        ...prev,
+        ...newStatus
+      }));
     } catch (error) {
       console.error('Error initializing registration status:', error);
     }
