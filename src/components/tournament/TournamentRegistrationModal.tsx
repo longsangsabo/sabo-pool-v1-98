@@ -4,13 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, Banknote, Check, Clock } from 'lucide-react';
-import { Tournament } from '@/types/tournament';
+interface TournamentData {
+  id: string;
+  name: string;
+  entry_fee: number;
+  current_participants: number;
+  max_participants: number;
+}
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 interface TournamentRegistrationModalProps {
-  tournament: Tournament;
+  tournament: TournamentData;
   isOpen: boolean;
   onClose: () => void;
   onRegistrationSuccess: () => void;
@@ -66,10 +72,12 @@ export const TournamentRegistrationModal: React.FC<TournamentRegistrationModalPr
       }
 
       // Update tournament participant count
-      await supabase.rpc('update_tournament_participants', {
-        tournament_id: tournament.id,
-        increment: 1
-      });
+      await supabase
+        .from('tournaments')
+        .update({ 
+          current_participants: tournament.current_participants + 1 
+        })
+        .eq('id', tournament.id);
 
       toast.success('Đăng ký thành công! Vui lòng thanh toán tại CLB.');
       onRegistrationSuccess();
@@ -141,7 +149,7 @@ export const TournamentRegistrationModal: React.FC<TournamentRegistrationModalPr
       
       // Clean up failed registration
       if (user?.id) {
-        await supabase
+        await (supabase as any)
           .from('tournament_registrations')
           .delete()
           .eq('tournament_id', tournament.id)
