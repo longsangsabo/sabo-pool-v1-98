@@ -947,6 +947,44 @@ export type Database = {
           },
         ]
       }
+      match_events: {
+        Row: {
+          created_at: string | null
+          event_data: Json | null
+          event_time: string | null
+          event_type: string
+          id: string
+          match_id: string | null
+          reported_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_data?: Json | null
+          event_time?: string | null
+          event_type: string
+          id?: string
+          match_id?: string | null
+          reported_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_data?: Json | null
+          event_time?: string | null
+          event_type?: string
+          id?: string
+          match_id?: string | null
+          reported_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_events_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_history: {
         Row: {
           action_data: Json | null
@@ -3432,31 +3470,37 @@ export type Database = {
       }
       tournament_brackets: {
         Row: {
+          bracket_config: Json | null
           bracket_data: Json
           bracket_type: string | null
           created_at: string | null
           current_round: number | null
           id: string
+          total_players: number
           total_rounds: number
           tournament_id: string
           updated_at: string | null
         }
         Insert: {
+          bracket_config?: Json | null
           bracket_data: Json
           bracket_type?: string | null
           created_at?: string | null
           current_round?: number | null
           id?: string
+          total_players: number
           total_rounds: number
           tournament_id: string
           updated_at?: string | null
         }
         Update: {
+          bracket_config?: Json | null
           bracket_data?: Json
           bracket_type?: string | null
           created_at?: string | null
           current_round?: number | null
           id?: string
+          total_players?: number
           total_rounds?: number
           tournament_id?: string
           updated_at?: string | null
@@ -3475,12 +3519,18 @@ export type Database = {
         Row: {
           actual_end_time: string | null
           actual_start_time: string | null
+          bracket_id: string | null
           created_at: string | null
           id: string
+          live_stream_url: string | null
+          loser_id: string | null
+          match_notes: string | null
           match_number: number
+          metadata: Json | null
           notes: string | null
           player1_id: string | null
           player2_id: string | null
+          referee_id: string | null
           round_number: number
           scheduled_time: string | null
           score_player1: number | null
@@ -3493,12 +3543,18 @@ export type Database = {
         Insert: {
           actual_end_time?: string | null
           actual_start_time?: string | null
+          bracket_id?: string | null
           created_at?: string | null
           id?: string
+          live_stream_url?: string | null
+          loser_id?: string | null
+          match_notes?: string | null
           match_number: number
+          metadata?: Json | null
           notes?: string | null
           player1_id?: string | null
           player2_id?: string | null
+          referee_id?: string | null
           round_number: number
           scheduled_time?: string | null
           score_player1?: number | null
@@ -3511,12 +3567,18 @@ export type Database = {
         Update: {
           actual_end_time?: string | null
           actual_start_time?: string | null
+          bracket_id?: string | null
           created_at?: string | null
           id?: string
+          live_stream_url?: string | null
+          loser_id?: string | null
+          match_notes?: string | null
           match_number?: number
+          metadata?: Json | null
           notes?: string | null
           player1_id?: string | null
           player2_id?: string | null
+          referee_id?: string | null
           round_number?: number
           scheduled_time?: string | null
           score_player1?: number | null
@@ -3528,7 +3590,58 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "tournament_matches_bracket_id_fkey"
+            columns: ["bracket_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_brackets"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tournament_matches_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_participants: {
+        Row: {
+          checked_in_at: string | null
+          created_at: string | null
+          id: string
+          player_stats: Json | null
+          registration_status: string | null
+          seed_number: number | null
+          tournament_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          checked_in_at?: string | null
+          created_at?: string | null
+          id?: string
+          player_stats?: Json | null
+          registration_status?: string | null
+          seed_number?: number | null
+          tournament_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          checked_in_at?: string | null
+          created_at?: string | null
+          id?: string
+          player_stats?: Json | null
+          registration_status?: string | null
+          seed_number?: number | null
+          tournament_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_participants_tournament_id_fkey"
             columns: ["tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
@@ -4247,6 +4360,10 @@ export type Database = {
       }
       generate_referral_code: {
         Args: { p_user_id: string }
+        Returns: string
+      }
+      generate_single_elimination_bracket: {
+        Args: { p_tournament_id: string; p_participants: string[] }
         Returns: string
       }
       get_cron_jobs: {
