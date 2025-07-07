@@ -360,33 +360,41 @@ const TournamentsPage: React.FC = () => {
 
                 {/* Actions */}
                 <div className='flex gap-2'>
-                  {tournament.status === 'registration_open' && (
-                    userRegistrations[tournament.id] ? (
-                      <div className='flex-1 flex gap-2'>
-                        <Button 
-                          variant='outline'
-                          className='flex-1'
-                          onClick={() => handleCancelRegistration(tournament.id)}
-                          disabled={registrationLoading === tournament.id}
-                        >
-                          {registrationLoading === tournament.id ? 'Đang hủy...' : 'Hủy đăng ký'}
-                        </Button>
-                        <div className='flex items-center px-3 py-2 bg-green-100 text-green-800 rounded-md text-sm'>
-                          <Check className='h-4 w-4 mr-1' />
-                          Đã đăng ký
+                  {/* Check if registration is open by dates */}
+                  {(() => {
+                    const now = new Date();
+                    const regStart = new Date(tournament.registration_start);
+                    const regEnd = new Date(tournament.registration_end);
+                    const isRegistrationOpen = now >= regStart && now <= regEnd;
+                    
+                    return (tournament.status === 'registration_open' || tournament.status === 'upcoming') && isRegistrationOpen && (
+                      userRegistrations[tournament.id] ? (
+                        <div className='flex-1 flex gap-2'>
+                          <Button 
+                            variant='outline'
+                            className='flex-1'
+                            onClick={() => handleCancelRegistration(tournament.id)}
+                            disabled={registrationLoading === tournament.id}
+                          >
+                            {registrationLoading === tournament.id ? 'Đang hủy...' : 'Hủy đăng ký'}
+                          </Button>
+                          <div className='flex items-center px-3 py-2 bg-green-100 text-green-800 rounded-md text-sm'>
+                            <Check className='h-4 w-4 mr-1' />
+                            Đã đăng ký
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <Button 
-                        className='flex-1'
-                        onClick={() => handleRegisterTournament(tournament.id)}
-                        disabled={registrationLoading === tournament.id || tournament.current_participants >= tournament.max_participants}
-                      >
-                        {registrationLoading === tournament.id ? 'Đang đăng ký...' : 
-                         tournament.current_participants >= tournament.max_participants ? 'Đã đầy' : 'Đăng ký tham gia'}
-                      </Button>
-                    )
-                  )}
+                      ) : (
+                        <Button 
+                          className='flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70'
+                          onClick={() => handleRegisterTournament(tournament.id)}
+                          disabled={registrationLoading === tournament.id || tournament.current_participants >= tournament.max_participants}
+                        >
+                          {registrationLoading === tournament.id ? 'Đang đăng ký...' : 
+                           tournament.current_participants >= tournament.max_participants ? 'Đã đầy' : 'Đăng ký tham gia'}
+                        </Button>
+                      )
+                    );
+                  })()}
                   
                   {tournament.status === 'ongoing' && (
                     <Button 
@@ -406,12 +414,19 @@ const TournamentsPage: React.FC = () => {
                     </Button>
                   )}
                   
-                  {tournament.status === 'registration_closed' && (
-                    <div className='flex-1 flex items-center justify-center px-3 py-2 bg-yellow-100 text-yellow-800 rounded-md text-sm'>
-                      <Clock className='h-4 w-4 mr-1' />
-                      Đã đóng đăng ký
-                    </div>
-                  )}
+                  {(() => {
+                    const now = new Date();
+                    const regStart = new Date(tournament.registration_start);
+                    const regEnd = new Date(tournament.registration_end);
+                    const isRegistrationClosed = now > regEnd;
+                    
+                    return (tournament.status === 'registration_closed' || isRegistrationClosed) && tournament.status !== 'ongoing' && tournament.status !== 'completed' && (
+                      <div className='flex-1 flex items-center justify-center px-3 py-2 bg-yellow-100 text-yellow-800 rounded-md text-sm'>
+                        <Clock className='h-4 w-4 mr-1' />
+                        Đã đóng đăng ký
+                      </div>
+                    );
+                  })()}
                   
                   {/* Admin/Organizer Actions */}
                   {user?.id === tournament.organizer_id && (
