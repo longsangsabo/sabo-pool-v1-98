@@ -78,11 +78,31 @@ export const TournamentBracketViewer: React.FC<TournamentBracketViewerProps> = (
 
       if (matchesError) throw matchesError;
       
-      setMatches((matchesData || []).map(match => ({
-        ...match,
+      // Transform the data to match our interface
+      const transformedMatches = (matchesData || []).map(match => ({
+        id: match.id,
+        round_number: match.round_number,
+        match_number: match.match_number,
+        player1_id: match.player1_id,
+        player2_id: match.player2_id,
+        winner_id: match.winner_id,
         player1_score: match.player1_score || 0,
-        player2_score: match.player2_score || 0
-      })));
+        player2_score: match.player2_score || 0,
+        status: (match.status as 'scheduled' | 'ongoing' | 'completed' | 'cancelled') || 'scheduled',
+        scheduled_time: match.scheduled_time,
+        player1: match.player1 ? {
+          id: match.player1.user_id,
+          full_name: match.player1.full_name,
+          avatar_url: match.player1.avatar_url
+        } : undefined,
+        player2: match.player2 ? {
+          id: match.player2.user_id,
+          full_name: match.player2.full_name,
+          avatar_url: match.player2.avatar_url
+        } : undefined
+      }));
+      
+      setMatches(transformedMatches);
     } catch (error) {
       console.error('Error fetching bracket data:', error);
       toast.error('Không thể tải dữ liệu bảng đấu');

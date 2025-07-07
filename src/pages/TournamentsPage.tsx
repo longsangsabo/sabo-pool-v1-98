@@ -228,11 +228,6 @@ const TournamentsPage: React.FC = () => {
                       <Badge className={getStatusColor(tournament.status)}>
                         {getStatusName(tournament.status)}
                       </Badge>
-                      {tournament.tier && (
-                        <Badge variant="outline">
-                          Hạng {tournament.tier}
-                        </Badge>
-                      )}
                     </div>
                   </div>
                   <Trophy className='h-6 w-6 text-yellow-500' />

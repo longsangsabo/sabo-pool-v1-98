@@ -71,11 +71,26 @@ export const TournamentRegistrationDashboard: React.FC<TournamentRegistrationDas
       );
 
       if (error) throw error;
-      setRegistrations((data || []).map(reg => ({
-        ...reg,
-        status: reg.registration_status || 'registered',
-        payment_status: reg.payment_status || 'pending'
-      })));
+      
+      // Transform the data to match our interface
+      const transformedRegistrations = (data || []).map((reg: any) => ({
+        id: reg.id,
+        user_id: reg.user_id,
+        registration_date: reg.registration_date,
+        status: (reg.status as 'registered' | 'confirmed' | 'cancelled' | 'withdrawn') || 'registered',
+        payment_status: (reg.payment_status as 'pending' | 'paid' | 'refunded') || 'pending',
+        notes: reg.notes,
+        user_profile: typeof reg.user_profile === 'object' ? reg.user_profile : {
+          user_id: reg.user_id,
+          full_name: 'Unknown',
+          display_name: 'Unknown',
+          avatar_url: undefined,
+          verified_rank: undefined,
+          current_rank: undefined
+        }
+      }));
+      
+      setRegistrations(transformedRegistrations);
     } catch (error) {
       console.error('Error fetching registrations:', error);
       toast.error('Không thể tải danh sách đăng ký');
@@ -91,7 +106,7 @@ export const TournamentRegistrationDashboard: React.FC<TournamentRegistrationDas
       setActionLoading(registrationId);
       const { error } = await supabase
         .from('tournament_registrations')
-        .update({ registration_status: 'confirmed' })
+        .update({ status: 'confirmed' })
         .eq('id', registrationId);
 
       if (error) throw error;
@@ -113,7 +128,7 @@ export const TournamentRegistrationDashboard: React.FC<TournamentRegistrationDas
       setActionLoading(registrationId);
       const { error } = await supabase
         .from('tournament_registrations')
-        .update({ registration_status: 'cancelled' })
+        .update({ status: 'cancelled' })
         .eq('id', registrationId);
 
       if (error) throw error;
