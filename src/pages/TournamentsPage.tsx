@@ -30,14 +30,17 @@ const TournamentsPage: React.FC = () => {
     const loadUserRegistrations = async () => {
       if (!user || tournaments.length === 0) return;
       
+      console.log('Loading user registrations for', tournaments.length, 'tournaments');
       const registrations: Record<string, any> = {};
       for (const tournament of tournaments) {
         const registration = await checkUserRegistration(tournament.id);
         if (registration) {
           registrations[tournament.id] = registration;
+          console.log('Found registration for tournament:', tournament.id, registration);
         }
       }
       setUserRegistrations(registrations);
+      console.log('Final userRegistrations state:', registrations);
     };
 
     loadUserRegistrations();
@@ -52,14 +55,29 @@ const TournamentsPage: React.FC = () => {
     setRegistrationLoading(tournamentId);
     try {
       await registerForTournament(tournamentId);
-      // Refresh user registrations
+      
+      // Refresh tournaments data to get updated participant count
+      await fetchTournaments();
+      
+      // Get the registration data and update state
       const registration = await checkUserRegistration(tournamentId);
       setUserRegistrations(prev => ({
         ...prev,
         [tournamentId]: registration
       }));
+      
+      if (registration) {
+        console.log('Registration successful for tournament:', tournamentId);
+      }
+      
     } catch (error) {
       console.error('Registration error:', error);
+      // On error, ensure we have the correct state
+      const registration = await checkUserRegistration(tournamentId);
+      setUserRegistrations(prev => ({
+        ...prev,
+        [tournamentId]: registration
+      }));
     } finally {
       setRegistrationLoading(null);
     }
@@ -71,16 +89,31 @@ const TournamentsPage: React.FC = () => {
     setRegistrationLoading(tournamentId);
     try {
       await cancelRegistration(tournamentId);
-      // Remove from user registrations and force re-fetch tournaments
+      
+      // Immediately remove from userRegistrations state to update UI
       setUserRegistrations(prev => {
         const updated = { ...prev };
         delete updated[tournamentId];
         return updated;
       });
-      // Force re-fetch to ensure UI state is consistent
+      
+      // Refresh tournaments data to ensure consistency
       await fetchTournaments();
+      
+      // Double-check registration status
+      const registration = await checkUserRegistration(tournamentId);
+      if (!registration) {
+        console.log('Registration successfully canceled for tournament:', tournamentId);
+      }
+      
     } catch (error) {
       console.error('Cancel registration error:', error);
+      // On error, reload registrations to get current state
+      const registration = await checkUserRegistration(tournamentId);
+      setUserRegistrations(prev => ({
+        ...prev,
+        [tournamentId]: registration
+      }));
     } finally {
       setRegistrationLoading(null);
     }
