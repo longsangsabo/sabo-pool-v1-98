@@ -6,17 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { CreditCard, Banknote, Check, Clock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-
-interface TournamentData {
-  id: string;
-  name: string;
-  entry_fee: number;
-  current_participants: number;
-  max_participants: number;
-}
+import { Tournament } from '@/types/tournament';
 
 interface TournamentRegistrationModalProps {
-  tournament: TournamentData;
+  tournament: Tournament;
   isOpen: boolean;
   onClose: () => void;
   onRegistrationSuccess: () => void;
@@ -59,10 +52,9 @@ export const TournamentRegistrationModal: React.FC<TournamentRegistrationModalPr
         },
         body: JSON.stringify({
           tournament_id: tournament.id,
-          user_id: user.id,
+          player_id: user.id,
           registration_status: 'pending',
           payment_status: 'cash_pending',
-          payment_method: 'cash',
           notes: 'Thanh toán tiền mặt tại CLB'
         })
       });
@@ -120,10 +112,9 @@ export const TournamentRegistrationModal: React.FC<TournamentRegistrationModalPr
         },
         body: JSON.stringify({
           tournament_id: tournament.id,
-          user_id: user.id,
+          player_id: user.id,
           registration_status: 'pending',
-          payment_status: 'processing',
-          payment_method: 'vnpay'
+          payment_status: 'processing'
         })
       });
 
@@ -167,7 +158,7 @@ export const TournamentRegistrationModal: React.FC<TournamentRegistrationModalPr
       
       // Clean up failed registration
       if (user?.id) {
-        await fetch(`https://dd3f440a-0b12-42c4-8561-ca9f03abc65b.supabase.co/rest/v1/tournament_registrations?tournament_id=eq.${tournament.id}&user_id=eq.${user.id}`, {
+        await fetch(`https://dd3f440a-0b12-42c4-8561-ca9f03abc65b.supabase.co/rest/v1/tournament_registrations?tournament_id=eq.${tournament.id}&player_id=eq.${user.id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4`,

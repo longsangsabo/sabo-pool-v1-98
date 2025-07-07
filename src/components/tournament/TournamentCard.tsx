@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Calendar, MapPin, Users, Trophy, DollarSign, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tournament } from '@/types/tournament';
 import { useTournamentRegistrationFlow } from '@/hooks/useTournamentRegistrationFlow';
+import { TournamentRegistrationModal } from './TournamentRegistrationModal';
 
 interface TournamentCardProps {
   tournament: Tournament;
@@ -15,24 +16,22 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
   tournament,
   onView,
 }) => {
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  
   const {
-    handleRegistrationFlow,
-    isPending,
-    isRegistered,
-    getButtonText,
-    initializeRegistrationStatus,
     checkRegistrationEligibility
   } = useTournamentRegistrationFlow();
 
-  // Initialize registration status when component mounts
-  useEffect(() => {
-    initializeRegistrationStatus([tournament.id]);
-  }, [tournament.id, initializeRegistrationStatus]);
-
-  const tournamentId = tournament.id;
-  const isRegistering = isPending(tournamentId);
-  const userIsRegistered = isRegistered(tournamentId);
   const eligibility = checkRegistrationEligibility(tournament);
+
+  const handleRegistrationClick = () => {
+    setShowRegistrationModal(true);
+  };
+
+  const handleRegistrationSuccess = () => {
+    setShowRegistrationModal(false);
+    // Có thể thêm toast success hoặc refresh data ở đây
+  };
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':
@@ -220,16 +219,14 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
             Xem chi tiết
           </Button>
           
-          {/* Smart Registration Button */}
+          {/* Registration Button - Đơn giản chỉ hiển thị khi có thể đăng ký */}
           {canShowRegistrationButton && eligibility.canRegister && (
             <Button
               size="sm"
-              onClick={() => handleRegistrationFlow(tournament)}
-              disabled={isRegistering}
+              onClick={handleRegistrationClick}
               className="flex-1"
-              variant={userIsRegistered ? "destructive" : "default"}
             >
-              {getButtonText(tournamentId)}
+              Đăng ký tham gia - {formatPrize(tournament.entry_fee)}
             </Button>
           )}
 
@@ -259,6 +256,16 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
           )}
         </div>
       </CardContent>
+
+      {/* Registration Modal */}
+      {tournament && (
+        <TournamentRegistrationModal
+          tournament={tournament}
+          isOpen={showRegistrationModal}
+          onClose={() => setShowRegistrationModal(false)}
+          onRegistrationSuccess={handleRegistrationSuccess}
+        />
+      )}
     </Card>
   );
 };
