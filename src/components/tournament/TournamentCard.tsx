@@ -217,7 +217,7 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
           </Button>
           
           {/* Smart Registration Button */}
-          {canShowRegistrationButton && eligibility.eligible && (
+          {canShowRegistrationButton && eligibility.canRegister && (
             <Button
               size="sm"
               onClick={() => handleRegistrationFlow(tournament)}
@@ -229,19 +229,16 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
             </Button>
           )}
 
-          {/* Disabled States */}
-          {!eligibility.eligible && (
+          {/* Disabled States with Reasons */}
+          {!eligibility.canRegister && eligibility.reasons.length > 0 && (
             <Button 
               size="sm" 
               variant="secondary" 
               disabled 
               className="flex-1"
-              title={eligibility.reason}
+              title={eligibility.reasons.join(', ')}
             >
-              {eligibility.reason === 'Hết hạn đăng ký' ? 'Hết hạn đăng ký' :
-               eligibility.reason === 'Đã đủ người' ? 'Đã đủ người' :
-               eligibility.reason === 'Chưa đến thời gian đăng ký' ? 'Chưa mở đăng ký' :
-               'Không thể đăng ký'}
+              {eligibility.reasons[0] || 'Không thể đăng ký'}
             </Button>
           )}
 

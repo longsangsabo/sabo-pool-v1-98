@@ -7,8 +7,9 @@ import { Tournament } from '@/types/tournament';
 type RegistrationStatus = 'NOT_REGISTERED' | 'REGISTERED' | 'PENDING';
 
 interface RegistrationEligibility {
-  eligible: boolean;
-  reason?: string;
+  canRegister: boolean;
+  reasons: string[];
+  isEligible: boolean; // for backward compatibility
 }
 
 interface RegistrationResult {
@@ -21,37 +22,88 @@ export const useTournamentRegistrationFlow = () => {
   const { user, profile } = useAuth();
   const [registrationStatus, setRegistrationStatus] = useState<Record<string, RegistrationStatus>>({});
 
-  // Validate registration eligibility
+  // Enhanced validation with multiple criteria
   const checkRegistrationEligibility = useCallback((tournament: Tournament): RegistrationEligibility => {
+    const reasons: string[] = [];
+
     if (!user) {
-      return { eligible: false, reason: 'Vui lòng đăng nhập để tham gia' };
+      reasons.push('Vui lòng đăng nhập để tham gia');
+      return { canRegister: false, reasons, isEligible: false };
     }
 
-    // Check registration period
-    const now = new Date();
+    // Điều kiện 1: Số lượng slot
+    if (tournament.current_participants >= tournament.max_participants) {
+      reasons.push('Giải đã đủ số lượng người tham gia');
+    }
+
+    // Điều kiện 2: Thời gian đăng ký
+    const currentTime = new Date();
     const regStart = new Date(tournament.registration_start);
     const regEnd = new Date(tournament.registration_end);
     
-    if (now < regStart) {
-      return { eligible: false, reason: 'Chưa đến thời gian đăng ký' };
+    if (currentTime < regStart) {
+      reasons.push('Chưa đến thời gian đăng ký');
     }
     
-    if (now > regEnd) {
-      return { eligible: false, reason: 'Đã hết hạn đăng ký' };
+    if (currentTime > regEnd) {
+      reasons.push('Hết thời gian đăng ký');
     }
 
-    // Check available slots
-    if (tournament.current_participants >= tournament.max_participants) {
-      return { eligible: false, reason: 'Giải đấu đã đủ số lượng tham gia' };
-    }
-
-    // Check tournament status
+    // Điều kiện 3: Trạng thái giải đấu
     if (tournament.status !== 'registration_open') {
-      return { eligible: false, reason: 'Giải đấu không mở đăng ký' };
+      switch (tournament.status) {
+        case 'upcoming':
+          reasons.push('Giải đấu chưa mở đăng ký');
+          break;
+        case 'registration_closed':
+          reasons.push('Đã đóng đăng ký');
+          break;
+        case 'ongoing':
+          reasons.push('Giải đấu đã bắt đầu');
+          break;
+        case 'completed':
+          reasons.push('Giải đấu đã kết thúc');
+          break;
+        case 'cancelled':
+          reasons.push('Giải đấu đã bị hủy');
+          break;
+        default:
+          reasons.push('Giải đấu không mở đăng ký');
+      }
     }
 
-    return { eligible: true };
-  }, [user]);
+    // Điều kiện 4: Trình độ người chơi (nếu có yêu cầu) - Skip for now
+    // TODO: Add rank requirement checking when tournament schema supports it
+    
+    // Điều kiện 5: Tuổi tác (nếu có yêu cầu) - Skip for now  
+    // TODO: Add age requirement checking when tournament schema supports it
+
+    const canRegister = reasons.length === 0;
+    return { canRegister, reasons, isEligible: canRegister };
+  }, [user, profile]);
+
+  // Helper function to check rank requirements
+  const checkRankRequirement = useCallback((userRank: string, requiredRank: string): boolean => {
+    const ranks = ['K', 'K+', 'I', 'I+', 'H', 'H+', 'G', 'G+', 'E'];
+    const userRankIndex = ranks.indexOf(userRank);
+    const requiredRankIndex = ranks.indexOf(requiredRank);
+    
+    return userRankIndex >= requiredRankIndex;
+  }, []);
+
+  // Helper function to calculate age
+  const calculateAge = useCallback((dateOfBirth: string): number => {
+    const birth = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    
+    return age;
+  }, []);
 
   // Perform registration action
   const performRegistrationAction = useCallback(async (tournament: Tournament): Promise<RegistrationResult> => {
@@ -143,8 +195,12 @@ export const useTournamentRegistrationFlow = () => {
         // Check eligibility for registration
         const eligibility = checkRegistrationEligibility(tournament);
         
-        if (!eligibility.eligible) {
-          toast.error(eligibility.reason || 'Không đủ điều kiện tham gia');
+        if (!eligibility.canRegister) {
+          const primaryReason = eligibility.reasons[0] || 'Không đủ điều kiện tham gia';
+          toast.error(primaryReason);
+          if (eligibility.reasons.length > 1) {
+            console.log('All eligibility reasons:', eligibility.reasons);
+          }
           setRegistrationStatus(prev => ({
             ...prev,
             [tournamentId]: 'NOT_REGISTERED'
