@@ -48,14 +48,18 @@ const BulkUserGenerator = () => {
     setGeneratedUsers([]);
 
     try {
-      // First create auth users, then profiles
-      const authUsers = [];
+      console.log('🚀 Starting user generation...', { userCount, skillDistribution });
+      
+      // Check auth status
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Current user:', user?.id);
+      
+      // Create test users that don't link to auth.users (avoiding wallet FK constraint)
       const profiles = [];
       
       for (let i = 0; i < userCount; i++) {
         const fullName = generateVietnameseName();
         const phone = generatePhoneNumber();
-        const email = `test.user.${Date.now()}.${i}@sabopool.test`;
         
         let skillLevel = 'beginner';
         if (skillDistribution === 'mixed') {
@@ -64,10 +68,9 @@ const BulkUserGenerator = () => {
           skillLevel = skillDistribution;
         }
 
-        // Create profile data with user_id set to a UUID
-        const userId = crypto.randomUUID();
+        // Create profile data WITHOUT user_id to avoid auth.users FK constraint
+        // This creates standalone test profiles not linked to real auth users
         const profileData = {
-          user_id: userId,
           full_name: fullName,
           display_name: fullName.split(' ').slice(-2).join(' '),
           phone: phone,
@@ -76,29 +79,42 @@ const BulkUserGenerator = () => {
           district: `Quận ${Math.floor(Math.random() * 12) + 1}`,
           bio: `Người chơi billiards ${skillLevel === 'beginner' ? 'mới bắt đầu' : skillLevel === 'intermediate' ? 'trung bình' : skillLevel === 'advanced' ? 'giỏi' : 'chuyên nghiệp'}`,
           created_at: new Date().toISOString(),
+          // Note: No user_id field - this creates test profiles only
         };
 
         profiles.push(profileData);
-        setProgress(((i + 1) / userCount) * 50); // First 50% for generation
+        setProgress(((i + 1) / userCount) * 50);
       }
 
-      // Insert profiles with user_id already set
+      console.log('Generated profile data:', profiles.slice(0, 2)); // Log first 2 for inspection
+
+      // Insert profiles without user_id (test data only)
       const { data: insertedProfiles, error: insertError } = await supabase
         .from('profiles')
         .insert(profiles)
         .select();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('❌ Profile insert error:', {
+          message: insertError.message,
+          code: insertError.code,
+          details: insertError.details,
+          hint: insertError.hint
+        });
+        throw insertError;
+      }
 
-      // Generate rankings if requested
+      console.log('✅ Profiles inserted successfully:', insertedProfiles?.length);
+
+      // Generate rankings if requested (using profile IDs as player_id)
       if (includeRanks && insertedProfiles) {
         const rankings = insertedProfiles.map((profile, index) => {
           const elo = 800 + Math.floor(Math.random() * 1200); // 800-2000 ELO
           const spaPoints = includeSpaPoints ? Math.floor(Math.random() * 500) : 0;
           
           return {
-            player_id: profile.user_id,
-            current_rank_id: null, // Would need to link to actual rank IDs
+            player_id: profile.id, // Use profile.id instead of user_id for test data
+            current_rank_id: null,
             elo: elo,
             spa_points: spaPoints,
             total_matches: Math.floor(Math.random() * 50),
@@ -108,21 +124,34 @@ const BulkUserGenerator = () => {
           };
         });
 
+        console.log('Creating rankings for profiles:', rankings.slice(0, 2));
+
         const { error: rankingError } = await supabase
           .from('player_rankings')
           .insert(rankings);
 
         if (rankingError) {
-          console.warn('Failed to create rankings:', rankingError);
+          console.warn('❌ Failed to create rankings:', rankingError);
+        } else {
+          console.log('✅ Rankings created successfully');
         }
       }
 
       setProgress(100);
       setGeneratedUsers(insertedProfiles || []);
+      
+      console.log('🎉 User generation completed successfully!');
       toast.success(t('dev.success_generate', `Successfully generated ${userCount} test users!`).replace('{count}', userCount.toString()));
 
     } catch (error) {
-      console.error('Error generating users:', error);
+      console.error('❌ Detailed error analysis:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        userCount,
+        skillDistribution
+      });
       toast.error(t('dev.failed_generate', 'Failed to generate users. Check console for details.'));
     } finally {
       setIsGenerating(false);
