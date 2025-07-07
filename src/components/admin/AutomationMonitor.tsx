@@ -3,6 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
+import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -18,7 +22,20 @@ import {
   Settings,
   TrendingUp,
   Trophy,
-  Bell
+  Bell,
+  Play,
+  Pause,
+  Eye,
+  Edit3,
+  BarChart3,
+  Zap,
+  Timer,
+  Server,
+  Users,
+  FileText,
+  AlertCircle,
+  CheckCircle2,
+  RotateCcw
 } from 'lucide-react';
 
 interface CronJob {
@@ -41,12 +58,24 @@ interface SystemLog {
   created_at: string;
 }
 
+interface AutomationSummary {
+  totalJobs: number;
+  activeJobs: number;
+  failedJobs: number;
+  lastRunTime: Date | null;
+  nextScheduledRun: Date | null;
+}
+
+type JobStatus = 'Running' | 'Completed' | 'Paused' | 'Error' | 'Scheduled';
+
 const AutomationMonitor = () => {
   const { user } = useAuth();
   const [cronJobs, setCronJobs] = useState<CronJob[]>([]);
   const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<CronJob | null>(null);
+  const [showJobDetails, setShowJobDetails] = useState(false);
 
   const loadAutomationData = async () => {
     try {
@@ -91,7 +120,7 @@ const AutomationMonitor = () => {
       const { error } = await supabase.rpc('system_health_check');
       if (error) throw error;
       
-      toast.success('Health check executed successfully');
+      toast.success('Health check hoàn tất thành công');
       await loadAutomationData();
     } catch (error) {
       console.error('Error running health check:', error);
@@ -146,7 +175,7 @@ const AutomationMonitor = () => {
       
       if (result.error) throw result.error;
       
-      toast.success(`Function ${functionName} executed successfully`);
+      toast.success(`Chạy thử ${functionName} thành công`);
       await loadAutomationData();
     } catch (error) {
       console.error(`Error testing ${functionName}:`, error);
@@ -154,328 +183,542 @@ const AutomationMonitor = () => {
     }
   };
 
+  const openJobDetails = (job: CronJob) => {
+    setSelectedJob(job);
+    setShowJobDetails(true);
+  };
+
   useEffect(() => {
     loadAutomationData();
+    
+    // Set up real-time updates
+    const interval = setInterval(loadAutomationData, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
   }, []);
+
+  const getAutomationSummary = (): AutomationSummary => {
+    const totalJobs = cronJobs.length;
+    const activeJobs = cronJobs.filter(job => job.active).length;
+    const failedJobs = systemLogs.filter(log => 
+      log.log_type.includes('error') || log.message.toLowerCase().includes('error')
+    ).length;
+    
+    const lastLog = systemLogs[0];
+    const lastRunTime = lastLog ? new Date(lastLog.created_at) : null;
+    
+    return {
+      totalJobs,
+      activeJobs,
+      failedJobs,
+      lastRunTime,
+      nextScheduledRun: new Date(Date.now() + 60 * 60 * 1000) // Mock next run in 1 hour
+    };
+  };
 
   const getJobStatusIcon = (active: boolean) => {
     return active ? (
-      <CheckCircle className="w-4 h-4 text-green-600" />
+      <CheckCircle className="w-4 h-4 text-success" />
     ) : (
-      <XCircle className="w-4 h-4 text-red-600" />
+      <XCircle className="w-4 h-4 text-destructive" />
     );
+  };
+
+  const getJobStatusBadge = (active: boolean): { variant: any, text: string, color: string } => {
+    if (active) {
+      return { variant: "default", text: "Hoạt động", color: "text-success" };
+    }
+    return { variant: "secondary", text: "Tạm dừng", color: "text-muted-foreground" };
   };
 
   const getLogTypeIcon = (logType: string) => {
     switch (logType) {
       case 'health_check':
-        return <Activity className="w-4 h-4 text-blue-600" />;
+        return <Activity className="w-4 h-4 text-primary" />;
       case 'points_decay':
-        return <TrendingUp className="w-4 h-4 text-orange-600" />;
+        return <TrendingUp className="w-4 h-4 text-warning" />;
       case 'season_reset':
-        return <Calendar className="w-4 h-4 text-purple-600" />;
+        return <Calendar className="w-4 h-4 text-secondary" />;
       case 'daily_reset':
-        return <RefreshCw className="w-4 h-4 text-green-600" />;
+        return <RefreshCw className="w-4 h-4 text-success" />;
       case 'challenge_cleanup':
-        return <Settings className="w-4 h-4 text-gray-600" />;
+        return <Settings className="w-4 h-4 text-muted-foreground" />;
+      case 'auto_rank_promotion':
+        return <Trophy className="w-4 h-4 text-primary" />;
       default:
-        return <Database className="w-4 h-4 text-blue-600" />;
+        return <Database className="w-4 h-4 text-primary" />;
     }
   };
 
   const formatNextRun = (schedule: string) => {
-    // Simple cron schedule display - would need proper cron parser for exact times
     const scheduleMap: { [key: string]: string } = {
-      '0 0 * * *': 'Daily at 00:00',
-      '0 1 * * *': 'Daily at 01:00', 
-      '0 2 * * 0': 'Sunday at 02:00',
-      '0 3 * * 1': 'Monday at 03:00',
-      '0 4 1 * *': 'Monthly 1st at 04:00',
-      '0 5 1 */3 *': 'Quarterly 1st at 05:00',
-      '0 6 * * *': 'Daily at 06:00',
-      '0 * * * *': 'Every hour'
+      '0 0 * * *': 'Hàng ngày lúc 00:00',
+      '0 1 * * *': 'Hàng ngày lúc 01:00', 
+      '0 2 * * 0': 'Chủ nhật lúc 02:00',
+      '0 3 * * 1': 'Thứ hai lúc 03:00',
+      '0 4 1 * *': 'Ngày 1 hàng tháng lúc 04:00',
+      '0 5 1 */3 *': 'Ngày 1 hàng quý lúc 05:00',
+      '0 6 * * *': 'Hàng ngày lúc 06:00',
+      '0 * * * *': 'Hàng giờ'
     };
     
     return scheduleMap[schedule] || schedule;
   };
 
+  const getJobDescription = (jobname: string) => {
+    const descriptions: { [key: string]: string } = {
+      'auto_rank_promotion': 'Tự động thăng hạng cho người chơi đạt tiêu chuẩn',
+      'reset_daily_challenges': 'Reset thử thách hàng ngày cho tất cả người chơi',
+      'decay_inactive_spa_points': 'Giảm điểm SPA cho người chơi không hoạt động',
+      'cleanup_expired_challenges': 'Dọn dẹp các thử thách đã hết hạn',
+      'update_weekly_leaderboard': 'Cập nhật bảng xếp hạng hàng tuần',
+      'database_health_monitoring': 'Giám sát sức khỏe cơ sở dữ liệu',
+      'tournament_reminder_system': 'Gửi nhắc nhở giải đấu',
+      'auto_bracket_generation': 'Tự động tạo bảng đấu'
+    };
+    
+    return descriptions[jobname] || 'Automation job của hệ thống';
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <RefreshCw className="w-6 h-6 animate-spin mr-2" />
-        <span>Loading automation data...</span>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-4">
+          <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+          <span className="text-muted-foreground">Đang tải dữ liệu automation...</span>
+        </div>
       </div>
     );
   }
 
+  const summary = getAutomationSummary();
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Automation Monitor</h1>
-        <div className="flex gap-2">
-          <Button 
-            onClick={handleRefresh} 
-            disabled={refreshing}
-            variant="outline"
-            size="sm"
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button 
-            onClick={runHealthCheck}
-            variant="outline" 
-            size="sm"
-          >
-            <Activity className="w-4 h-4 mr-2" />
-            Run Health Check
-          </Button>
+    <TooltipProvider>
+      <div className="space-y-6 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              Automation Dashboard
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Giám sát và quản lý các tác vụ tự động của hệ thống
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  onClick={handleRefresh} 
+                  disabled={refreshing}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Làm mới dữ liệu</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  onClick={runHealthCheck}
+                  variant="outline" 
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Activity className="w-4 h-4" />
+                  Health Check
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Kiểm tra sức khỏe hệ thống</TooltipContent>
+            </Tooltip>
+          </div>
         </div>
-      </div>
 
-      <Tabs defaultValue="jobs" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="jobs">Scheduled Jobs</TabsTrigger>
-          <TabsTrigger value="logs">System Logs</TabsTrigger>
-          <TabsTrigger value="functions">Test Functions</TabsTrigger>
-        </TabsList>
+        {/* Overview Statistics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="border-l-4 border-l-primary">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Tổng số Jobs
+                </CardTitle>
+                <Server className="w-4 h-4 text-primary" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">{summary.totalJobs}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Các tác vụ tự động
+              </p>
+            </CardContent>
+          </Card>
 
-        <TabsContent value="jobs" className="space-y-4">
-          <div className="grid gap-4">
+          <Card className="border-l-4 border-l-success">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Jobs Hoạt động
+                </CardTitle>
+                <CheckCircle2 className="w-4 h-4 text-success" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">{summary.activeJobs}</div>
+              <Progress value={(summary.activeJobs / summary.totalJobs) * 100} className="mt-2" />
+              <p className="text-xs text-muted-foreground mt-1">
+                {((summary.activeJobs / summary.totalJobs) * 100).toFixed(1)}% đang hoạt động
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-destructive">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Lỗi gần đây
+                </CardTitle>
+                <AlertCircle className="w-4 h-4 text-destructive" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">{summary.failedJobs}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Trong 24h qua
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-warning">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Chạy gần nhất
+                </CardTitle>
+                <Timer className="w-4 h-4 text-warning" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm font-bold text-foreground">
+                {summary.lastRunTime ? 
+                  summary.lastRunTime.toLocaleString('vi-VN') : 
+                  'Chưa có dữ liệu'
+                }
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Lần thực thi cuối
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="jobs" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="jobs" className="gap-2">
+              <Settings className="w-4 h-4" />
+              Scheduled Jobs
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="gap-2">
+              <FileText className="w-4 h-4" />
+              System Logs
+            </TabsTrigger>
+            <TabsTrigger value="functions" className="gap-2">
+              <Zap className="w-4 h-4" />
+              Test Functions
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Jobs Tab */}
+          <TabsContent value="jobs" className="space-y-4">
             {cronJobs.length === 0 ? (
               <Card>
                 <CardContent className="pt-6">
-                  <div className="text-center text-gray-500">
-                    <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>No scheduled jobs found</p>
-                    <p className="text-sm">Make sure pg_cron is enabled and jobs are created</p>
+                  <div className="text-center text-muted-foreground">
+                    <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium">Không tìm thấy scheduled jobs</p>
+                    <p className="text-sm">Hãy đảm bảo pg_cron đã được kích hoạt và jobs đã được tạo</p>
                   </div>
                 </CardContent>
               </Card>
             ) : (
-              cronJobs.map((job) => (
-                <Card key={job.jobid}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        {getJobStatusIcon(job.active)}
-                        {job.jobname || `Job ${job.jobid}`}
-                      </CardTitle>
-                      <Badge variant={job.active ? "default" : "secondary"}>
-                        {job.active ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium">Schedule:</span>
-                          <p className="text-muted-foreground">{formatNextRun(job.schedule)}</p>
+              <div className="grid gap-4">
+                {cronJobs.map((job) => {
+                  const statusBadge = getJobStatusBadge(job.active);
+                  
+                  return (
+                    <Card key={job.jobid} className="hover:shadow-lg transition-all duration-200 cursor-pointer border border-border hover:border-primary/50">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {getJobStatusIcon(job.active)}
+                            <div>
+                              <CardTitle className="text-lg">
+                                {job.jobname || `Job ${job.jobid}`}
+                              </CardTitle>
+                              <p className="text-sm text-muted-foreground">
+                                {getJobDescription(job.jobname)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={statusBadge.variant} className={statusBadge.color}>
+                              {statusBadge.text}
+                            </Badge>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openJobDetails(job)}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Xem chi tiết</TooltipContent>
+                            </Tooltip>
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium">Cron Expression:</span>
-                          <p className="text-muted-foreground font-mono">{job.schedule}</p>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-1">
+                            <span className="text-xs font-medium text-muted-foreground">Lịch chạy:</span>
+                            <p className="text-sm font-medium">{formatNextRun(job.schedule)}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-xs font-medium text-muted-foreground">Cron Expression:</span>
+                            <p className="text-sm font-mono bg-muted px-2 py-1 rounded">{job.schedule}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-xs font-medium text-muted-foreground">Database:</span>
+                            <p className="text-sm">{job.database}</p>
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <span className="font-medium">Command:</span>
-                        <p className="text-muted-foreground text-xs font-mono bg-gray-50 p-2 rounded mt-1">
-                          {job.command}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             )}
-          </div>
-        </TabsContent>
+          </TabsContent>
 
-        <TabsContent value="logs" className="space-y-4">
-          <div className="space-y-2">
+          {/* Logs Tab */}
+          <TabsContent value="logs" className="space-y-4">
             {systemLogs.length === 0 ? (
               <Card>
                 <CardContent className="pt-6">
-                  <div className="text-center text-gray-500">
-                    <Database className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>No system logs found</p>
+                  <div className="text-center text-muted-foreground">
+                    <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium">Không có system logs</p>
                   </div>
                 </CardContent>
               </Card>
             ) : (
-              systemLogs.map((log) => (
-                <Card key={log.id}>
-                  <CardContent className="pt-4">
-                    <div className="flex items-start gap-3">
-                      {getLogTypeIcon(log.log_type)}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <h4 className="font-medium capitalize">
-                            {log.log_type.replace('_', ' ')}
-                          </h4>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(log.created_at).toLocaleString('vi-VN')}
-                          </span>
+              <div className="space-y-3">
+                {systemLogs.map((log) => (
+                  <Card key={log.id} className="hover:shadow-md transition-all duration-200">
+                    <CardContent className="pt-4">
+                      <div className="flex items-start gap-3">
+                        {getLogTypeIcon(log.log_type)}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium capitalize">
+                              {log.log_type.replace('_', ' ')}
+                            </h4>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(log.created_at).toLocaleString('vi-VN')}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-3">
+                            {log.message}
+                          </p>
+                          {log.metadata && Object.keys(log.metadata).length > 0 && (
+                            <details className="text-xs">
+                              <summary className="cursor-pointer text-primary hover:text-primary/80 transition-colors">
+                                Xem chi tiết metadata
+                              </summary>
+                              <pre className="mt-2 p-3 bg-muted rounded-md overflow-auto text-xs">
+                                {JSON.stringify(log.metadata, null, 2)}
+                              </pre>
+                            </details>
+                          )}
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {log.message}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Test Functions Tab */}
+          <TabsContent value="functions" className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-primary" />
+                    Test Automation Functions
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Chạy thử các function tự động của hệ thống
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {[
+                    { name: 'reset_daily_challenges', icon: RefreshCw, label: 'Daily Challenge Reset', desc: 'Reset thử thách hàng ngày' },
+                    { name: 'decay_inactive_spa_points', icon: TrendingUp, label: 'Points Decay', desc: 'Giảm điểm SPA người chơi không hoạt động' },
+                    { name: 'cleanup_expired_challenges', icon: Settings, label: 'Challenge Cleanup', desc: 'Dọn dẹp thử thách hết hạn' },
+                    { name: 'update_weekly_leaderboard', icon: BarChart3, label: 'Weekly Leaderboard', desc: 'Cập nhật bảng xếp hạng tuần' },
+                    { name: 'send_monthly_reports', icon: Calendar, label: 'Monthly Reports', desc: 'Gửi báo cáo hàng tháng' },
+                    { name: 'auto_bracket_generation', icon: Trophy, label: 'Auto Bracket Generation', desc: 'Tự động tạo bảng đấu' },
+                    { name: 'tournament_reminder_system', icon: Bell, label: 'Tournament Reminders', desc: 'Nhắc nhở giải đấu' },
+                    { name: 'match_scheduling_automation', icon: Calendar, label: 'Match Scheduling', desc: 'Tự động lên lịch trận đấu' },
+                    { name: 'inactive_player_cleanup', icon: Users, label: 'Player Cleanup', desc: 'Dọn dẹp người chơi không hoạt động' },
+                    { name: 'auto_rank_promotion', icon: TrendingUp, label: 'Auto Rank Promotion', desc: 'Tự động thăng hạng' },
+                    { name: 'database_health_monitoring', icon: Database, label: 'Database Health Check', desc: 'Kiểm tra sức khỏe database' }
+                  ].map((func) => {
+                    const Icon = func.icon;
+                    return (
+                      <Tooltip key={func.name}>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            onClick={() => testAutomationFunction(func.name)}
+                            variant="outline" 
+                            className="w-full justify-start gap-3 h-auto p-3"
+                          >
+                            <Icon className="w-4 h-4 text-primary" />
+                            <div className="text-left">
+                              <div className="font-medium">{func.label}</div>
+                              <div className="text-xs text-muted-foreground">{func.desc}</div>
+                            </div>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{func.desc}</TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+
+              <Card className="border-destructive/20">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="w-5 h-5" />
+                    Critical Functions
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Các function quan trọng - sử dụng cẩn thận
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                    <div className="flex items-start gap-3 mb-3">
+                      <AlertTriangle className="w-5 h-5 text-destructive mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-destructive">
+                          Cảnh báo quan trọng
                         </p>
-                        {log.metadata && Object.keys(log.metadata).length > 0 && (
-                          <details className="text-xs">
-                            <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
-                              View Details
-                            </summary>
-                            <pre className="mt-2 p-2 bg-gray-50 rounded overflow-auto">
-                              {JSON.stringify(log.metadata, null, 2)}
-                            </pre>
-                          </details>
-                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Function này sẽ ảnh hưởng đến dữ liệu thật của hệ thống
+                        </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        </TabsContent>
+                    <Button 
+                      onClick={() => testAutomationFunction('automated_season_reset')}
+                      variant="destructive"
+                      size="sm"
+                      className="w-full gap-2"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Test Season Reset
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
 
-        <TabsContent value="functions" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Test Automation Functions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button 
-                  onClick={() => testAutomationFunction('reset_daily_challenges')}
-                  variant="outline" 
-                  className="w-full justify-start"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Test Daily Challenge Reset
-                </Button>
+        {/* Job Details Modal */}
+        <Dialog open={showJobDetails} onOpenChange={setShowJobDetails}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Chi tiết Job: {selectedJob?.jobname || `Job ${selectedJob?.jobid}`}
+              </DialogTitle>
+            </DialogHeader>
+            {selectedJob && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Trạng thái</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      {getJobStatusIcon(selectedJob.active)}
+                      <span className={selectedJob.active ? 'text-success' : 'text-destructive'}>
+                        {selectedJob.active ? 'Hoạt động' : 'Tạm dừng'}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Job ID</label>
+                    <p className="text-sm text-muted-foreground mt-1">{selectedJob.jobid}</p>
+                  </div>
+                </div>
                 
-                <Button 
-                  onClick={() => testAutomationFunction('decay_inactive_spa_points')}
-                  variant="outline"
-                  className="w-full justify-start"
-                >
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Test Points Decay
-                </Button>
-                
-                <Button 
-                  onClick={() => testAutomationFunction('cleanup_expired_challenges')}
-                  variant="outline"
-                  className="w-full justify-start"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Test Challenge Cleanup
-                </Button>
-                
-                <Button 
-                  onClick={() => testAutomationFunction('update_weekly_leaderboard')}
-                  variant="outline"
-                  className="w-full justify-start"
-                >
-                  <Activity className="w-4 h-4 mr-2" />
-                  Test Weekly Leaderboard
-                </Button>
-                
-                <Button 
-                  onClick={() => testAutomationFunction('send_monthly_reports')}
-                  variant="outline"
-                  className="w-full justify-start"
-                >
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Test Monthly Reports
-                </Button>
-                
-                <Button 
-                  onClick={() => testAutomationFunction('auto_bracket_generation')}
-                  variant="outline"
-                  className="w-full justify-start"
-                >
-                  <Trophy className="w-4 h-4 mr-2" />
-                  Test Auto Bracket Generation
-                </Button>
-                
-                <Button 
-                  onClick={() => testAutomationFunction('tournament_reminder_system')}
-                  variant="outline"
-                  className="w-full justify-start"
-                >
-                  <Bell className="w-4 h-4 mr-2" />
-                  Test Tournament Reminders
-                </Button>
-                
-                <Button 
-                  onClick={() => testAutomationFunction('match_scheduling_automation')}
-                  variant="outline"
-                  className="w-full justify-start"
-                >
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Test Match Scheduling
-                </Button>
-                
-                <Button 
-                  onClick={() => testAutomationFunction('inactive_player_cleanup')}
-                  variant="outline"
-                  className="w-full justify-start"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Test Player Cleanup
-                </Button>
-                
-                <Button 
-                  onClick={() => testAutomationFunction('auto_rank_promotion')}
-                  variant="outline"
-                  className="w-full justify-start"
-                >
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Test Auto Rank Promotion
-                </Button>
-                
-                <Button 
-                  onClick={() => testAutomationFunction('database_health_monitoring')}
-                  variant="outline"
-                  className="w-full justify-start"
-                >
-                  <Database className="w-4 h-4 mr-2" />
-                  Test Database Health Check
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-amber-600" />
-                  Critical Functions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                  <p className="text-sm text-amber-800 mb-3">
-                    ⚠️ These functions affect live data. Use with caution.
+                <div>
+                  <label className="text-sm font-medium">Mô tả</label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {getJobDescription(selectedJob.jobname)}
                   </p>
-                  <Button 
-                    onClick={() => testAutomationFunction('automated_season_reset')}
-                    variant="destructive"
-                    size="sm"
-                    className="w-full"
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Test Season Reset
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Lịch chạy</label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {formatNextRun(selectedJob.schedule)}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Database</label>
+                    <p className="text-sm text-muted-foreground mt-1">{selectedJob.database}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Command</label>
+                  <pre className="text-xs bg-muted p-3 rounded-md mt-1 overflow-auto">
+                    {selectedJob.command}
+                  </pre>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Edit3 className="w-4 h-4" />
+                    Chỉnh sửa
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Play className="w-4 h-4" />
+                    Chạy ngay
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <FileText className="w-4 h-4" />
+                    Xem logs
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 };
 

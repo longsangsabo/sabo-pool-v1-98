@@ -4832,6 +4832,14 @@ export type Database = {
         }
         Returns: number
       }
+      award_tournament_elo_points: {
+        Args: {
+          p_player_id: string
+          p_tournament_id: string
+          p_placement: string
+        }
+        Returns: number
+      }
       award_tournament_points: {
         Args: {
           p_tournament_id: string
