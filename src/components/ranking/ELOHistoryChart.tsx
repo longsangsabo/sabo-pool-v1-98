@@ -203,13 +203,14 @@ export const ELOHistoryChart: React.FC<ELOHistoryChartProps> = ({
 
     g.selectAll(".dot")
       .on("mouseover", function(event, d) {
+        const dataPoint = d as typeof data[0];
         tooltip.transition().duration(200).style("opacity", .9);
         tooltip.html(`
           <div>
-            <strong>ELO: ${d.elo}</strong><br/>
-            Thay đổi: ${d.change > 0 ? '+' : ''}${d.change}<br/>
-            Kết quả: ${d.matchResult === 'win' ? 'Thắng' : d.matchResult === 'loss' ? 'Thua' : 'Hòa'}<br/>
-            Ngày: ${d3.timeFormat("%d/%m/%Y")(d.date)}
+            <strong>ELO: ${dataPoint.elo}</strong><br/>
+            Thay đổi: ${dataPoint.change > 0 ? '+' : ''}${dataPoint.change}<br/>
+            Kết quả: ${dataPoint.matchResult === 'win' ? 'Thắng' : dataPoint.matchResult === 'loss' ? 'Thua' : 'Hòa'}<br/>
+            Ngày: ${d3.timeFormat("%d/%m/%Y")(dataPoint.date)}
           </div>
         `)
         .style("left", (event.pageX + 10) + "px")
