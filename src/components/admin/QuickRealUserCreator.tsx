@@ -16,6 +16,8 @@ const QuickRealUserCreator = () => {
   const [skillDistribution, setSkillDistribution] = useState('mixed');
   const [isCreating, setIsCreating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState('');
+  const [logs, setLogs] = useState<Array<{message: string, type: 'info' | 'error' | 'success', timestamp: string}>>([]);
   const [createdUsers, setCreatedUsers] = useState<any[]>([]);
 
   const vietnamesePrefixes = ['Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Huỳnh', 'Phan', 'Vũ', 'Võ', 'Đặng'];
@@ -46,15 +48,29 @@ const QuickRealUserCreator = () => {
     return `${cleanName}${randomNum}@demo.sabopool.com`;
   };
 
+  const addLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    const timestamp = new Date().toLocaleTimeString('vi-VN');
+    setLogs(prev => [...prev, { message, type, timestamp }]);
+  };
+
   const createRealUsers = async () => {
     setIsCreating(true);
     setProgress(0);
+    setCurrentStep('');
+    setLogs([]);
     setCreatedUsers([]);
 
     try {
+      addLog('🚀 Bắt đầu tạo user thực...', 'info');
+      addLog(`📊 Số lượng: ${userCount} users`, 'info');
+      setCurrentStep('Khởi tạo...');
+      
       const createdUsersList = [];
 
       for (let i = 0; i < userCount; i++) {
+        setCurrentStep(`Tạo user ${i + 1}/${userCount}...`);
+        addLog(`👤 Tạo user ${i + 1}: Bắt đầu...`, 'info');
+        
         const fullName = generateVietnameseName();
         const phone = generatePhoneNumber();
         const email = generateEmail(fullName);
@@ -66,6 +82,8 @@ const QuickRealUserCreator = () => {
         } else {
           skillLevel = skillDistribution;
         }
+
+        addLog(`📧 Đăng ký Auth cho: ${email}`, 'info');
 
         // Create real user through Supabase Auth
         const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -80,12 +98,16 @@ const QuickRealUserCreator = () => {
         });
 
         if (authError) {
+          addLog(`❌ Lỗi Auth user ${i + 1}: ${authError.message}`, 'error');
           console.error(`Lỗi tạo user ${i + 1}:`, authError);
           toast.error(`Lỗi tạo user ${i + 1}: ${authError.message}`);
           continue;
         }
 
+        addLog(`✅ Auth thành công cho user ${i + 1}`, 'success');
+
         if (authData.user) {
+          addLog(`📝 Tạo profile cho user ${i + 1}...`, 'info');
           // Create profile for the user
           const { error: profileError } = await supabase
             .from('profiles')
@@ -102,9 +124,13 @@ const QuickRealUserCreator = () => {
             });
 
           if (profileError) {
+            addLog(`⚠️ Lỗi tạo profile user ${i + 1}: ${profileError.message}`, 'error');
             console.error(`Lỗi tạo profile cho user ${i + 1}:`, profileError);
+          } else {
+            addLog(`✅ Profile user ${i + 1} thành công`, 'success');
           }
 
+          addLog(`🏆 Tạo ranking cho user ${i + 1}...`, 'info');
           // Create initial ranking
           const { error: rankingError } = await supabase
             .from('player_rankings')
@@ -118,7 +144,10 @@ const QuickRealUserCreator = () => {
             });
 
           if (rankingError) {
+            addLog(`⚠️ Lỗi tạo ranking user ${i + 1}: ${rankingError.message}`, 'error');
             console.error(`Lỗi tạo ranking cho user ${i + 1}:`, rankingError);
+          } else {
+            addLog(`✅ Ranking user ${i + 1} thành công`, 'success');
           }
 
           createdUsersList.push({
@@ -128,11 +157,15 @@ const QuickRealUserCreator = () => {
             full_name: fullName,
             skill_level: skillLevel,
           });
+
+          addLog(`🎉 Hoàn thành user ${i + 1}: ${fullName}`, 'success');
         }
 
         setProgress(((i + 1) / userCount) * 100);
       }
 
+      setCurrentStep('Hoàn thành!');
+      addLog(`🏁 Tạo thành công ${createdUsersList.length}/${userCount} users thực!`, 'success');
       setCreatedUsers(createdUsersList);
       toast.success(`Thành công tạo ${createdUsersList.length} user thực!`);
 
@@ -213,6 +246,59 @@ const QuickRealUserCreator = () => {
             </>
           )}
         </Button>
+
+        {/* Real-time Progress Display */}
+        {isCreating && (
+          <div className="space-y-4 mt-4">
+            {/* Current Step Display */}
+            <div className="flex items-center justify-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                {currentStep || 'Đang khởi tạo...'}
+              </span>
+            </div>
+
+            {/* Detailed Progress Bar */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-gray-600">
+                <span>Tiến độ tổng thể</span>
+                <span>{progress.toFixed(0)}%</span>
+              </div>
+              <Progress value={progress} className="w-full h-2" />
+            </div>
+
+            {/* Real-time Logs */}
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border max-h-60 overflow-y-auto">
+              <h4 className="font-medium mb-3 text-sm text-gray-700 dark:text-gray-300">
+                Log quá trình tạo:
+              </h4>
+              <div className="space-y-1">
+                {logs.map((log, index) => (
+                  <div 
+                    key={index} 
+                    className={`text-xs font-mono flex items-start gap-2 p-2 rounded ${
+                      log.type === 'error' 
+                        ? 'bg-red-50 text-red-700 border-l-2 border-red-300' 
+                        : log.type === 'success'
+                        ? 'bg-green-50 text-green-700 border-l-2 border-green-300'
+                        : 'bg-blue-50 text-blue-700 border-l-2 border-blue-300'
+                    }`}
+                  >
+                    <span className="text-gray-500 min-w-fit">
+                      [{log.timestamp}]
+                    </span>
+                    <span className="flex-1">
+                      {log.message}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {logs.length === 0 && (
+                <p className="text-sm text-gray-500 italic">Chưa có log nào...</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {createdUsers.length > 0 && (
           <div className="mt-6 p-4 bg-green-50 rounded-lg">
