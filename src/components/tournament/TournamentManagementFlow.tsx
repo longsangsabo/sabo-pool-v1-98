@@ -246,7 +246,7 @@ const TournamentManagementFlow: React.FC<TournamentManagementFlowProps> = ({ tou
               </div>
               
               {/* Registration Button for Open Tournaments */}
-              {tournament.management_status === 'open' && tournament.status === 'registration_open' && (
+              {tournament.management_status === 'open' && (
                 <div className="pt-2 border-t">
                   <Button 
                     onClick={() => setShowRegistrationModal(true)}
