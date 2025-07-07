@@ -9,42 +9,36 @@ import { EnhancedTournamentCreator } from '@/components/tournament/EnhancedTourn
 import { TournamentRegistrationDashboard } from '@/components/tournament/TournamentRegistrationDashboard';
 import { useTournaments } from '@/hooks/useTournaments';
 import { useAuth } from '@/hooks/useAuth';
+import { useTournamentRegistrationState } from '@/hooks/useTournamentRegistrationState';
 import { toast } from 'sonner';
 
 // Using Tournament type from useTournaments hook
 
 const TournamentsPage: React.FC = () => {
   const { user } = useAuth();
-  const { tournaments, loading, registerForTournament, cancelRegistration, checkUserRegistration, fetchTournaments } = useTournaments();
+  const { tournaments, loading, registerForTournament, cancelRegistration, fetchTournaments } = useTournaments();
+  const {
+    loadRegistrationStatus,
+    setRegistrationStatus,
+    setLoadingState,
+    isRegistered,
+    isLoading
+  } = useTournamentRegistrationState();
+  
   const [selectedFilter, setSelectedFilter] = useState<
     'all' | 'upcoming' | 'registration_open' | 'ongoing' | 'completed'
   >('all');
   const [showTournamentCreator, setShowTournamentCreator] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showRegistrationDashboard, setShowRegistrationDashboard] = useState(false);
-  const [userRegistrations, setUserRegistrations] = useState<Record<string, any>>({});
-  const [registrationLoading, setRegistrationLoading] = useState<string | null>(null);
 
-  // Check user registrations for all tournaments
+  // Load user registrations using new hook
   useEffect(() => {
-    const loadUserRegistrations = async () => {
-      if (!user || tournaments.length === 0) return;
-      
-      console.log('Loading user registrations for', tournaments.length, 'tournaments');
-      const registrations: Record<string, any> = {};
-      for (const tournament of tournaments) {
-        const registration = await checkUserRegistration(tournament.id);
-        if (registration) {
-          registrations[tournament.id] = registration;
-          console.log('Found registration for tournament:', tournament.id, registration);
-        }
-      }
-      setUserRegistrations(registrations);
-      console.log('Final userRegistrations state:', registrations);
-    };
-
-    loadUserRegistrations();
-  }, [user, tournaments, checkUserRegistration]);
+    if (!user || tournaments.length === 0) return;
+    
+    const tournamentIds = tournaments.map(t => t.id);
+    loadRegistrationStatus(tournamentIds);
+  }, [user?.id, tournaments, loadRegistrationStatus]);
 
   const handleRegisterTournament = async (tournamentId: string) => {
     if (!user) {
@@ -52,65 +46,48 @@ const TournamentsPage: React.FC = () => {
       return;
     }
 
-    setRegistrationLoading(tournamentId);
+    setLoadingState(tournamentId, true);
     try {
       await registerForTournament(tournamentId);
       
-      // Refresh tournaments data to get updated participant count
+      // Immediately update UI state
+      setRegistrationStatus(tournamentId, true);
+      
+      // Refresh tournaments data
       await fetchTournaments();
       
-      // Get the registration data and update state
-      const registration = await checkUserRegistration(tournamentId);
-      setUserRegistrations(prev => ({
-        ...prev,
-        [tournamentId]: registration
-      }));
-      
-      if (registration) {
-        console.log('Registration successful for tournament:', tournamentId);
-      }
+      console.log('Registration successful for tournament:', tournamentId);
       
     } catch (error) {
       console.error('Registration error:', error);
-      // On error, ensure we have the correct state
-      const registration = await checkUserRegistration(tournamentId);
-      setUserRegistrations(prev => ({
-        ...prev,
-        [tournamentId]: registration
-      }));
+      // On error, ensure state is correct
+      setRegistrationStatus(tournamentId, false);
     } finally {
-      setRegistrationLoading(null);
+      setLoadingState(tournamentId, false);
     }
   };
 
   const handleCancelRegistration = async (tournamentId: string) => {
     if (!user) return;
 
-    setRegistrationLoading(tournamentId);
+    setLoadingState(tournamentId, true);
     try {
       await cancelRegistration(tournamentId);
       
-      // Always remove from userRegistrations state to update UI immediately
-      setUserRegistrations(prev => {
-        const updated = { ...prev };
-        delete updated[tournamentId];
-        console.log('Updated userRegistrations after cancel:', updated);
-        return updated;
-      });
+      // Immediately update UI state to remove registration
+      setRegistrationStatus(tournamentId, false);
       
-      // Refresh tournaments data to ensure consistency
+      // Refresh tournaments data
       await fetchTournaments();
+      
+      console.log('Successfully canceled registration for tournament:', tournamentId);
       
     } catch (error) {
       console.error('Cancel registration error:', error);
-      // Even on error, update UI state to reflect cancellation
-      setUserRegistrations(prev => {
-        const updated = { ...prev };
-        delete updated[tournamentId];
-        return updated;
-      });
+      // Even on error, assume cancellation worked and update UI
+      setRegistrationStatus(tournamentId, false);
     } finally {
-      setRegistrationLoading(null);
+      setLoadingState(tournamentId, false);
     }
   };
 
@@ -398,15 +375,15 @@ const TournamentsPage: React.FC = () => {
                     const isRegistrationOpen = now >= regStart && now <= regEnd;
                     
                     return (tournament.status === 'registration_open' || tournament.status === 'upcoming') && isRegistrationOpen && (
-                      userRegistrations[tournament.id] ? (
+                      isRegistered(tournament.id) ? (
                         <div className='flex-1 flex gap-2'>
                           <Button 
                             variant='outline'
                             className='flex-1'
                             onClick={() => handleCancelRegistration(tournament.id)}
-                            disabled={registrationLoading === tournament.id}
+                            disabled={isLoading(tournament.id)}
                           >
-                            {registrationLoading === tournament.id ? 'Đang hủy...' : 'Hủy đăng ký'}
+                            {isLoading(tournament.id) ? 'Đang hủy...' : 'Hủy đăng ký'}
                           </Button>
                           <div className='flex items-center px-3 py-2 bg-green-100 text-green-800 rounded-md text-sm'>
                             <Check className='h-4 w-4 mr-1' />
@@ -417,9 +394,9 @@ const TournamentsPage: React.FC = () => {
                         <Button 
                           className='flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70'
                           onClick={() => handleRegisterTournament(tournament.id)}
-                          disabled={registrationLoading === tournament.id || tournament.current_participants >= tournament.max_participants}
+                          disabled={isLoading(tournament.id) || tournament.current_participants >= tournament.max_participants}
                         >
-                          {registrationLoading === tournament.id ? 'Đang đăng ký...' : 
+                          {isLoading(tournament.id) ? 'Đang đăng ký...' : 
                            tournament.current_participants >= tournament.max_participants ? 'Đã đầy' : 'Đăng ký tham gia'}
                         </Button>
                       )
