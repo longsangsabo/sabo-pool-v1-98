@@ -174,31 +174,33 @@ export const getRatingFromRank = (rank: string): number => {
   return rankRatings[rank] || 1000;
 };
 
-// Calculate rank from rating
+// Calculate rank from rating - SABO Pool Arena System
 export const getRankFromRating = (rating: number): string => {
-  if (rating >= 2400) return 'Dan7';
-  if (rating >= 2300) return 'Dan6';
-  if (rating >= 2200) return 'Dan5';
-  if (rating >= 2100) return 'Dan4';
-  if (rating >= 2000) return 'Dan3';
-  if (rating >= 1900) return 'Dan2';
-  if (rating >= 1800) return 'Dan1';
-  if (rating >= 1700) return 'D5';
-  if (rating >= 1600) return 'D4';
-  if (rating >= 1500) return 'D3';
-  if (rating >= 1400) return 'D2';
-  if (rating >= 1300) return 'D1';
-  if (rating >= 1200) return 'K3';
-  if (rating >= 1100) return 'K2';
-  return 'K1';
+  if (rating >= 2800) return 'E+';
+  if (rating >= 2600) return 'E';
+  if (rating >= 2400) return 'F+';
+  if (rating >= 2200) return 'F';
+  if (rating >= 2000) return 'G+';
+  if (rating >= 1800) return 'G';
+  if (rating >= 1600) return 'H+';
+  if (rating >= 1400) return 'H';
+  if (rating >= 1200) return 'I+';
+  if (rating >= 1000) return 'I';
+  if (rating >= 800) return 'K+';
+  return 'K';
 };
 
-// Get rank color for UI
+// Get rank color for UI - SABO Pool Arena System
 export const getRankColor = (rank: string): string => {
-  if (rank.startsWith('Dan')) return 'bg-purple-100 text-purple-800 border-purple-200';
-  if (rank.startsWith('D')) return 'bg-blue-100 text-blue-800 border-blue-200';
-  if (rank.startsWith('K')) return 'bg-green-100 text-green-800 border-green-200';
-  return 'bg-gray-100 text-gray-800 border-gray-200';
+  switch (rank.charAt(0)) {
+    case 'E': return 'bg-purple-100 text-purple-800 border-purple-200';
+    case 'F': return 'bg-red-100 text-red-800 border-red-200';
+    case 'G': return 'bg-orange-100 text-orange-800 border-orange-200';
+    case 'H': return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'I': return 'bg-green-100 text-green-800 border-green-200';
+    case 'K': return 'bg-gray-100 text-gray-800 border-gray-200';
+    default: return 'bg-gray-100 text-gray-800 border-gray-200';
+  }
 };
 
 // Calculate expected win probability
