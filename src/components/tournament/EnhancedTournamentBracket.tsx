@@ -143,7 +143,7 @@ export const EnhancedTournamentBracket: React.FC<EnhancedTournamentBracketProps>
       // Fetch profiles for all users
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('user_id, display_name, avatar_url, current_rank')
+        .select('user_id, display_name, avatar_url, verified_rank')
         .in('user_id', Array.from(userIds));
 
       // Create profiles lookup
@@ -160,19 +160,19 @@ export const EnhancedTournamentBracket: React.FC<EnhancedTournamentBracketProps>
           id: match.player1_id,
           username: profilesMap.get(match.player1_id)?.display_name || 'Unknown',
           avatar_url: profilesMap.get(match.player1_id)?.avatar_url,
-          rank: profilesMap.get(match.player1_id)?.current_rank || 'K'
+          rank: profilesMap.get(match.player1_id)?.verified_rank || 'K'
         } : undefined,
         player2: match.player2_id ? {
           id: match.player2_id,
           username: profilesMap.get(match.player2_id)?.display_name || 'Unknown',
           avatar_url: profilesMap.get(match.player2_id)?.avatar_url,
-          rank: profilesMap.get(match.player2_id)?.current_rank || 'K'
+          rank: profilesMap.get(match.player2_id)?.verified_rank || 'K'
         } : undefined,
         winner: match.winner_id ? {
           id: match.winner_id,
           username: profilesMap.get(match.winner_id)?.display_name || 'Unknown',
           avatar_url: profilesMap.get(match.winner_id)?.avatar_url,
-          rank: profilesMap.get(match.winner_id)?.current_rank || 'K'
+          rank: profilesMap.get(match.winner_id)?.verified_rank || 'K'
         } : undefined,
         referee: match.referee_id ? {
           id: match.referee_id,
@@ -184,28 +184,37 @@ export const EnhancedTournamentBracket: React.FC<EnhancedTournamentBracketProps>
 
       setMatches(transformedMatches as TournamentMatch[]);
 
-      // Fetch participants
+      // Fetch participants first
       const { data: participantsData, error: participantsError } = await supabase
         .from('tournament_participants')
-        .select(`
-          *,
-          user:user_id (
-            id,
-            profiles (username, avatar_url, current_rank, spa_points)
-          )
-        `)
+        .select('*')
         .eq('tournament_id', tournamentId)
         .order('seed_number', { ascending: true });
 
       if (participantsError) throw participantsError;
 
+      // Get unique user IDs from participants
+      const participantUserIds = participantsData?.map(p => p.user_id).filter(Boolean) || [];
+      
+      // Fetch profiles for participants
+      const { data: participantProfiles } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, avatar_url, verified_rank, elo')
+        .in('user_id', participantUserIds);
+
+      // Create participant profiles lookup
+      const participantProfilesMap = new Map();
+      participantProfiles?.forEach(profile => {
+        participantProfilesMap.set(profile.user_id, profile);
+      });
+
       const transformedParticipants = participantsData?.map(p => ({
-        id: p.user.id,
-        username: p.user.profiles?.username || 'Unknown',
-        avatar_url: p.user.profiles?.avatar_url,
-        rank: p.user.profiles?.current_rank || 'K',
+        id: p.user_id,
+        username: participantProfilesMap.get(p.user_id)?.display_name || 'Unknown',
+        avatar_url: participantProfilesMap.get(p.user_id)?.avatar_url,
+        rank: participantProfilesMap.get(p.user_id)?.verified_rank || 'K',
         seed: p.seed_number,
-        spa_points: p.user.profiles?.spa_points || 0
+        spa_points: participantProfilesMap.get(p.user_id)?.elo || 0
       })) || [];
 
       setParticipants(transformedParticipants);
