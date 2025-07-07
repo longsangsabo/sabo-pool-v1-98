@@ -7,6 +7,7 @@ import { CreditCard, Banknote, Check, Clock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Tournament } from '@/types/tournament';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TournamentRegistrationModalProps {
   tournament: Tournament;
@@ -42,45 +43,26 @@ export const TournamentRegistrationModal: React.FC<TournamentRegistrationModalPr
 
     setIsProcessing(true);
     try {
-      // Use direct fetch instead of supabase client to avoid type issues
-      const response = await fetch('https://dd3f440a-0b12-42c4-8561-ca9f03abc65b.supabase.co/rest/v1/tournament_registrations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4'
-        },
-        body: JSON.stringify({
+      // Use Supabase client for better error handling
+      const { data, error } = await supabase
+        .from('tournament_registrations')
+        .insert({
           tournament_id: tournament.id,
           player_id: user.id,
           registration_status: 'pending',
           payment_status: 'cash_pending',
           notes: 'Thanh toán tiền mặt tại CLB'
         })
-      });
+        .select()
+        .single();
 
-      if (!response.ok) {
-        const error = await response.json();
+      if (error) {
         if (error.code === '23505') {
           toast.error('Bạn đã đăng ký giải đấu này rồi');
           return;
         }
-        throw new Error(error.message || 'Registration failed');
+        throw error;
       }
-
-      // Update tournament participant count
-      await fetch('https://dd3f440a-0b12-42c4-8561-ca9f03abc65b.supabase.co/rest/v1/rpc/update_tournament_participants', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4'
-        },
-        body: JSON.stringify({
-          tournament_id: tournament.id,
-          increment: 1
-        })
-      });
 
       toast.success('Đăng ký thành công! Vui lòng thanh toán tại CLB.');
       onRegistrationSuccess();
@@ -101,70 +83,57 @@ export const TournamentRegistrationModal: React.FC<TournamentRegistrationModalPr
 
     setIsProcessing(true);
     try {
-      // First register the user
-      const registrationResponse = await fetch('https://dd3f440a-0b12-42c4-8561-ca9f03abc65b.supabase.co/rest/v1/tournament_registrations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify({
+      // First register the user using Supabase client
+      const { data: registrationData, error: registrationError } = await supabase
+        .from('tournament_registrations')
+        .insert({
           tournament_id: tournament.id,
           player_id: user.id,
           registration_status: 'pending',
           payment_status: 'processing'
         })
-      });
+        .select()
+        .single();
 
-      if (!registrationResponse.ok) {
-        const error = await registrationResponse.json();
-        if (error.code === '23505') {
+      if (registrationError) {
+        if (registrationError.code === '23505') {
           toast.error('Bạn đã đăng ký giải đấu này rồi');
           return;
         }
-        throw new Error(error.message || 'Registration failed');
+        throw registrationError;
       }
 
-      const registrationData = await registrationResponse.json();
-
-      // Create VNPAY payment
-      const paymentResponse = await fetch('https://dd3f440a-0b12-42c4-8561-ca9f03abc65b.supabase.co/functions/v1/create-tournament-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4`
-        },
-        body: JSON.stringify({
+      // Create VNPAY payment using edge function
+      const { data: paymentResult, error: paymentError } = await supabase.functions.invoke('create-tournament-payment', {
+        body: {
           userId: user.id,
           tournamentId: tournament.id,
-          registrationId: registrationData[0]?.id,
+          registrationId: registrationData?.id,
           amount: tournament.entry_fee || 100000
-        })
+        }
       });
 
-      const paymentResult = await paymentResponse.json();
+      if (paymentError) {
+        throw paymentError;
+      }
 
-      if (paymentResult.success && paymentResult.paymentUrl) {
+      if (paymentResult?.success && paymentResult?.paymentUrl) {
         // Redirect to VNPAY
         window.location.href = paymentResult.paymentUrl;
       } else {
-        throw new Error(paymentResult.error || 'Không thể tạo liên kết thanh toán');
+        throw new Error(paymentResult?.error || 'Không thể tạo liên kết thanh toán');
       }
     } catch (error) {
       console.error('VNPay payment error:', error);
       toast.error('Có lỗi xảy ra khi tạo thanh toán');
       
-      // Clean up failed registration
+      // Clean up failed registration using Supabase client
       if (user?.id) {
-        await fetch(`https://dd3f440a-0b12-42c4-8561-ca9f03abc65b.supabase.co/rest/v1/tournament_registrations?tournament_id=eq.${tournament.id}&player_id=eq.${user.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4`,
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtueGV2Ymtra2lhZGdwcHhicGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODQ1NzMsImV4cCI6MjA2Njk2MDU3M30.bVpo1y8fZuX5y6pePpQafvAQtihY-nJOmsKL9QzRkW4'
-          }
-        });
+        await supabase
+          .from('tournament_registrations')
+          .delete()
+          .eq('tournament_id', tournament.id)
+          .eq('player_id', user.id);
       }
     } finally {
       setIsProcessing(false);
