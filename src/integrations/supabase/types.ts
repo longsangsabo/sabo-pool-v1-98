@@ -4936,6 +4936,10 @@ export type Database = {
           jobname: string
         }[]
       }
+      get_notification_stats: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       get_notification_summary: {
         Args: { target_user_id: string }
         Returns: Json
@@ -5000,6 +5004,16 @@ export type Database = {
       reset_season: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      send_enhanced_notification: {
+        Args: {
+          p_user_id: string
+          p_template_key: string
+          p_variables?: Json
+          p_override_priority?: string
+          p_scheduled_at?: string
+        }
+        Returns: string
       }
       send_monthly_reports: {
         Args: Record<PropertyKey, never>
