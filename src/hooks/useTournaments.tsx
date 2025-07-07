@@ -316,6 +316,27 @@ export const useTournaments = (userId?: string) => {
     []
   );
 
+  const checkUserRegistration = useCallback(
+    async (tournamentId: string) => {
+      try {
+        if (!user?.id) return null;
+
+        const { data, error } = await supabase
+          .from('tournament_registrations')
+          .select('*')
+          .eq('tournament_id', tournamentId)
+          .eq('player_id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        return data;
+      } catch (err) {
+        return null;
+      }
+    },
+    [user?.id]
+  );
+
   const createTournamentMatch = useCallback(
     async (matchData: Partial<TournamentMatch>) => {
       setLoading(true);
@@ -531,6 +552,7 @@ export const useTournaments = (userId?: string) => {
     registerForTournament,
     cancelRegistration,
     getTournamentRegistrations,
+    checkUserRegistration,
     createTournamentMatch,
     updateMatchResult,
     createTournamentResult,

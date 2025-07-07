@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Trophy, Plus, Calendar, MapPin, Users, Eye, Settings } from 'lucide-react';
+import { Trophy, Plus, Calendar, MapPin, Users, Eye, Settings, Check, Clock } from 'lucide-react';
 import { EnhancedTournamentCreator } from '@/components/tournament/EnhancedTournamentCreator';
 import { TournamentRegistrationDashboard } from '@/components/tournament/TournamentRegistrationDashboard';
 import { useTournaments } from '@/hooks/useTournaments';
@@ -15,13 +15,33 @@ import { toast } from 'sonner';
 
 const TournamentsPage: React.FC = () => {
   const { user } = useAuth();
-  const { tournaments, loading, registerForTournament } = useTournaments();
+  const { tournaments, loading, registerForTournament, cancelRegistration, checkUserRegistration } = useTournaments();
   const [selectedFilter, setSelectedFilter] = useState<
     'all' | 'upcoming' | 'registration_open' | 'ongoing' | 'completed'
   >('all');
   const [showTournamentCreator, setShowTournamentCreator] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showRegistrationDashboard, setShowRegistrationDashboard] = useState(false);
+  const [userRegistrations, setUserRegistrations] = useState<Record<string, any>>({});
+  const [registrationLoading, setRegistrationLoading] = useState<string | null>(null);
+
+  // Check user registrations for all tournaments
+  useEffect(() => {
+    const loadUserRegistrations = async () => {
+      if (!user || tournaments.length === 0) return;
+      
+      const registrations: Record<string, any> = {};
+      for (const tournament of tournaments) {
+        const registration = await checkUserRegistration(tournament.id);
+        if (registration) {
+          registrations[tournament.id] = registration;
+        }
+      }
+      setUserRegistrations(registrations);
+    };
+
+    loadUserRegistrations();
+  }, [user, tournaments, checkUserRegistration]);
 
   const handleRegisterTournament = async (tournamentId: string) => {
     if (!user) {
@@ -29,10 +49,38 @@ const TournamentsPage: React.FC = () => {
       return;
     }
 
+    setRegistrationLoading(tournamentId);
     try {
       await registerForTournament(tournamentId);
+      // Refresh user registrations
+      const registration = await checkUserRegistration(tournamentId);
+      setUserRegistrations(prev => ({
+        ...prev,
+        [tournamentId]: registration
+      }));
     } catch (error) {
       console.error('Registration error:', error);
+    } finally {
+      setRegistrationLoading(null);
+    }
+  };
+
+  const handleCancelRegistration = async (tournamentId: string) => {
+    if (!user) return;
+
+    setRegistrationLoading(tournamentId);
+    try {
+      await cancelRegistration(tournamentId);
+      // Remove from user registrations
+      setUserRegistrations(prev => {
+        const updated = { ...prev };
+        delete updated[tournamentId];
+        return updated;
+      });
+    } catch (error) {
+      console.error('Cancel registration error:', error);
+    } finally {
+      setRegistrationLoading(null);
     }
   };
 
@@ -313,20 +361,56 @@ const TournamentsPage: React.FC = () => {
                 {/* Actions */}
                 <div className='flex gap-2'>
                   {tournament.status === 'registration_open' && (
+                    userRegistrations[tournament.id] ? (
+                      <div className='flex-1 flex gap-2'>
+                        <Button 
+                          variant='outline'
+                          className='flex-1'
+                          onClick={() => handleCancelRegistration(tournament.id)}
+                          disabled={registrationLoading === tournament.id}
+                        >
+                          {registrationLoading === tournament.id ? 'Đang hủy...' : 'Hủy đăng ký'}
+                        </Button>
+                        <div className='flex items-center px-3 py-2 bg-green-100 text-green-800 rounded-md text-sm'>
+                          <Check className='h-4 w-4 mr-1' />
+                          Đã đăng ký
+                        </div>
+                      </div>
+                    ) : (
+                      <Button 
+                        className='flex-1'
+                        onClick={() => handleRegisterTournament(tournament.id)}
+                        disabled={registrationLoading === tournament.id || tournament.current_participants >= tournament.max_participants}
+                      >
+                        {registrationLoading === tournament.id ? 'Đang đăng ký...' : 
+                         tournament.current_participants >= tournament.max_participants ? 'Đã đầy' : 'Đăng ký tham gia'}
+                      </Button>
+                    )
+                  )}
+                  
+                  {tournament.status === 'ongoing' && (
                     <Button 
                       className='flex-1'
-                      onClick={() => handleRegisterTournament(tournament.id)}
+                      onClick={() => {
+                        setSelectedTournament(tournament);
+                        // Add bracket viewer logic here
+                      }}
                     >
-                      Đăng ký tham gia
+                      Xem bảng đấu
                     </Button>
                   )}
-                  {tournament.status === 'ongoing' && (
-                    <Button className='flex-1'>Xem bảng đấu</Button>
-                  )}
+                  
                   {tournament.status === 'completed' && (
                     <Button variant='outline' className='flex-1'>
                       Xem kết quả
                     </Button>
+                  )}
+                  
+                  {tournament.status === 'registration_closed' && (
+                    <div className='flex-1 flex items-center justify-center px-3 py-2 bg-yellow-100 text-yellow-800 rounded-md text-sm'>
+                      <Clock className='h-4 w-4 mr-1' />
+                      Đã đóng đăng ký
+                    </div>
                   )}
                   
                   {/* Admin/Organizer Actions */}
