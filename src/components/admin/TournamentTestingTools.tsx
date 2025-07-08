@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Users, Loader2, Play, Eye, GitBranch, Target, BookOpen, Info } from 'lucide-react';
+import { Trophy, Users, Loader2, Play, Eye, GitBranch, Target, BookOpen, Info, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+// Import workflow components
+import { useTournamentWorkflow } from '@/hooks/useTournamentWorkflow';
+import { WorkflowProgress, WORKFLOW_STEPS } from './workflow/WorkflowSteps';
+import { IntegratedWorkflowStep } from './workflow/IntegratedWorkflowStep';
+import { TournamentSelectionStep } from './workflow/steps/TournamentSelectionStep';
+import { MatchReportingStep } from './workflow/steps/MatchReportingStep';
 
 // STEP 1 - Bracket Verification
 const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; addLog: (message: string, type?: 'info' | 'error' | 'success') => void }) => {
@@ -1674,4 +1682,243 @@ const TournamentTestingTools = () => {
   return <CompleteTournamentTester />;
 };
 
-export default TournamentTestingTools;
+// Integrated Workflow Component
+const IntegratedTournamentWorkflow = () => {
+  const {
+    state,
+    completeStep,
+    goToStep,
+    canProceedToStep,
+    resetWorkflow,
+    setSelectedTournament,
+    updateSharedData
+  } = useTournamentWorkflow();
+
+  const [logs, setLogs] = useState<Array<{ message: string; type: 'info' | 'error' | 'success'; timestamp: string }>>([]);
+
+  const addLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    const newLog = {
+      message,
+      type,
+      timestamp: new Date().toLocaleTimeString()
+    };
+    setLogs(prev => [...prev, newLog]);
+    console.log(`${type.toUpperCase()}: ${message}`);
+  };
+
+  const handleStepComplete = async (stepId: number, results: any) => {
+    addLog(`✅ Step ${stepId} completed successfully`, 'success');
+    completeStep(stepId, results);
+    
+    // Auto-advance if configured
+    const step = WORKFLOW_STEPS.find(s => s.id === stepId);
+    if (step?.autoAdvance && stepId < WORKFLOW_STEPS.length) {
+      addLog(`🚀 Auto-advancing to Step ${stepId + 1}...`, 'info');
+      setTimeout(() => {
+        goToStep(stepId + 1);
+        toast.success(`Moved to Step ${stepId + 1}`);
+      }, 1500);
+    }
+  };
+
+  const renderCurrentStep = () => {
+    const currentStepData = WORKFLOW_STEPS.find(s => s.id === state.currentStep);
+    if (!currentStepData) return null;
+
+    const isCompleted = state.completedSteps.includes(state.currentStep);
+    const completionTime = isCompleted 
+      ? state.testResults[getStepKey(state.currentStep)]?.completedAt 
+      : undefined;
+
+    const stepProps = {
+      stepNumber: state.currentStep,
+      title: currentStepData.title,
+      description: currentStepData.description,
+      icon: currentStepData.icon,
+      onComplete: (results: any) => handleStepComplete(state.currentStep, results),
+      onNext: () => {
+        if (state.currentStep < WORKFLOW_STEPS.length) {
+          goToStep(state.currentStep + 1);
+        }
+      },
+      onPrevious: () => {
+        if (state.currentStep > 1) {
+          goToStep(state.currentStep - 1);
+        }
+      },
+      canNext: canProceedToStep(state.currentStep + 1),
+      canPrevious: state.currentStep > 1,
+      autoAdvance: currentStepData.autoAdvance,
+      sharedData: state.sharedData,
+      isCompleted,
+      completionTime: completionTime ? new Date(completionTime).toLocaleString() : undefined
+    };
+
+    // Render specific step component
+    switch (state.currentStep) {
+      case 1:
+        return (
+          <IntegratedWorkflowStep {...stepProps}>
+            <TournamentSelectionStep
+              onComplete={stepProps.onComplete}
+              onTournamentSelect={setSelectedTournament}
+              updateSharedData={updateSharedData}
+              sharedData={state.sharedData}
+              addLog={addLog}
+            />
+          </IntegratedWorkflowStep>
+        );
+        
+      case 2:
+        return (
+          <IntegratedWorkflowStep {...stepProps}>
+            <MatchReportingStep
+              onComplete={stepProps.onComplete}
+              sharedData={state.sharedData}
+              addLog={addLog}
+            />
+          </IntegratedWorkflowStep>
+        );
+        
+      case 3:
+        return (
+          <IntegratedWorkflowStep {...stepProps}>
+            <TournamentProgressionTester
+              tournamentId={state.selectedTournament || ''}
+              addLog={addLog}
+            />
+          </IntegratedWorkflowStep>
+        );
+        
+      default:
+        return (
+          <IntegratedWorkflowStep {...stepProps}>
+            <div className="text-center py-8">
+              <h3 className="text-lg font-medium mb-2">Step {state.currentStep} - Coming Soon</h3>
+              <p className="text-gray-600">This step is being developed...</p>
+              <Button 
+                onClick={() => handleStepComplete(state.currentStep, { placeholder: true })}
+                className="mt-4"
+              >
+                Mark as Complete (Demo)
+              </Button>
+            </div>
+          </IntegratedWorkflowStep>
+        );
+    }
+  };
+
+  const runAutomatedWorkflow = async () => {
+    addLog('🤖 Starting automated tournament testing workflow...', 'info');
+    toast.info('Starting automated workflow...');
+    
+    // Reset workflow
+    resetWorkflow();
+    
+    // This would be a full automated run through all steps
+    addLog('🔧 Automated workflow feature coming soon...', 'info');
+    toast.info('Automated workflow feature will be available soon');
+  };
+
+  const getStepKey = (stepNumber: number) => {
+    const stepKeys = [
+      'bracketVerification',
+      'matchReporting', 
+      'tournamentProgression',
+      'adminControls',
+      'userExperience',
+      'scaleTesting',
+      'dataCleanup'
+    ];
+    return stepKeys[stepNumber - 1];
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Workflow Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">🏆 Integrated Tournament Testing Workflow</h2>
+          <p className="text-gray-600">Comprehensive testing system with automatic step progression</p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={runAutomatedWorkflow}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            <Zap className="mr-2 h-4 w-4" />
+            🤖 Run Automated Workflow
+          </Button>
+          <Button
+            onClick={resetWorkflow}
+            variant="outline"
+          >
+            Reset Workflow
+          </Button>
+        </div>
+      </div>
+
+      {/* Workflow Progress */}
+      <WorkflowProgress
+        currentStep={state.currentStep}
+        completedSteps={state.completedSteps}
+        onStepClick={goToStep}
+        canProceedToStep={canProceedToStep}
+      />
+
+      {/* Current Step */}
+      <div className="min-h-[400px]">
+        {renderCurrentStep()}
+      </div>
+
+      {/* Workflow Logs */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">📝 Workflow Logs</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="max-h-48 overflow-y-auto space-y-1">
+            {logs.length === 0 ? (
+              <p className="text-gray-500 text-sm">No logs yet. Start testing to see activity.</p>
+            ) : (
+              logs.slice(-10).map((log, index) => (
+                <div 
+                  key={index} 
+                  className={`text-sm p-2 rounded ${
+                    log.type === 'error' ? 'bg-red-50 text-red-700' :
+                    log.type === 'success' ? 'bg-green-50 text-green-700' :
+                    'bg-gray-50 text-gray-700'
+                  }`}
+                >
+                  <span className="font-mono text-xs text-gray-500">{log.timestamp}</span> {log.message}
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// Main Export - Choose between Integrated Workflow or Legacy Tools
+const TournamentTestingToolsMain = () => {
+  return (
+    <Tabs defaultValue="integrated" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="integrated">🚀 Integrated Workflow</TabsTrigger>
+        <TabsTrigger value="legacy">📋 Legacy Tools</TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="integrated" className="mt-6">
+        <IntegratedTournamentWorkflow />
+      </TabsContent>
+      
+      <TabsContent value="legacy" className="mt-6">
+        <TournamentTestingTools />
+      </TabsContent>
+    </Tabs>
+  );
+};
+
+export default TournamentTestingToolsMain;
