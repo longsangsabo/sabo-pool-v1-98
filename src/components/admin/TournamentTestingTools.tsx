@@ -108,7 +108,7 @@ const TournamentTestingTools = () => {
       const testUserIds = users.map(user => user.user_id);
       
       const { data: regResult, error: regError } = await supabase
-        .rpc('admin_register_test_users_to_tournament_safe', {
+        .rpc('admin_register_test_users_to_tournament_final', {
           p_tournament_id: selectedTournament,
           p_test_user_ids: testUserIds
         });
@@ -177,7 +177,17 @@ const TournamentTestingTools = () => {
       if (testUsers && testUsers.length > 0) {
         const testUserIds = testUsers.map(u => u.user_id);
         
-        // Delete tournament registrations first
+        // Delete test tournament registrations first
+        const { error: testRegError } = await supabase
+          .from('test_tournament_registrations')
+          .delete()
+          .in('player_id', testUserIds);
+
+        if (testRegError) {
+          addLog(`⚠️ Lỗi xóa test registrations: ${testRegError.message}`, 'error');
+        }
+
+        // Delete tournament registrations (if any exist in production table)
         const { error: regError } = await supabase
           .from('tournament_registrations')
           .delete()

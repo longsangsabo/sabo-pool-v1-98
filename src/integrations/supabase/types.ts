@@ -4053,6 +4053,39 @@ export type Database = {
         }
         Relationships: []
       }
+      test_tournament_registrations: {
+        Row: {
+          created_at: string | null
+          id: string
+          payment_status: string | null
+          player_id: string
+          registration_date: string | null
+          registration_status: string | null
+          tournament_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          payment_status?: string | null
+          player_id: string
+          registration_date?: string | null
+          registration_status?: string | null
+          tournament_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          payment_status?: string | null
+          player_id?: string
+          registration_date?: string | null
+          registration_status?: string | null
+          tournament_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tournament_brackets: {
         Row: {
           bracket_config: Json | null
@@ -5016,6 +5049,10 @@ export type Database = {
         Returns: Json
       }
       admin_register_test_users_to_tournament: {
+        Args: { p_tournament_id: string; p_test_user_ids: string[] }
+        Returns: Json
+      }
+      admin_register_test_users_to_tournament_final: {
         Args: { p_tournament_id: string; p_test_user_ids: string[] }
         Returns: Json
       }
