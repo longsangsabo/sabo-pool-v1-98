@@ -197,33 +197,82 @@ const QuickRealUserCreator = () => {
 
           addLog(`✅ Auth user tạo thành công: ${authData.user.id}`, 'success');
 
-          // Bước 2: Tạo Profile (đợi trigger tự động tạo hoặc tạo thủ công)
-          addLog(`2️⃣ Cập nhật profile...`, 'info');
+          // Bước 2: Workflow tự động tạo Profile
+          addLog(`2️⃣ Kiểm tra và tạo profile...`, 'info');
           
-          // Đợi một chút để trigger tự động chạy
+          // Đợi trigger tự động chạy (nếu có)
           await new Promise(resolve => setTimeout(resolve, 500));
 
-          // Cập nhật profile với thông tin đầy đủ
-          const { error: profileError } = await supabase
+          // Kiểm tra xem profile đã tồn tại chưa
+          const { data: existingProfile } = await supabase
             .from('profiles')
-            .upsert({
-              user_id: authData.user.id,
-              full_name: fullName,
-              display_name: fullName.split(' ').slice(-2).join(' '),
-              phone: phone,
-              role: 'player',
-              skill_level: skillLevel,
-              city: city,
-              district: `Quận ${Math.floor(Math.random() * 12) + 1}`,
-              bio: `Demo user - ${skillLevel} level`,
-              experience_years: Math.floor(Math.random() * 10) + 1
-            });
+            .select('user_id')
+            .eq('user_id', authData.user.id)
+            .single();
 
-          if (profileError) {
-            addLog(`⚠️ Profile warning: ${profileError.message}`, 'error');
+          if (!existingProfile) {
+            // Tạo profile mới nếu chưa tồn tại
+            addLog(`📝 Profile chưa tồn tại, tạo mới...`, 'info');
+            const { error: createProfileError } = await supabase
+              .from('profiles')
+              .insert({
+                user_id: authData.user.id,
+                full_name: fullName,
+                display_name: fullName.split(' ').slice(-2).join(' '),
+                phone: phone,
+                role: 'player',
+                skill_level: skillLevel,
+                city: city,
+                district: `Quận ${Math.floor(Math.random() * 12) + 1}`,
+                bio: `Demo user - ${skillLevel} level`,
+                experience_years: Math.floor(Math.random() * 10) + 1,
+                email: email
+              });
+
+            if (createProfileError) {
+              addLog(`❌ Lỗi tạo profile: ${createProfileError.message}`, 'error');
+              throw new Error(`Profile creation failed: ${createProfileError.message}`);
+            } else {
+              addLog(`✅ Profile tạo thành công`, 'success');
+            }
           } else {
-            addLog(`✅ Profile cập nhật thành công`, 'success');
+            // Cập nhật profile nếu đã tồn tại
+            addLog(`📝 Profile đã tồn tại, cập nhật thông tin...`, 'info');
+            const { error: updateProfileError } = await supabase
+              .from('profiles')
+              .update({
+                full_name: fullName,
+                display_name: fullName.split(' ').slice(-2).join(' '),
+                phone: phone,
+                role: 'player',
+                skill_level: skillLevel,
+                city: city,
+                district: `Quận ${Math.floor(Math.random() * 12) + 1}`,
+                bio: `Demo user - ${skillLevel} level`,
+                experience_years: Math.floor(Math.random() * 10) + 1,
+                email: email
+              })
+              .eq('user_id', authData.user.id);
+
+            if (updateProfileError) {
+              addLog(`⚠️ Profile warning: ${updateProfileError.message}`, 'error');
+            } else {
+              addLog(`✅ Profile cập nhật thành công`, 'success');
+            }
           }
+
+          // Xác minh profile đã được tạo thành công
+          const { data: verifyProfile } = await supabase
+            .from('profiles')
+            .select('user_id, full_name')
+            .eq('user_id', authData.user.id)
+            .single();
+
+          if (!verifyProfile) {
+            throw new Error('Profile verification failed - không tồn tại trong database');
+          }
+          
+          addLog(`✅ Xác minh profile thành công: ${verifyProfile.full_name}`, 'success');
 
           // Bước 3: Tạo Player Ranking
           addLog(`3️⃣ Tạo player ranking...`, 'info');
