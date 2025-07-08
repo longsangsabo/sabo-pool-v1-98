@@ -51,8 +51,8 @@ const QuickRealUserCreator = () => {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
       .replace(/[^a-z0-9]/g, ''); // Remove any non-alphanumeric characters
-    const randomNum = Math.floor(Math.random() * 1000);
-    return `${cleanName || 'user'}${randomNum}@demo.sabopool.com`;
+    const randomNum = Math.floor(Math.random() * 10000);
+    return `${cleanName || 'user'}${randomNum}@gmail.com`;
   };
 
   const addLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
