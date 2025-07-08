@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Users, Loader2, Play, Eye, GitBranch, Target } from 'lucide-react';
+import { Trophy, Users, Loader2, Play, Eye, GitBranch, Target, BookOpen, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -1365,15 +1366,15 @@ const CompleteTournamentTester = () => {
   };
 
   const steps = [
-    { id: 1, name: 'Bracket Verification', component: BracketVerification, requiresTournament: true },
-    { id: 2, name: 'Match Reporting', component: MatchTester, requiresTournament: true },
-    { id: 3, name: 'Tournament Progression', component: TournamentProgressionTester, requiresTournament: true },
-    { id: 4, name: 'Admin Controls', component: AdminTournamentControls, requiresTournament: true },
-    { id: 5, name: 'User Experience', component: UserExperienceTester, requiresTournament: true },
-    { id: 6, name: 'Scale Testing', component: ScalePerformanceTester, requiresTournament: false },
-    { id: 7, name: 'Data Cleanup', component: DataCleanupTools, requiresTournament: false },
-    { id: 8, name: 'Admin Audit', component: AdminTournamentAudit, requiresTournament: false },
-    { id: 9, name: 'Admin Capabilities', component: AdminCapabilityMatrix, requiresTournament: false }
+    { id: 1, name: 'Xác Thực Bracket', component: BracketVerification, requiresTournament: true },
+    { id: 2, name: 'Báo Cáo Trận Đấu', component: MatchTester, requiresTournament: true },
+    { id: 3, name: 'Tiến Trình Giải Đấu', component: TournamentProgressionTester, requiresTournament: true },
+    { id: 4, name: 'Điều Khiển Admin', component: AdminTournamentControls, requiresTournament: true },
+    { id: 5, name: 'Trải Nghiệm Người Dùng', component: UserExperienceTester, requiresTournament: true },
+    { id: 6, name: 'Kiểm Thử Quy Mô', component: ScalePerformanceTester, requiresTournament: false },
+    { id: 7, name: 'Dọn Dẹp Dữ Liệu', component: DataCleanupTools, requiresTournament: false },
+    { id: 8, name: 'Kiểm Tra Admin', component: AdminTournamentAudit, requiresTournament: false },
+    { id: 9, name: 'Ma Trận Khả Năng', component: AdminCapabilityMatrix, requiresTournament: false }
   ];
 
   const markStepCompleted = (stepId: number) => {
@@ -1388,21 +1389,105 @@ const CompleteTournamentTester = () => {
     console.log(`${type.toUpperCase()}: ${message}`);
   };
 
+  const WorkflowGuide = () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="gap-2">
+          <BookOpen className="h-4 w-4" />
+          Hướng Dẫn
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Info className="h-5 w-5" />
+            Hướng Dẫn Quy Trình Kiểm Thử Giải Đấu
+          </DialogTitle>
+          <DialogDescription>
+            Quy trình làm việc chi tiết để kiểm thử hệ thống giải đấu
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-6">
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h3 className="font-semibold text-blue-800 mb-2">📋 Tổng Quan Quy Trình (9 Bước)</h3>
+            <ol className="list-decimal list-inside space-y-1 text-sm text-blue-700">
+              <li><strong>Xác Thực Bracket:</strong> Kiểm tra cấu trúc bảng đấu và seeding</li>
+              <li><strong>Báo Cáo Trận Đấu:</strong> Thử nghiệm nhập kết quả và cập nhật</li>
+              <li><strong>Tiến Trình Giải Đấu:</strong> Kiểm tra các giai đoạn và chuyển tiếp</li>
+              <li><strong>Điều Khiển Admin:</strong> Thử nghiệm quyền quản trị</li>
+              <li><strong>Trải Nghiệm Người Dùng:</strong> Kiểm tra giao diện người chơi</li>
+              <li><strong>Kiểm Thử Quy Mô:</strong> Thử nghiệm hiệu suất hệ thống</li>
+              <li><strong>Dọn Dẹp Dữ Liệu:</strong> Quản lý và làm sạch dữ liệu thử nghiệm</li>
+              <li><strong>Kiểm Tra Admin:</strong> Audit toàn diện hệ thống</li>
+              <li><strong>Ma Trận Khả Năng:</strong> Xem tổng quan các tính năng</li>
+            </ol>
+          </div>
+
+          <div className="bg-green-50 p-4 rounded-lg">
+            <h3 className="font-semibold text-green-800 mb-2">🔄 Cách Thức Hoạt Động</h3>
+            <ul className="list-disc list-inside space-y-1 text-sm text-green-700">
+              <li><strong>Chọn Giải Đấu:</strong> Sử dụng dropdown để chọn giải đấu cần test</li>
+              <li><strong>Điều Hướng Bước:</strong> Sử dụng nút Previous/Next hoặc click trực tiếp vào bước</li>
+              <li><strong>Đánh Dấu Hoàn Thành:</strong> Click "Mark Complete" khi hoàn thành mỗi bước</li>
+              <li><strong>Theo Dõi Tiến Độ:</strong> Xem progress bar và số bước đã hoàn thành</li>
+              <li><strong>Logs Thời Gian Thực:</strong> Theo dõi kết quả test trong real-time</li>
+            </ul>
+          </div>
+
+          <div className="bg-yellow-50 p-4 rounded-lg">
+            <h3 className="font-semibold text-yellow-800 mb-2">⚠️ Lưu Ý Quan Trọng</h3>
+            <ul className="list-disc list-inside space-y-1 text-sm text-yellow-700">
+              <li>Một số bước yêu cầu phải chọn giải đấu trước</li>
+              <li>Thực hiện tuần tự từ bước 1 đến 9 để có kết quả tốt nhất</li>
+              <li>Theo dõi logs để phát hiện lỗi sớm</li>
+              <li>Backup dữ liệu trước khi chạy Data Cleanup</li>
+              <li>Admin Audit sẽ kiểm tra toàn bộ quyền quản trị</li>
+            </ul>
+          </div>
+
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <h3 className="font-semibold text-purple-800 mb-2">🎯 Mục Tiêu Cuối</h3>
+            <p className="text-sm text-purple-700">
+              Sau khi hoàn thành tất cả 9 bước, bạn sẽ có được:
+            </p>
+            <ul className="list-disc list-inside space-y-1 text-sm text-purple-700 mt-2">
+              <li>Xác nhận hệ thống tournament hoạt động chính xác</li>
+              <li>Kiểm chứng tất cả tính năng admin</li>
+              <li>Đảm bảo hiệu suất và độ ổn định</li>
+              <li>Dữ liệu sạch và tối ưu</li>
+            </ul>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Trophy className="w-6 h-6 text-blue-600" />
-        <h2 className="text-2xl font-bold">🏆 Complete Tournament System Testing</h2>
+      <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Trophy className="h-6 w-6" />
+              Kiểm Thử Hệ Thống Giải Đấu Hoàn Chỉnh
+            </h1>
+            <p className="mt-2 text-blue-100">
+              Bộ công cụ kiểm thử toàn diện cho chức năng giải đấu
+            </p>
+          </div>
+          <WorkflowGuide />
+        </div>
       </div>
       
       {/* Tournament Selection */}
       <Card>
         <CardContent className="pt-6">
           <div>
-            <label className="block text-sm font-medium mb-2">Select Tournament (for steps 1-5):</label>
+            <label className="block text-sm font-medium mb-2">Chọn Giải Đấu (cho bước 1-5):</label>
             <Select value={selectedTournament} onValueChange={setSelectedTournament}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a tournament..." />
+                <SelectValue placeholder="Chọn một giải đấu..." />
               </SelectTrigger>
               <SelectContent>
                 {tournaments.map(tournament => (
@@ -1441,20 +1526,20 @@ const CompleteTournamentTester = () => {
         {currentStepData && (
           <>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Step {currentStep}: {currentStepData.name}</h3>
+              <h3 className="text-lg font-semibold">Bước {currentStep}: {currentStepData.name}</h3>
               <Button 
                 onClick={() => markStepCompleted(currentStep)}
                 variant="outline"
                 size="sm"
                 disabled={completedSteps.includes(currentStep)}
               >
-                {completedSteps.includes(currentStep) ? 'Completed ✓' : 'Mark Complete'}
+                {completedSteps.includes(currentStep) ? 'Hoàn Thành ✓' : 'Đánh Dấu Hoàn Thành'}
               </Button>
             </div>
             
             {currentStepData.requiresTournament && !selectedTournament ? (
               <div className="text-center py-8 text-muted-foreground">
-                Please select a tournament above to test this step.
+                Vui lòng chọn một giải đấu ở trên để kiểm thử bước này.
               </div>
             ) : (
               React.createElement(currentStepData.component, 
@@ -1474,16 +1559,16 @@ const CompleteTournamentTester = () => {
           disabled={currentStep === 1}
           variant="outline"
         >
-          Previous
+          Trước
         </Button>
         <div className="text-sm text-muted-foreground">
-          Step {currentStep} of {steps.length} | {completedSteps.length} completed
+          Bước {currentStep} / {steps.length} | {completedSteps.length} đã hoàn thành
         </div>
         <Button 
-          onClick={() => setCurrentStep(Math.min(7, currentStep + 1))}
-          disabled={currentStep === 7}
+          onClick={() => setCurrentStep(Math.min(9, currentStep + 1))}
+          disabled={currentStep === 9}
         >
-          Next Step
+          Bước Tiếp
         </Button>
       </div>
     </div>
