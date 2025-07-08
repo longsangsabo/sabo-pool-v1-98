@@ -24,46 +24,58 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
     addLog('🔄 Đang tải bracket...', 'info');
     
     try {
-      // Load tournament matches with player info - use simpler joins
+      // Load tournament matches first
       const { data: matches, error: matchError } = await supabase
         .from('tournament_matches')
-        .select(`
-          *,
-          player1:profiles!inner(user_id, full_name, display_name),
-          player2:profiles!inner(user_id, full_name, display_name)
-        `)
+        .select('*')
         .eq('tournament_id', tournamentId)
         .order('round_number', { ascending: true })
         .order('match_number', { ascending: true });
 
       if (matchError) {
         console.error('Match error:', matchError);
-        // Try fallback query without joins
-        const { data: simpleMatches, error: fallbackError } = await supabase
-          .from('tournament_matches')
-          .select('*')
-          .eq('tournament_id', tournamentId)
-          .order('round_number', { ascending: true })
-          .order('match_number', { ascending: true });
-        
-        if (fallbackError) {
-          throw fallbackError;
-        }
-        
-        addLog(`📊 Tìm thấy ${simpleMatches?.length || 0} trận đấu (không có thông tin player)`, 'info');
-        setBracket(simpleMatches || []);
-      } else {
-        addLog(`📊 Tìm thấy ${matches?.length || 0} trận đấu`, 'info');
-        setBracket(matches || []);
+        throw matchError;
       }
+
+      addLog(`📊 Tìm thấy ${matches?.length || 0} trận đấu`, 'info');
+
+      // Get unique player IDs from matches
+      const playerIds = new Set<string>();
+      matches?.forEach(match => {
+        if (match.player1_id) playerIds.add(match.player1_id);
+        if (match.player2_id) playerIds.add(match.player2_id);
+      });
+
+      // Load player profiles separately
+      let playerProfiles: any[] = [];
+      if (playerIds.size > 0) {
+        const { data: profiles, error: profileError } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, display_name')
+          .in('user_id', Array.from(playerIds));
+
+        if (!profileError) {
+          playerProfiles = profiles || [];
+        }
+      }
+
+      // Combine matches with player data
+      const matchesWithPlayers = matches?.map(match => ({
+        ...match,
+        player1: match.player1_id 
+          ? playerProfiles.find(p => p.user_id === match.player1_id)
+          : null,
+        player2: match.player2_id 
+          ? playerProfiles.find(p => p.user_id === match.player2_id)
+          : null
+      }));
+
+      setBracket(matchesWithPlayers || []);
 
       // Load seeding data
       const { data: seedingData, error: seedError } = await supabase
         .from('tournament_seeding')
-        .select(`
-          *,
-          player:profiles!inner(user_id, full_name, display_name)
-        `)
+        .select('*')
         .eq('tournament_id', tournamentId)
         .order('seed_position', { ascending: true });
 
@@ -72,6 +84,14 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
         addLog(`⚠️ Lỗi tải seeding: ${seedError.message}`, 'error');
         // Don't throw here, seeding might not exist yet
       }
+
+      // Add player data to seeding
+      const seedingWithPlayers = seedingData?.map(seed => ({
+        ...seed,
+        player: seed.player_id 
+          ? playerProfiles.find(p => p.user_id === seed.player_id)
+          : null
+      }));
 
       addLog(`🎯 Tìm thấy ${seedingData?.length || 0} seeded players`, 'info');
 
@@ -87,8 +107,8 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
         addLog(`⚠️ Lỗi tải bracket metadata: ${bracketError.message}`, 'error');
       }
 
-      setBracket(bracket || []);
-      setSeeding(seedingData || []);
+      setBracket(matchesWithPlayers || []);
+      setSeeding(seedingWithPlayers || []);
       setBracketData(bracketMeta);
       
       if (!bracket || bracket.length === 0) {
