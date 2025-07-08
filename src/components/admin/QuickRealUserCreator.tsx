@@ -60,7 +60,7 @@ const QuickRealUserCreator = () => {
   const checkDatabaseStatus = async () => {
     setIsChecking(true);
     try {
-      // Check recent users (last 10)
+      // Check recent users (last 20, excluding admins)
       const { data: recentUsers, error: usersError } = await supabase
         .from('profiles')
         .select(`
@@ -71,8 +71,9 @@ const QuickRealUserCreator = () => {
           city,
           created_at
         `)
+        .neq('is_admin', true)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (usersError) {
         console.error('Error fetching users:', usersError);
