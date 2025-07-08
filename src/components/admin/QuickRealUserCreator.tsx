@@ -60,7 +60,7 @@ const QuickRealUserCreator = () => {
   const checkDatabaseStatus = async () => {
     setIsChecking(true);
     try {
-      // Check recent users in the last hour
+      // Check recent users (last 10)
       const { data: recentUsers, error: usersError } = await supabase
         .from('profiles')
         .select(`
@@ -71,7 +71,6 @@ const QuickRealUserCreator = () => {
           city,
           created_at
         `)
-        .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -110,22 +109,19 @@ const QuickRealUserCreator = () => {
         }
       }
 
-      // Count totals in the last hour (simplified since admin API doesn't have count)
+      // Count all totals
       const authUsers = await supabase.auth.admin.listUsers();
       const authCount = authUsers?.data?.users?.length || 0;
       
       const { count: profilesCount } = await supabase
         .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
+        .select('*', { count: 'exact', head: true });
       const { count: rankingsCount } = await supabase
         .from('player_rankings')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
+        .select('*', { count: 'exact', head: true });
       const { count: walletsCount } = await supabase
         .from('wallets')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
+        .select('*', { count: 'exact', head: true });
 
       setDatabaseStatus({
         authUsers: authCount || 0,
@@ -468,7 +464,7 @@ const QuickRealUserCreator = () => {
           {databaseStatus && (
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border">
               <h3 className="font-medium text-blue-800 dark:text-blue-300 mb-3">
-                📊 Trạng thái Database (1 giờ gần nhất)
+                📊 Trạng thái Database (Tổng số)
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                 <div className="bg-white dark:bg-gray-800 p-3 rounded border">
