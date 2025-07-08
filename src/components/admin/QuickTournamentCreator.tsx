@@ -32,7 +32,8 @@ const QuickTournamentCreator = () => {
         registration_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
         start_date: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString(), // 8 days from now
         end_date: new Date(Date.now() + 9 * 24 * 60 * 60 * 1000).toISOString(), // 9 days from now
-        location: 'Sabo Pool Arena - Test Venue',
+        venue_address: 'Sabo Pool Arena - Test Venue', // Changed from 'location' to 'venue_address'
+        venue_name: 'Sabo Pool Arena',
         status: 'upcoming',
         management_status: 'draft',
         created_by: user.id,
