@@ -259,10 +259,6 @@ const QuickRealUserCreator = () => {
       addLog(`🏁 Tạo thành công ${createdUsersList.length}/${userCount} users hoàn chỉnh!`, 'success');
       addLog(`🎯 Users đã sẵn sàng tham gia giải đấu!`, 'success');
       
-      // SignOut cuối cùng để tránh auto-login với user cuối
-      await supabase.auth.signOut();
-      addLog(`🔓 Đã logout để tránh auto-login`, 'info');
-      
       setCreatedUsers(createdUsersList);
       toast.success(`Thành công tạo ${createdUsersList.length} user hoàn chỉnh!`);
 
