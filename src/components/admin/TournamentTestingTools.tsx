@@ -24,13 +24,13 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
     addLog('🔄 Đang tải bracket...', 'info');
     
     try {
-      // Load tournament matches with player info
+      // Load tournament matches with player info - use simpler joins
       const { data: matches, error: matchError } = await supabase
         .from('tournament_matches')
         .select(`
           *,
-          player1:profiles!tournament_matches_player1_id_fkey(user_id, full_name, display_name),
-          player2:profiles!tournament_matches_player2_id_fkey(user_id, full_name, display_name)
+          player1:profiles!inner(user_id, full_name, display_name),
+          player2:profiles!inner(user_id, full_name, display_name)
         `)
         .eq('tournament_id', tournamentId)
         .order('round_number', { ascending: true })
@@ -38,18 +38,31 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
 
       if (matchError) {
         console.error('Match error:', matchError);
-        addLog(`❌ Lỗi tải matches: ${matchError.message}`, 'error');
-        throw matchError;
+        // Try fallback query without joins
+        const { data: simpleMatches, error: fallbackError } = await supabase
+          .from('tournament_matches')
+          .select('*')
+          .eq('tournament_id', tournamentId)
+          .order('round_number', { ascending: true })
+          .order('match_number', { ascending: true });
+        
+        if (fallbackError) {
+          throw fallbackError;
+        }
+        
+        addLog(`📊 Tìm thấy ${simpleMatches?.length || 0} trận đấu (không có thông tin player)`, 'info');
+        setBracket(simpleMatches || []);
+      } else {
+        addLog(`📊 Tìm thấy ${matches?.length || 0} trận đấu`, 'info');
+        setBracket(matches || []);
       }
-
-      addLog(`📊 Tìm thấy ${matches?.length || 0} trận đấu`, 'info');
 
       // Load seeding data
       const { data: seedingData, error: seedError } = await supabase
         .from('tournament_seeding')
         .select(`
           *,
-          player:profiles!tournament_seeding_player_id_fkey(user_id, full_name, display_name)
+          player:profiles!inner(user_id, full_name, display_name)
         `)
         .eq('tournament_id', tournamentId)
         .order('seed_position', { ascending: true });
@@ -74,11 +87,11 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
         addLog(`⚠️ Lỗi tải bracket metadata: ${bracketError.message}`, 'error');
       }
 
-      setBracket(matches || []);
+      setBracket(bracket || []);
       setSeeding(seedingData || []);
       setBracketData(bracketMeta);
       
-      if (!matches || matches.length === 0) {
+      if (!bracket || bracket.length === 0) {
         addLog('⚠️ Giải đấu chưa có bracket. Hãy tạo bracket trước.', 'error');
       } else {
         addLog('✅ Bracket loaded successfully', 'success');
@@ -134,9 +147,9 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <GitBranch className="h-5 w-5" />
-          🏆 Bracket Verification
+          🏆 Xác Thực Bracket
         </CardTitle>
-        <CardDescription>Verify tournament bracket structure and seeding</CardDescription>
+        <CardDescription>Xác minh cấu trúc bảng đấu và thứ tự seeding</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2">
@@ -155,7 +168,7 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
             {/* Seeding Display */}
             {seeding.length > 0 && (
               <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                <h4 className="font-medium mb-3">🎯 Seeding Order (Top 8)</h4>
+                <h4 className="font-medium mb-3">🎯 Thứ Tự Seeding (Top 8)</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   {seeding.slice(0, 8).map((seed) => (
                     <div key={seed.seed_position} className="flex justify-between p-2 bg-white dark:bg-gray-800 rounded">
@@ -181,7 +194,7 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
                     <div className="space-y-2">
                       {roundMatches.map(match => (
                         <div key={match.id} className="p-3 border rounded-lg bg-white dark:bg-gray-800">
-                          <div className="text-xs text-gray-500 mb-1">Match {match.match_number}</div>
+                          <div className="text-xs text-gray-500 mb-1">Trận {match.match_number}</div>
                           <div className="space-y-1">
                             <div className="flex items-center justify-between">
                               <span className="text-sm">{match.player1?.display_name || match.player1?.full_name || 'TBD'}</span>
