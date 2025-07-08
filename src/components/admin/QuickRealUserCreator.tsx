@@ -90,6 +90,7 @@ const QuickRealUserCreator = () => {
           email,
           password,
           options: {
+            emailRedirectTo: `${window.location.origin}/`,
             data: {
               full_name: fullName,
               phone: phone,
@@ -124,8 +125,10 @@ const QuickRealUserCreator = () => {
             });
 
           if (profileError) {
-            addLog(`⚠️ Lỗi tạo profile user ${i + 1}: ${profileError.message}`, 'error');
+            addLog(`❌ Database error saving new user ${i + 1}: ${profileError.message}`, 'error');
+            addLog(`📋 Chi tiết lỗi profile: ${JSON.stringify(profileError)}`, 'error');
             console.error(`Lỗi tạo profile cho user ${i + 1}:`, profileError);
+            continue; // Skip to next user if profile creation fails
           } else {
             addLog(`✅ Profile user ${i + 1} thành công`, 'success');
           }
@@ -144,8 +147,10 @@ const QuickRealUserCreator = () => {
             });
 
           if (rankingError) {
-            addLog(`⚠️ Lỗi tạo ranking user ${i + 1}: ${rankingError.message}`, 'error');
+            addLog(`❌ Database error saving new user ${i + 1}: ${rankingError.message}`, 'error');
+            addLog(`📋 Chi tiết lỗi ranking: ${JSON.stringify(rankingError)}`, 'error');
             console.error(`Lỗi tạo ranking cho user ${i + 1}:`, rankingError);
+            // Don't continue here - ranking is optional
           } else {
             addLog(`✅ Ranking user ${i + 1} thành công`, 'success');
           }
@@ -248,30 +253,44 @@ const QuickRealUserCreator = () => {
         </Button>
 
         {/* Real-time Progress Display */}
-        {isCreating && (
+        {(isCreating || logs.length > 0) && (
           <div className="space-y-4 mt-4">
             {/* Current Step Display */}
-            <div className="flex items-center justify-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                {currentStep || 'Đang khởi tạo...'}
-              </span>
-            </div>
+            {isCreating && (
+              <div className="flex items-center justify-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  {currentStep || 'Đang khởi tạo...'}
+                </span>
+              </div>
+            )}
 
             {/* Detailed Progress Bar */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-gray-600">
-                <span>Tiến độ tổng thể</span>
-                <span>{progress.toFixed(0)}%</span>
+            {isCreating && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-gray-600">
+                  <span>Tiến độ tổng thể</span>
+                  <span>{progress.toFixed(0)}%</span>
+                </div>
+                <Progress value={progress} className="w-full h-2" />
               </div>
-              <Progress value={progress} className="w-full h-2" />
-            </div>
+            )}
 
-            {/* Real-time Logs */}
+            {/* Real-time Logs - Always Visible */}
             <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border max-h-60 overflow-y-auto">
-              <h4 className="font-medium mb-3 text-sm text-gray-700 dark:text-gray-300">
-                Log quá trình tạo:
-              </h4>
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">
+                  Debug Logs ({logs.length})
+                </h4>
+                {logs.length > 0 && (
+                  <button 
+                    onClick={() => setLogs([])}
+                    className="text-xs text-gray-500 hover:text-gray-700 underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
               <div className="space-y-1">
                 {logs.map((log, index) => (
                   <div 
