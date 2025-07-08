@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Users, Loader2, Play, Eye, GitBranch } from 'lucide-react';
+import { Trophy, Users, Loader2, Play, Eye, GitBranch, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,7 +7,193 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-const BracketVerification = ({ tournamentId }: { tournamentId: string }) => {
+const MatchTester = ({ 
+  tournamentId, 
+  bracket, 
+  loadBracket, 
+  addLog 
+}: { 
+  tournamentId: string;
+  bracket: any[];
+  loadBracket: () => void;
+  addLog: (message: string, type?: 'info' | 'error' | 'success') => void;
+}) => {
+  const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  const [isReporting, setIsReporting] = useState(false);
+
+  const reportMatchResult = async (matchId: string, winnerId: string, score: { player1: number; player2: number }) => {
+    setIsReporting(true);
+    try {
+      addLog(`🎯 Báo kết quả Match ${selectedMatch.match_number}...`);
+      
+      // Update match result
+      const { error: matchError } = await supabase
+        .from('tournament_matches')
+        .update({
+          winner_id: winnerId,
+          score_player1: score.player1,
+          score_player2: score.player2,
+          status: 'completed',
+          actual_end_time: new Date().toISOString()
+        })
+        .eq('id', matchId);
+
+      if (matchError) throw matchError;
+      addLog(`✅ Match result updated`);
+
+      // Trigger advancement logic
+      const { data: advancement, error: advError } = await supabase
+        .rpc('advance_tournament_winner', {
+          p_match_id: matchId,
+          p_tournament_id: tournamentId
+        });
+
+      if (advError) throw advError;
+      
+      const advResult = advancement as any;
+      if (advResult.success) {
+        if (advResult.advancement?.tournament_complete) {
+          addLog(`🏆 Tournament completed! Champion: ${selectedMatch.player1_id === winnerId ? selectedMatch.player1?.display_name : selectedMatch.player2?.display_name}`, 'success');
+        } else {
+          addLog(`✅ Winner advanced to Round ${advResult.advancement?.next_round} Match ${advResult.advancement?.next_match_number}`, 'success');
+        }
+        addLog(`🔄 Bracket updated automatically`, 'success');
+      } else {
+        throw new Error(advResult.error || 'Advancement failed');
+      }
+      
+      // Clear selection and reload bracket
+      setSelectedMatch(null);
+      loadBracket();
+      
+    } catch (error: any) {
+      addLog(`❌ Error: ${error.message}`, 'error');
+      toast.error('Lỗi báo kết quả: ' + error.message);
+    } finally {
+      setIsReporting(false);
+    }
+  };
+
+  const availableMatches = bracket.filter(m => 
+    m.status === 'scheduled' && 
+    m.player1_id && 
+    m.player2_id &&
+    !m.winner_id
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Target className="h-5 w-5" />
+          ⚾ Match Result Tester
+        </CardTitle>
+        <CardDescription>
+          Test match reporting and winner advancement logic
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <label className="text-sm font-medium">Chọn trận để test:</label>
+          <Select 
+            value={selectedMatch?.id || ''} 
+            onValueChange={(value) => {
+              const match = availableMatches.find(m => m.id === value);
+              setSelectedMatch(match);
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="-- Chọn trận đấu --" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableMatches.map(match => (
+                <SelectItem key={match.id} value={match.id}>
+                  R{match.round_number} M{match.match_number}: {match.player1?.display_name || match.player1?.full_name} vs {match.player2?.display_name || match.player2?.full_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {selectedMatch && (
+          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+            <h4 className="font-medium mb-3">Test Match Result</h4>
+            <div className="bg-white dark:bg-gray-700 p-3 rounded mb-3">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                Round {selectedMatch.round_number} - Match {selectedMatch.match_number}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium">
+                  {selectedMatch.player1?.display_name || selectedMatch.player1?.full_name}
+                  {selectedMatch.player1?.profile_type === 'test' && (
+                    <span className="text-orange-500 ml-1 text-xs">[TEST]</span>
+                  )}
+                </span>
+                <span className="text-gray-400">vs</span>
+                <span className="font-medium">
+                  {selectedMatch.player2?.display_name || selectedMatch.player2?.full_name}
+                  {selectedMatch.player2?.profile_type === 'test' && (
+                    <span className="text-orange-500 ml-1 text-xs">[TEST]</span>
+                  )}
+                </span>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => reportMatchResult(selectedMatch.id, selectedMatch.player1_id, {player1: 2, player2: 1})}
+                  disabled={isReporting}
+                  className="flex-1"
+                  variant="default"
+                >
+                  {isReporting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    "🏆"
+                  )}
+                  {selectedMatch.player1?.display_name || selectedMatch.player1?.full_name} Wins (2-1)
+                </Button>
+                <Button 
+                  onClick={() => reportMatchResult(selectedMatch.id, selectedMatch.player2_id, {player1: 1, player2: 2})}
+                  disabled={isReporting}
+                  className="flex-1"
+                  variant="default"
+                >
+                  {isReporting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    "🏆"
+                  )}
+                  {selectedMatch.player2?.display_name || selectedMatch.player2?.full_name} Wins (1-2)
+                </Button>
+              </div>
+              
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded text-sm">
+                <div className="font-medium mb-1">🔍 What will happen:</div>
+                <ul className="text-gray-600 dark:text-gray-400 space-y-1">
+                  <li>• Match result will be recorded</li>
+                  <li>• Winner advances to Round {selectedMatch.round_number + 1}</li>
+                  <li>• Bracket updates automatically</li>
+                  <li>• Real-time verification of tournament logic</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {availableMatches.length === 0 && (
+          <div className="text-center py-4 text-gray-500">
+            No matches available for testing. 
+            {bracket.length === 0 ? ' Load bracket first.' : ' All matches completed or not ready.'}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; addLog: (message: string, type?: 'info' | 'error' | 'success') => void }) => {
   const [bracket, setBracket] = useState<any[]>([]);
   const [seeding, setSeeding] = useState<any[]>([]);
   const [bracketData, setBracketData] = useState<any>(null);
@@ -157,6 +343,9 @@ const BracketVerification = ({ tournamentId }: { tournamentId: string }) => {
                               {match.winner_id === match.player1_id && (
                                 <span className="text-green-500 text-xs">✓</span>
                               )}
+                              {match.score_player1 !== null && (
+                                <span className="text-xs text-gray-500">{match.score_player1}</span>
+                              )}
                             </div>
                             <div className="text-xs text-gray-400">vs</div>
                             <div className="flex items-center justify-between">
@@ -169,10 +358,16 @@ const BracketVerification = ({ tournamentId }: { tournamentId: string }) => {
                               {match.winner_id === match.player2_id && (
                                 <span className="text-green-500 text-xs">✓</span>
                               )}
+                              {match.score_player2 !== null && (
+                                <span className="text-xs text-gray-500">{match.score_player2}</span>
+                              )}
                             </div>
                           </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            Status: {match.status}
+                          <div className="text-xs text-gray-500 mt-1 flex justify-between">
+                            <span>Status: {match.status}</span>
+                            {match.winner_id && (
+                              <span className="text-green-600 font-medium">COMPLETED</span>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -199,11 +394,27 @@ const BracketVerification = ({ tournamentId }: { tournamentId: string }) => {
                   <div className="text-gray-600">{seeding.length}</div>
                 </div>
                 <div>
-                  <div className="font-medium">Test Players</div>
-                  <div className="text-gray-600">
-                    {seeding.filter(s => s.player?.profile_type === 'test').length}
-                  </div>
+                  <div className="font-medium">Completed Matches</div>
+                  <div className="text-gray-600">{bracket.filter(m => m.status === 'completed').length}</div>
                 </div>
+                <div>
+                  <div className="font-medium">Pending Matches</div>
+                  <div className="text-gray-600">{bracket.filter(m => m.status === 'scheduled' && m.player1_id && m.player2_id).length}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Real-time Match Testing */}
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+              <h4 className="font-medium mb-2">⚡ Real-time Testing</h4>
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Use the Match Tester below to:
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  <li>Report match results and see instant bracket updates</li>
+                  <li>Verify winner advancement logic</li>
+                  <li>Test tournament progression from Round 1 to Final</li>
+                  <li>Confirm automatic status updates</li>
+                </ul>
               </div>
             </div>
 
@@ -215,7 +426,7 @@ const BracketVerification = ({ tournamentId }: { tournamentId: string }) => {
                   <span className={seeding.length === 16 ? "text-green-500" : "text-red-500"}>
                     {seeding.length === 16 ? "✅" : "❌"}
                   </span>
-                  <span>All 16 players properly seeded in Round 1: {seeding.length}/16</span>
+                  <span>All 16 players properly seeded: {seeding.length}/16</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={bracket.filter(m => m.round_number === 1).length === 8 ? "text-green-500" : "text-red-500"}>
@@ -235,6 +446,12 @@ const BracketVerification = ({ tournamentId }: { tournamentId: string }) => {
                   </span>
                   <span>Total matches for 16-player bracket: {bracket.length}/15</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <span className={bracket.filter(m => m.player1_id && m.player2_id).length >= 8 ? "text-green-500" : "text-red-500"}>
+                    {bracket.filter(m => m.player1_id && m.player2_id).length >= 8 ? "✅" : "❌"}
+                  </span>
+                  <span>Ready matches: {bracket.filter(m => m.player1_id && m.player2_id).length}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -244,6 +461,16 @@ const BracketVerification = ({ tournamentId }: { tournamentId: string }) => {
           <div className="text-center py-8 text-gray-500">
             Click "Load Bracket" to verify tournament structure
           </div>
+        )}
+        
+        {/* Match Tester Integration */}
+        {bracket.length > 0 && (
+          <MatchTester 
+            tournamentId={tournamentId}
+            bracket={bracket}
+            loadBracket={loadBracket}
+            addLog={addLog}
+          />
         )}
       </CardContent>
     </Card>
@@ -575,7 +802,7 @@ const TournamentTestingTools = () => {
 
       {/* Bracket Verification Section */}
       {selectedTournament && (
-        <BracketVerification tournamentId={selectedTournament} />
+        <BracketVerification tournamentId={selectedTournament} addLog={addLog} />
       )}
     </div>
   );

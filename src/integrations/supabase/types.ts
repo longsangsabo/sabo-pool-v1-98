@@ -5060,6 +5060,10 @@ export type Database = {
         Args: { p_tournament_id: string; p_test_user_ids: string[] }
         Returns: Json
       }
+      advance_tournament_winner: {
+        Args: { p_match_id: string; p_tournament_id: string }
+        Returns: Json
+      }
       apply_automatic_penalty: {
         Args: { player_uuid: string }
         Returns: undefined
