@@ -445,12 +445,13 @@ const TournamentProgressionTester = ({ tournamentId, addLog }: { tournamentId: s
 };
 
 // STEP 4 - Admin Tournament Controls Testing
-const AdminTournamentControls = ({ tournamentId }: { tournamentId: string }) => {
+const AdminTournamentControls = ({ tournamentId, addLog }: { tournamentId: string; addLog: (message: string, type?: 'info' | 'error' | 'success') => void }) => {
   const [logs, setLogs] = useState<string[]>([]);
   const [isTesting, setIsTesting] = useState(false);
 
-  const addLog = (message: string) => {
+  const localAddLog = (message: string) => {
     setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    addLog(message);
   };
 
   const testAdminControls = async () => {
@@ -572,12 +573,13 @@ const AdminTournamentControls = ({ tournamentId }: { tournamentId: string }) => 
 };
 
 // STEP 5 - User Experience Testing
-const UserExperienceTester = ({ tournamentId }: { tournamentId: string }) => {
+const UserExperienceTester = ({ tournamentId, addLog }: { tournamentId: string; addLog?: (message: string, type?: 'info' | 'error' | 'success') => void }) => {
   const [logs, setLogs] = useState<string[]>([]);
   const [isTesting, setIsTesting] = useState(false);
 
-  const addLog = (message: string) => {
+  const localAddLog = (message: string) => {
     setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    if (addLog) addLog(message);
   };
 
   const testUserJourney = async () => {
@@ -693,12 +695,13 @@ const UserExperienceTester = ({ tournamentId }: { tournamentId: string }) => {
 };
 
 // STEP 6 - Scale & Performance Testing
-const ScalePerformanceTester = () => {
+const ScalePerformanceTester = ({ addLog: globalAddLog }: { addLog?: (message: string, type?: 'info' | 'error' | 'success') => void }) => {
   const [logs, setLogs] = useState<string[]>([]);
   const [isTesting, setIsTesting] = useState(false);
 
   const addLog = (message: string) => {
     setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    if (globalAddLog) globalAddLog(message);
   };
 
   const testDifferentFormats = async () => {
@@ -805,12 +808,13 @@ const ScalePerformanceTester = () => {
 };
 
 // STEP 7 - Data Cleanup & Reset
-const DataCleanupTools = () => {
+const DataCleanupTools = ({ addLog: globalAddLog }: { addLog?: (message: string, type?: 'info' | 'error' | 'success') => void }) => {
   const [logs, setLogs] = useState<string[]>([]);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
 
   const addLog = (message: string) => {
     setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    if (globalAddLog) globalAddLog(message);
   };
 
   const cleanupAllTestData = async () => {
@@ -1041,9 +1045,7 @@ const CompleteTournamentTester = () => {
               React.createElement(currentStepData.component, 
                 currentStepData.requiresTournament 
                   ? { tournamentId: selectedTournament, addLog } 
-                  : currentStepData.id === 6 || currentStepData.id === 7 
-                  ? {} 
-                  : { tournamentId: selectedTournament, addLog }
+                  : { tournamentId: '', addLog }
               )
             )}
           </>
