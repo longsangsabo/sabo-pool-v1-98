@@ -4987,7 +4987,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      all_profiles: {
+        Row: {
+          activity_status: string | null
+          bio: string | null
+          city: string | null
+          created_at: string | null
+          display_name: string | null
+          district: string | null
+          full_name: string | null
+          phone: string | null
+          profile_type: string | null
+          role: string | null
+          skill_level: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_create_test_users: {
@@ -4999,6 +5016,10 @@ export type Database = {
         Returns: Json
       }
       admin_register_test_users_to_tournament: {
+        Args: { p_tournament_id: string; p_test_user_ids: string[] }
+        Returns: Json
+      }
+      admin_register_test_users_to_tournament_safe: {
         Args: { p_tournament_id: string; p_test_user_ids: string[] }
         Returns: Json
       }

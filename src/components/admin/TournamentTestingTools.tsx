@@ -108,7 +108,7 @@ const TournamentTestingTools = () => {
       const testUserIds = users.map(user => user.user_id);
       
       const { data: regResult, error: regError } = await supabase
-        .rpc('admin_register_test_users_to_tournament', {
+        .rpc('admin_register_test_users_to_tournament_safe', {
           p_tournament_id: selectedTournament,
           p_test_user_ids: testUserIds
         });
