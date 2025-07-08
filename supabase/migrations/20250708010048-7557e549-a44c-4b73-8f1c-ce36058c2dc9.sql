@@ -19,6 +19,9 @@ BEGIN
     RETURN jsonb_build_object('error', 'Unauthorized: Admin access required');
   END IF;
 
+  -- Disable triggers temporarily to prevent wallet creation
+  SET session_replication_role = replica;
+  
   -- Process each user
   FOREACH user_record IN ARRAY user_data
   LOOP
@@ -54,6 +57,9 @@ BEGIN
     created_users := created_users || result_user;
   END LOOP;
   
+  -- Re-enable triggers
+  SET session_replication_role = DEFAULT;
+  
   RETURN jsonb_build_object(
     'success', true,
     'users', created_users,
@@ -62,6 +68,8 @@ BEGIN
   
 EXCEPTION
   WHEN OTHERS THEN
+    -- Re-enable triggers even on error
+    SET session_replication_role = DEFAULT;
     RETURN jsonb_build_object(
       'error', 'Failed to create test users: ' || SQLERRM
     );
