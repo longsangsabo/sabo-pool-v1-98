@@ -144,7 +144,7 @@ const QuickRealUserCreator = () => {
 
         if (authData.user) {
           addLog(`📝 Tạo profile cho user ${i + 1}...`, 'info');
-          // Create profile for the user
+          // Create profile for the user (email is already in auth.users)
           const { error: profileError } = await supabase
             .from('profiles')
             .insert({
@@ -157,6 +157,7 @@ const QuickRealUserCreator = () => {
               city: ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'Hải Phòng'][Math.floor(Math.random() * 5)],
               district: `Quận ${Math.floor(Math.random() * 12) + 1}`,
               bio: `Demo user - ${skillLevel} level`,
+              // email is stored in auth.users, not profiles
             });
 
           if (profileError) {

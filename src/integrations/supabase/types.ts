@@ -2927,6 +2927,7 @@ export type Database = {
           display_name: string | null
           district: string | null
           elo: number | null
+          email: string | null
           full_name: string | null
           id: string
           is_admin: boolean | null
@@ -2959,6 +2960,7 @@ export type Database = {
           display_name?: string | null
           district?: string | null
           elo?: number | null
+          email?: string | null
           full_name?: string | null
           id?: string
           is_admin?: boolean | null
@@ -2991,6 +2993,7 @@ export type Database = {
           display_name?: string | null
           district?: string | null
           elo?: number | null
+          email?: string | null
           full_name?: string | null
           id?: string
           is_admin?: boolean | null
