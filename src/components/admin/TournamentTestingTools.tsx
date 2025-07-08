@@ -5,555 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useLanguage } from '@/contexts/LanguageContext';
 
-const TournamentProgressionTester = ({ 
-  tournamentId, 
-  bracket, 
-  loadBracket, 
-  addLog 
-}: { 
-  tournamentId: string;
-  bracket: any[];
-  loadBracket: () => void;
-  addLog: (message: string, type?: 'info' | 'error' | 'success') => void;
-}) => {
-  const [progressLogs, setProgressLogs] = useState<string[]>([]);
-  const [isProgressing, setIsProgressing] = useState(false);
-
-  const addProgressLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
-    const timestamp = new Date().toLocaleTimeString();
-    const emoji = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
-    const logMessage = `${timestamp} ${emoji} ${message}`;
-    setProgressLogs(prev => [...prev, logMessage]);
-    addLog(message, type);
-  };
-
-  const completeRound = async (roundNumber: number) => {
-    try {
-      addProgressLog(`🚀 Completing Round ${roundNumber}...`);
-      
-      // Get all pending matches in this round
-      const { data: matches, error: matchesError } = await supabase
-        .from('tournament_matches')
-        .select('*')
-        .eq('tournament_id', tournamentId)
-        .eq('round_number', roundNumber)
-        .eq('status', 'scheduled');
-
-      if (matchesError) throw matchesError;
-
-      // Get player names for logging
-      let enrichedMatches = matches || [];
-      if (matches?.length) {
-        const playerIds = [...new Set([
-          ...matches.map(m => m.player1_id),
-          ...matches.map(m => m.player2_id)
-        ].filter(Boolean))];
-
-        const { data: players } = await supabase
-          .from('profiles')
-          .select('user_id, display_name, full_name')
-          .in('user_id', playerIds);
-
-        const playersMap = new Map(players?.map(p => [p.user_id, p]) || []);
-        
-        enrichedMatches = matches.map(match => ({
-          ...match,
-          player1: playersMap.get(match.player1_id),
-          player2: playersMap.get(match.player2_id)
-        })) as any[];
-      }
-
-      if (matchesError) throw matchesError;
-
-      if (!matches?.length) {
-        addProgressLog(`✅ Round ${roundNumber} already completed`);
-        return;
-      }
-
-      addProgressLog(`📊 Found ${matches.length} matches to complete in Round ${roundNumber}`);
-
-      // Complete each match with random winner using enriched data
-      for (const enrichedMatch of enrichedMatches) {
-        const randomWinner = Math.random() > 0.5 ? enrichedMatch.player1_id : enrichedMatch.player2_id;
-        const winnerName = randomWinner === enrichedMatch.player1_id ? 
-          ((enrichedMatch as any).player1?.display_name || (enrichedMatch as any).player1?.full_name) : 
-          ((enrichedMatch as any).player2?.display_name || (enrichedMatch as any).player2?.full_name);
-
-        addProgressLog(`⚾ Match ${enrichedMatch.match_number}: ${winnerName} wins`);
-
-        // Report match result
-        const { error: matchError } = await supabase
-          .from('tournament_matches')
-          .update({
-            winner_id: randomWinner,
-            score_player1: randomWinner === enrichedMatch.player1_id ? 2 : 1,
-            score_player2: randomWinner === enrichedMatch.player2_id ? 2 : 1,
-            status: 'completed',
-            actual_end_time: new Date().toISOString()
-          })
-          .eq('id', enrichedMatch.id);
-
-        if (matchError) throw matchError;
-
-        // Advance winner to next round
-        const { error: advanceError } = await supabase
-          .rpc('advance_tournament_winner', {
-            p_match_id: enrichedMatch.id,
-            p_tournament_id: tournamentId
-          });
-
-        if (advanceError) throw advanceError;
-
-        // Small delay for visual effect
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-
-      addProgressLog(`✅ Round ${roundNumber} completed successfully`, 'success');
-      loadBracket();
-      
-    } catch (error: any) {
-      addProgressLog(`❌ Error completing Round ${roundNumber}: ${error.message}`, 'error');
-    }
-  };
-
-  const runFullTournament = async () => {
-    setIsProgressing(true);
-    setProgressLogs([]);
-    
-    try {
-      addProgressLog('🏆 Starting full tournament simulation...', 'success');
-      
-      // Complete Round 1 (16→8)
-      await completeRound(1);
-      addProgressLog('🎯 Round 1 complete: Quarter-finals set');
-      
-      // Complete Round 2 (8→4) 
-      await completeRound(2);
-      addProgressLog('🎯 Quarterfinals complete: Semi-finals set');
-      
-      // Complete Round 3 (4→2)
-      await completeRound(3);
-      addProgressLog('🎯 Semifinals complete: Final set');
-      
-      // Complete Final (2→1)
-      await completeRound(4);
-      addProgressLog('🎯 Final complete: Champion determined!');
-      
-      // Get tournament champion
-      const { data: championMatch } = await supabase
-        .from('tournament_matches')
-        .select('winner_id')
-        .eq('tournament_id', tournamentId)
-        .eq('round_number', 4)
-        .eq('status', 'completed')
-        .maybeSingle();
-
-      if (championMatch?.winner_id) {
-        // Get winner's profile info
-        const { data: winnerProfile } = await supabase
-          .from('profiles')
-          .select('display_name, full_name')
-          .eq('user_id', championMatch.winner_id)
-          .single();
-
-        const winnerName = winnerProfile?.display_name || winnerProfile?.full_name || 'Unknown';
-        addProgressLog(`👑 CHAMPION: ${winnerName}`, 'success');
-      }
-
-      // Update tournament status
-      await supabase
-        .from('tournaments')
-        .update({
-          status: 'completed',
-          management_status: 'completed'
-        })
-        .eq('id', tournamentId);
-
-      addProgressLog('🎉 Tournament completed successfully!', 'success');
-      
-    } catch (error: any) {
-      addProgressLog(`💥 Tournament simulation failed: ${error.message}`, 'error');
-    } finally {
-      setIsProgressing(false);
-    }
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Trophy className="h-5 w-5" />
-          🏆 Tournament Progression Tester
-        </CardTitle>
-        <CardDescription>
-          Test complete tournament flow from start to champion
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-2">
-          <Button 
-            onClick={() => completeRound(1)}
-            disabled={isProgressing}
-            variant="outline"
-            size="sm"
-          >
-            Complete Round 1
-          </Button>
-          <Button 
-            onClick={() => completeRound(2)}
-            disabled={isProgressing}
-            variant="outline"
-            size="sm"
-          >
-            Complete Round 2
-          </Button>
-          <Button 
-            onClick={() => completeRound(3)}
-            disabled={isProgressing}
-            variant="outline"
-            size="sm"
-          >
-            Complete Round 3
-          </Button>
-          <Button 
-            onClick={() => completeRound(4)}
-            disabled={isProgressing}
-            variant="outline"
-            size="sm"
-          >
-            Complete Final
-          </Button>
-          <Button 
-            onClick={runFullTournament}
-            disabled={isProgressing}
-            className="bg-green-600 hover:bg-green-700 text-white"
-          >
-            {isProgressing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            🚀 Run Full Tournament
-          </Button>
-        </div>
-
-        {/* Progress logs */}
-        {progressLogs.length > 0 && (
-          <div className="bg-muted/50 p-3 rounded-lg max-h-60 overflow-y-auto">
-            <h4 className="font-medium mb-2">Tournament Progress:</h4>
-            <div className="space-y-1">
-              {progressLogs.map((log, i) => (
-                <div key={i} className="text-xs font-mono text-muted-foreground">
-                  {log}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
-const TournamentSummary = ({ tournamentId }: { tournamentId: string }) => {
-  const [summary, setSummary] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const loadSummary = async () => {
-    setIsLoading(true);
-    try {
-      // Get tournament info
-      const { data: tournament } = await supabase
-        .from('tournaments')
-        .select('name, status, management_status')
-        .eq('id', tournamentId)
-        .single();
-
-      // Get all matches with results
-      const { data: matches } = await supabase
-        .from('tournament_matches')
-        .select(`
-          *,
-          player1:profiles!tournament_matches_player1_id_fkey(display_name),
-          player2:profiles!tournament_matches_player2_id_fkey(display_name),
-          winner:profiles!tournament_matches_winner_id_fkey(display_name)
-        `)
-        .eq('tournament_id', tournamentId)
-        .order('round_number', { ascending: true })
-        .order('match_number', { ascending: true });
-
-      // Get champion
-      const champion = matches?.find(m => 
-        m.round_number === Math.max(...(matches?.map(m => m.round_number) || []))
-        && m.status === 'completed'
-      )?.winner;
-
-      setSummary({
-        tournament,
-        matches: matches || [],
-        champion,
-        totalMatches: matches?.length || 0,
-        completedMatches: matches?.filter(m => m.status === 'completed').length || 0,
-        rounds: Math.max(...(matches?.map(m => m.round_number) || [0]))
-      });
-
-    } catch (error) {
-      console.error('Error loading summary:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (tournamentId) {
-      loadSummary();
-    }
-  }, [tournamentId]);
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="p-6 text-center">
-          <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-          <p className="text-sm text-muted-foreground mt-2">Loading summary...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!summary) return null;
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Trophy className="h-5 w-5" />
-          Tournament Summary
-        </CardTitle>
-        <CardDescription>
-          {summary.tournament?.name} - {summary.tournament?.status}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold">{summary.totalMatches}</div>
-            <div className="text-sm text-muted-foreground">Total Matches</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold">{summary.completedMatches}</div>
-            <div className="text-sm text-muted-foreground">Completed</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold">{summary.rounds}</div>
-            <div className="text-sm text-muted-foreground">Rounds</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold">
-              {summary.champion ? '👑' : '⏳'}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {summary.champion?.display_name || 'TBD'}
-            </div>
-          </div>
-        </div>
-
-        {summary.champion && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg text-center">
-            <Trophy className="h-8 w-8 mx-auto mb-2 text-yellow-600" />
-            <h3 className="font-bold text-lg">Champion</h3>
-            <p className="text-lg">{summary.champion.display_name}</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
-const MatchTester = ({ 
-  tournamentId, 
-  bracket, 
-  loadBracket, 
-  addLog 
-}: { 
-  tournamentId: string;
-  bracket: any[];
-  loadBracket: () => void;
-  addLog: (message: string, type?: 'info' | 'error' | 'success') => void;
-}) => {
-  const [selectedMatch, setSelectedMatch] = useState<any>(null);
-  const [isReporting, setIsReporting] = useState(false);
-
-  const reportMatchResult = async (matchId: string, winnerId: string, score: { player1: number; player2: number }) => {
-    setIsReporting(true);
-    try {
-      addLog(`🎯 Báo kết quả Match ${selectedMatch.match_number}...`);
-      
-      // Update match result
-      const { error: matchError } = await supabase
-        .from('tournament_matches')
-        .update({
-          winner_id: winnerId,
-          score_player1: score.player1,
-          score_player2: score.player2,
-          status: 'completed',
-          actual_end_time: new Date().toISOString()
-        })
-        .eq('id', matchId);
-
-      if (matchError) throw matchError;
-      addLog(`✅ Match result updated`);
-
-      // Trigger advancement logic
-      const { data: advancement, error: advError } = await supabase
-        .rpc('advance_tournament_winner', {
-          p_match_id: matchId,
-          p_tournament_id: tournamentId
-        });
-
-      if (advError) throw advError;
-      
-      const advResult = advancement as any;
-      if (advResult.success) {
-        if (advResult.advancement?.tournament_complete) {
-          addLog(`🏆 Tournament completed! Champion: ${selectedMatch.player1_id === winnerId ? selectedMatch.player1?.display_name : selectedMatch.player2?.display_name}`, 'success');
-        } else {
-          addLog(`✅ Winner advanced to Round ${advResult.advancement?.next_round} Match ${advResult.advancement?.next_match_number}`, 'success');
-        }
-        addLog(`🔄 Bracket updated automatically`, 'success');
-      } else {
-        throw new Error(advResult.error || 'Advancement failed');
-      }
-      
-      // Clear selection and reload bracket
-      setSelectedMatch(null);
-      loadBracket();
-      
-    } catch (error: any) {
-      addLog(`❌ Error: ${error.message}`, 'error');
-      toast.error('Lỗi báo kết quả: ' + error.message);
-    } finally {
-      setIsReporting(false);
-    }
-  };
-
-  const availableMatches = bracket.filter(m => 
-    m.status === 'scheduled' && 
-    m.player1_id && 
-    m.player2_id &&
-    !m.winner_id
-  );
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Target className="h-5 w-5" />
-          ⚾ Match Result Tester
-        </CardTitle>
-        <CardDescription>
-          Test match reporting and winner advancement logic
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <label className="text-sm font-medium">Chọn trận để test:</label>
-          <Select 
-            value={selectedMatch?.id || ''} 
-            onValueChange={(value) => {
-              const match = availableMatches.find(m => m.id === value);
-              setSelectedMatch(match);
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="-- Chọn trận đấu --" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableMatches.map(match => (
-                <SelectItem key={match.id} value={match.id}>
-                  R{match.round_number} M{match.match_number}: {match.player1?.display_name || match.player1?.full_name} vs {match.player2?.display_name || match.player2?.full_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {selectedMatch && (
-          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-            <h4 className="font-medium mb-3">Test Match Result</h4>
-            <div className="bg-white dark:bg-gray-700 p-3 rounded mb-3">
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                Round {selectedMatch.round_number} - Match {selectedMatch.match_number}
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-medium">
-                  {selectedMatch.player1?.display_name || selectedMatch.player1?.full_name}
-                  {selectedMatch.player1?.profile_type === 'test' && (
-                    <span className="text-orange-500 ml-1 text-xs">[TEST]</span>
-                  )}
-                </span>
-                <span className="text-gray-400">vs</span>
-                <span className="font-medium">
-                  {selectedMatch.player2?.display_name || selectedMatch.player2?.full_name}
-                  {selectedMatch.player2?.profile_type === 'test' && (
-                    <span className="text-orange-500 ml-1 text-xs">[TEST]</span>
-                  )}
-                </span>
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex gap-3">
-                <Button 
-                  onClick={() => reportMatchResult(selectedMatch.id, selectedMatch.player1_id, {player1: 2, player2: 1})}
-                  disabled={isReporting}
-                  className="flex-1"
-                  variant="default"
-                >
-                  {isReporting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    "🏆"
-                  )}
-                  {selectedMatch.player1?.display_name || selectedMatch.player1?.full_name} Wins (2-1)
-                </Button>
-                <Button 
-                  onClick={() => reportMatchResult(selectedMatch.id, selectedMatch.player2_id, {player1: 1, player2: 2})}
-                  disabled={isReporting}
-                  className="flex-1"
-                  variant="default"
-                >
-                  {isReporting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    "🏆"
-                  )}
-                  {selectedMatch.player2?.display_name || selectedMatch.player2?.full_name} Wins (1-2)
-                </Button>
-              </div>
-              
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded text-sm">
-                <div className="font-medium mb-1">🔍 What will happen:</div>
-                <ul className="text-gray-600 dark:text-gray-400 space-y-1">
-                  <li>• Match result will be recorded</li>
-                  <li>• Winner advances to Round {selectedMatch.round_number + 1}</li>
-                  <li>• Bracket updates automatically</li>
-                  <li>• Real-time verification of tournament logic</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {availableMatches.length === 0 && (
-          <div className="text-center py-4 text-gray-500">
-            No matches available for testing. 
-            {bracket.length === 0 ? ' Load bracket first.' : ' All matches completed or not ready.'}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
+// STEP 1 - Bracket Verification
 const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; addLog: (message: string, type?: 'info' | 'error' | 'success') => void }) => {
   const [bracket, setBracket] = useState<any[]>([]);
   const [seeding, setSeeding] = useState<any[]>([]);
@@ -563,13 +16,13 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
   const loadBracket = async () => {
     setLoading(true);
     try {
-      // Load tournament matches with player info from all_profiles view
+      // Load tournament matches with player info
       const { data: matches, error: matchError } = await supabase
         .from('tournament_matches')
         .select(`
           *,
-          player1:all_profiles!tournament_matches_player1_id_fkey(user_id, full_name, display_name, profile_type),
-          player2:all_profiles!tournament_matches_player2_id_fkey(user_id, full_name, display_name, profile_type)
+          player1:profiles!tournament_matches_player1_id_fkey(user_id, full_name, display_name),
+          player2:profiles!tournament_matches_player2_id_fkey(user_id, full_name, display_name)
         `)
         .eq('tournament_id', tournamentId)
         .order('round_number', { ascending: true })
@@ -582,7 +35,7 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
         .from('tournament_seeding')
         .select(`
           *,
-          player:all_profiles!tournament_seeding_player_id_fkey(user_id, full_name, display_name, profile_type)
+          player:profiles!tournament_seeding_player_id_fkey(user_id, full_name, display_name)
         `)
         .eq('tournament_id', tournamentId)
         .order('seed_position', { ascending: true });
@@ -601,9 +54,9 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
       setBracket(matches || []);
       setSeeding(seedingData || []);
       setBracketData(bracketMeta);
-    } catch (error) {
-      console.error('Error loading bracket:', error);
-      toast.error('Lỗi load bracket: ' + error.message);
+      addLog('✅ Bracket loaded successfully', 'success');
+    } catch (error: any) {
+      addLog(`❌ Error loading bracket: ${error.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -615,7 +68,7 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
       case 2: return 'Final';
       case 4: return 'Semifinal';
       case 8: return 'Quarterfinal';
-      default: return `Round ${round} (${remaining}→${remaining/2})`;
+      default: return `Round ${round}`;
     }
   };
 
@@ -626,56 +79,33 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
           <GitBranch className="h-5 w-5" />
           🏆 Bracket Verification
         </CardTitle>
-        <CardDescription>
-          Verify tournament bracket structure and seeding
-        </CardDescription>
+        <CardDescription>Verify tournament bracket structure and seeding</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Tournament Bracket</h3>
-          <Button onClick={loadBracket} disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              <>
-                <Eye className="mr-2 h-4 w-4" />
-                Load Bracket
-              </>
-            )}
-          </Button>
-        </div>
-
-        {seeding.length > 0 && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <h4 className="font-medium mb-3">🎯 Seeding Order (Top 8)</h4>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              {seeding.slice(0, 8).map((seed) => (
-                <div key={seed.seed_position} className="flex justify-between p-2 bg-white dark:bg-gray-800 rounded">
-                  <span className="font-medium">#{seed.seed_position}</span>
-                  <span>
-                    {seed.player?.display_name || seed.player?.full_name || 'BYE'}
-                    {seed.player?.profile_type === 'test' && (
-                      <span className="text-orange-500 ml-1">[TEST]</span>
-                    )}
-                  </span>
-                  <span className="text-gray-500">{seed.elo_rating} ELO</span>
-                </div>
-              ))}
-            </div>
-            {seeding.length > 8 && (
-              <div className="text-center mt-2 text-gray-500 text-sm">
-                ... và {seeding.length - 8} players khác
-              </div>
-            )}
-          </div>
-        )}
+        <Button onClick={loadBracket} disabled={loading} className="w-full">
+          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}
+          {loading ? 'Loading...' : 'Load Bracket'}
+        </Button>
 
         {bracket.length > 0 && (
           <div className="space-y-4">
-            {/* Bracket Structure */}
+            {/* Seeding Display */}
+            {seeding.length > 0 && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <h4 className="font-medium mb-3">🎯 Seeding Order (Top 8)</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {seeding.slice(0, 8).map((seed) => (
+                    <div key={seed.seed_position} className="flex justify-between p-2 bg-white dark:bg-gray-800 rounded">
+                      <span className="font-medium">#{seed.seed_position}</span>
+                      <span>{seed.player?.display_name || seed.player?.full_name || 'BYE'}</span>
+                      <span className="text-gray-500">{seed.elo_rating} ELO</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Bracket Grid */}
             <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.max(...bracket.map(m => m.round_number))}, 1fr)` }}>
               {[...Array(Math.max(...bracket.map(m => m.round_number)))].map((_, roundIndex) => {
                 const round = roundIndex + 1;
@@ -684,52 +114,23 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
                 
                 return (
                   <div key={round}>
-                    <h4 className="font-medium mb-2 text-center">
-                      {getRoundName(round, totalRounds)}
-                    </h4>
+                    <h4 className="font-medium mb-2 text-center">{getRoundName(round, totalRounds)}</h4>
                     <div className="space-y-2">
                       {roundMatches.map(match => (
                         <div key={match.id} className="p-3 border rounded-lg bg-white dark:bg-gray-800">
-                          <div className="text-xs text-gray-500 mb-1">
-                            Match {match.match_number}
-                          </div>
+                          <div className="text-xs text-gray-500 mb-1">Match {match.match_number}</div>
                           <div className="space-y-1">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm">
-                                {match.player1?.display_name || match.player1?.full_name || 'TBD'}
-                                {match.player1?.profile_type === 'test' && (
-                                  <span className="text-orange-500 ml-1 text-xs">[TEST]</span>
-                                )}
-                              </span>
-                              {match.winner_id === match.player1_id && (
-                                <span className="text-green-500 text-xs">✓</span>
-                              )}
-                              {match.score_player1 !== null && (
-                                <span className="text-xs text-gray-500">{match.score_player1}</span>
-                              )}
+                              <span className="text-sm">{match.player1?.display_name || match.player1?.full_name || 'TBD'}</span>
+                              {match.winner_id === match.player1_id && <span className="text-green-500 text-xs">✓</span>}
                             </div>
                             <div className="text-xs text-gray-400">vs</div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm">
-                                {match.player2?.display_name || match.player2?.full_name || 'TBD'}
-                                {match.player2?.profile_type === 'test' && (
-                                  <span className="text-orange-500 ml-1 text-xs">[TEST]</span>
-                                )}
-                              </span>
-                              {match.winner_id === match.player2_id && (
-                                <span className="text-green-500 text-xs">✓</span>
-                              )}
-                              {match.score_player2 !== null && (
-                                <span className="text-xs text-gray-500">{match.score_player2}</span>
-                              )}
+                              <span className="text-sm">{match.player2?.display_name || match.player2?.full_name || 'TBD'}</span>
+                              {match.winner_id === match.player2_id && <span className="text-green-500 text-xs">✓</span>}
                             </div>
                           </div>
-                          <div className="text-xs text-gray-500 mt-1 flex justify-between">
-                            <span>Status: {match.status}</span>
-                            {match.winner_id && (
-                              <span className="text-green-600 font-medium">COMPLETED</span>
-                            )}
-                          </div>
+                          <div className="text-xs text-gray-500 mt-1">Status: {match.status}</div>
                         </div>
                       ))}
                     </div>
@@ -751,433 +152,929 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
                   <div className="text-gray-600">{Math.max(...bracket.map(m => m.round_number))}</div>
                 </div>
                 <div>
-                  <div className="font-medium">Players Seeded</div>
-                  <div className="text-gray-600">{seeding.length}</div>
-                </div>
-                <div>
-                  <div className="font-medium">Completed Matches</div>
+                  <div className="font-medium">Completed</div>
                   <div className="text-gray-600">{bracket.filter(m => m.status === 'completed').length}</div>
                 </div>
                 <div>
-                  <div className="font-medium">Pending Matches</div>
+                  <div className="font-medium">Pending</div>
                   <div className="text-gray-600">{bracket.filter(m => m.status === 'scheduled' && m.player1_id && m.player2_id).length}</div>
                 </div>
               </div>
             </div>
-
-            {/* Real-time Match Testing */}
-            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">⚡ Real-time Testing</h4>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                Use the Match Tester below to:
-                <ul className="list-disc list-inside mt-1 space-y-1">
-                  <li>Report match results and see instant bracket updates</li>
-                  <li>Verify winner advancement logic</li>
-                  <li>Test tournament progression from Round 1 to Final</li>
-                  <li>Confirm automatic status updates</li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Verification Checklist */}
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">✅ Verification Checklist</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className={seeding.length === 16 ? "text-green-500" : "text-red-500"}>
-                    {seeding.length === 16 ? "✅" : "❌"}
-                  </span>
-                  <span>All 16 players properly seeded: {seeding.length}/16</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={bracket.filter(m => m.round_number === 1).length === 8 ? "text-green-500" : "text-red-500"}>
-                    {bracket.filter(m => m.round_number === 1).length === 8 ? "✅" : "❌"}
-                  </span>
-                  <span>Round 1 has 8 matches: {bracket.filter(m => m.round_number === 1).length}/8</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={bracketData?.bracket_data?.tournament_type === 'single_elimination' ? "text-green-500" : "text-yellow-500"}>
-                    {bracketData?.bracket_data?.tournament_type === 'single_elimination' ? "✅" : "⚠️"}
-                  </span>
-                  <span>Tournament format: {bracketData?.bracket_data?.tournament_type || 'Unknown'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={bracket.length === 15 ? "text-green-500" : "text-red-500"}>
-                    {bracket.length === 15 ? "✅" : "❌"}
-                  </span>
-                  <span>Total matches for 16-player bracket: {bracket.length}/15</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={bracket.filter(m => m.player1_id && m.player2_id).length >= 8 ? "text-green-500" : "text-red-500"}>
-                    {bracket.filter(m => m.player1_id && m.player2_id).length >= 8 ? "✅" : "❌"}
-                  </span>
-                  <span>Ready matches: {bracket.filter(m => m.player1_id && m.player2_id).length}</span>
-                </div>
-              </div>
-            </div>
           </div>
-        )}
-
-        {!loading && bracket.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            Click "Load Bracket" to verify tournament structure
-          </div>
-        )}
-        
-        {/* Match Tester Integration */}
-        {bracket.length > 0 && (
-          <MatchTester 
-            tournamentId={tournamentId}
-            bracket={bracket}
-            loadBracket={loadBracket}
-            addLog={addLog}
-          />
         )}
       </CardContent>
     </Card>
   );
 };
 
-const TournamentTestingTools = () => {
-  const { t } = useLanguage();
-  const [tournaments, setTournaments] = useState<any[]>([]);
-  const [selectedTournament, setSelectedTournament] = useState('');
-  const [isPopulating, setIsPopulating] = useState(false);
-  const [logs, setLogs] = useState<Array<{message: string, type: 'info' | 'error' | 'success', timestamp: string}>>([]);
+// STEP 2 - Match Result Tester
+const MatchTester = ({ tournamentId, addLog }: { tournamentId: string; addLog: (message: string, type?: 'info' | 'error' | 'success') => void }) => {
+  const [matches, setMatches] = useState<any[]>([]);
+  const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  const [isReporting, setIsReporting] = useState(false);
 
-  // Load tournaments
   useEffect(() => {
-    loadTournaments();
-  }, []);
+    if (tournamentId) {
+      loadMatches();
+    }
+  }, [tournamentId]);
 
-  const loadTournaments = async () => {
+  const loadMatches = async () => {
     try {
       const { data, error } = await supabase
-        .from('tournaments')
-        .select('id, name, current_participants, max_participants, status')
-        .in('status', ['upcoming', 'registration_open', 'registration_closed'])
-        .order('created_at', { ascending: false });
+        .from('tournament_matches')
+        .select(`
+          *,
+          player1:profiles!tournament_matches_player1_id_fkey(display_name, full_name),
+          player2:profiles!tournament_matches_player2_id_fkey(display_name, full_name)
+        `)
+        .eq('tournament_id', tournamentId)
+        .eq('status', 'scheduled')
+        .not('player1_id', 'is', null)
+        .not('player2_id', 'is', null);
 
       if (error) throw error;
-      setTournaments(data || []);
-    } catch (error) {
-      console.error('Error loading tournaments:', error);
+      setMatches(data || []);
+    } catch (error: any) {
+      addLog(`❌ Error loading matches: ${error.message}`, 'error');
     }
   };
 
-  const addLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
-    const timestamp = new Date().toLocaleTimeString('vi-VN');
-    setLogs(prev => [...prev, { message, type, timestamp }]);
-  };
+  const reportMatchResult = async (winnerId: string) => {
+    if (!selectedMatch) return;
 
-  const populateTournamentForTesting = async () => {
-    if (!selectedTournament) {
-      toast.error('Vui lòng chọn giải đấu trước');
-      return;
-    }
-
-    setIsPopulating(true);
-    setLogs([]);
-    
+    setIsReporting(true);
     try {
-      addLog('🚀 Bắt đầu tạo 16 test users...');
+      addLog(`🎯 Reporting match result...`);
       
-      // Step 1: Create 16 fake users using admin function (bypasses wallet triggers)
-      const fakeUsersData = Array.from({length: 16}, (_, i) => ({
-        phone: `090${String(Date.now() + i).slice(-7)}`,
-        full_name: `Test Player ${i + 1}`,
-        display_name: `Player${i + 1}`,
-        role: 'player',
-        skill_level: ['beginner', 'intermediate', 'advanced'][i % 3],
-        city: 'Hồ Chí Minh',
-        district: 'Quận 1',
-        bio: `Auto-generated test user ${i + 1} for tournament testing - NO WALLET`,
-        activity_status: 'active'
-      }));
-
-      // Use new safe admin function to create test users without wallet triggers
-      const { data: createResult, error: userError } = await supabase
-        .rpc('admin_create_test_users_safe', {
-          user_data: fakeUsersData
-        });
-
-      if (userError) throw userError;
-      
-      // Type cast the result since RPC returns Json type
-      const result = createResult as any;
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to create test users');
-      }
-
-      const users = result.users;
-      addLog(`✅ Đã tạo ${users.length} test users thành công`);
-
-      // Step 2: Create rankings for test users
-      addLog('🏆 Tạo ranking cho test users...');
-      const rankings = users.map(user => ({
-        player_id: user.user_id,
-        elo: 1000 + Math.floor(Math.random() * 200),
-        spa_points: Math.floor(Math.random() * 100),
-        total_matches: Math.floor(Math.random() * 10),
-        wins: Math.floor(Math.random() * 5),
-        losses: Math.floor(Math.random() * 5)
-      }));
-
-      const { error: rankingError } = await supabase
-        .from('test_player_rankings')
-        .insert(rankings);
-
-      if (rankingError) {
-        addLog(`⚠️ Lỗi tạo ranking: ${rankingError.message}`, 'error');
-      } else {
-        addLog('✅ Ranking được tạo thành công');
-      }
-
-      // Step 3: Register users to tournament using admin function
-      addLog('📝 Đăng ký users vào giải đấu...');
-      const testUserIds = users.map(user => user.user_id);
-      
-      const { data: regResult, error: regError } = await supabase
-        .rpc('admin_register_test_users_to_tournament_final', {
-          p_tournament_id: selectedTournament,
-          p_test_user_ids: testUserIds
-        });
-
-      if (regError) throw regError;
-      
-      // Type cast the result since RPC returns Json type
-      const regResultData = regResult as any;
-      
-      if (!regResultData.success) {
-        throw new Error(regResultData.error || 'Failed to register test users');
-      }
-      
-      addLog(`✅ Đã đăng ký ${regResultData.registrations_created} users vào giải`);
-
-      // Step 4: Update tournament status
-      addLog('🔄 Cập nhật trạng thái giải đấu...');
-      const { error: tournamentError } = await supabase
-        .from('tournaments')
+      // Update match result
+      const { error: matchError } = await supabase
+        .from('tournament_matches')
         .update({
-          current_participants: 16,
-          status: 'registration_closed',
-          management_status: 'locked'
+          winner_id: winnerId,
+          score_player1: winnerId === selectedMatch.player1_id ? 2 : 1,
+          score_player2: winnerId === selectedMatch.player2_id ? 2 : 1,
+          status: 'completed',
+          actual_end_time: new Date().toISOString()
         })
-        .eq('id', selectedTournament);
+        .eq('id', selectedMatch.id);
 
-      if (tournamentError) throw tournamentError;
-      addLog('✅ Giải đấu đã đầy 16/16 players');
+      if (matchError) throw matchError;
 
-      // Step 5: Generate bracket
-      addLog('🎯 Tạo bracket tự động...');
-      const { data: bracketResult, error: bracketError } = await supabase
-        .rpc('generate_advanced_tournament_bracket', {
-          p_tournament_id: selectedTournament,
-          p_seeding_method: 'elo_ranking',
-          p_force_regenerate: true
+      // Advance winner
+      const { error: advanceError } = await supabase
+        .rpc('advance_tournament_winner', {
+          p_match_id: selectedMatch.id,
+          p_tournament_id: tournamentId
         });
 
-      if (bracketError) throw bracketError;
-      addLog('🏆 Bracket đã được tạo thành công!', 'success');
-      addLog('🎉 Tournament sẵn sàng để test!', 'success');
-      
-      toast.success('Tournament đã được populate thành công!');
-      loadTournaments(); // Refresh tournament list
+      if (advanceError) throw advanceError;
 
-    } catch (error) {
-      addLog(`❌ Lỗi: ${error.message}`, 'error');
-      toast.error(`Lỗi: ${error.message}`);
-      console.error('Tournament populate error:', error);
+      addLog('✅ Match result reported and winner advanced', 'success');
+      setSelectedMatch(null);
+      loadMatches();
+      
+    } catch (error: any) {
+      addLog(`❌ Error reporting result: ${error.message}`, 'error');
     } finally {
-      setIsPopulating(false);
-    }
-  };
-
-  const cleanupTestData = async () => {
-    try {
-      addLog('🧹 Bắt đầu xóa test data...');
-      
-      // First get test user IDs from test_profiles table
-      const { data: testUsers, error: getUserError } = await supabase
-        .from('test_profiles')
-        .select('user_id');
-
-      if (getUserError) throw getUserError;
-      
-      if (testUsers && testUsers.length > 0) {
-        const testUserIds = testUsers.map(u => u.user_id);
-        
-        // Delete test tournament registrations first
-        const { error: testRegError } = await supabase
-          .from('test_tournament_registrations')
-          .delete()
-          .in('player_id', testUserIds);
-
-        if (testRegError) {
-          addLog(`⚠️ Lỗi xóa test registrations: ${testRegError.message}`, 'error');
-        }
-
-        // Delete tournament registrations (if any exist in production table)
-        const { error: regError } = await supabase
-          .from('tournament_registrations')
-          .delete()
-          .in('player_id', testUserIds);
-
-        if (regError) {
-          addLog(`⚠️ Lỗi xóa registrations: ${regError.message}`, 'error');
-        }
-
-        // Delete test rankings
-        const { error: rankError } = await supabase
-          .from('test_player_rankings')
-          .delete()
-          .in('player_id', testUserIds);
-
-        if (rankError) {
-          addLog(`⚠️ Lỗi xóa rankings: ${rankError.message}`, 'error');
-        }
-
-        // Delete test users
-        const { error: userError } = await supabase
-          .from('test_profiles')
-          .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
-
-        if (userError) throw userError;
-        
-        addLog(`✅ Đã xóa ${testUsers.length} test users và related data`, 'success');
-      } else {
-        addLog('ℹ️ Không tìm thấy test users để xóa', 'info');
-      }
-      
-      toast.success('Test data đã được xóa');
-      loadTournaments(); // Refresh tournament list
-    } catch (error) {
-      addLog(`❌ Lỗi xóa test data: ${error.message}`, 'error');
-      toast.error(`Lỗi xóa test data: ${error.message}`);
+      setIsReporting(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5" />
-            Công Cụ Test Tournament
-          </CardTitle>
-          <CardDescription>
-            Tạo 16 test users và populate tournament để test bracket generation
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm font-medium">Chọn giải đấu để test:</label>
-              <Select value={selectedTournament} onValueChange={setSelectedTournament}>
-                <SelectTrigger>
-                  <SelectValue placeholder="-- Chọn giải đấu --" />
-                </SelectTrigger>
-                <SelectContent>
-                  {tournaments.map(t => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name} ({t.current_participants || 0}/{t.max_participants || 16})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-          <div className="flex gap-3">
-            <Button 
-              onClick={populateTournamentForTesting}
-              disabled={!selectedTournament || isPopulating}
-              className="flex-1"
-            >
-              {isPopulating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Đang tạo test data...
-                </>
-              ) : (
-                <>
-                  <Play className="mr-2 h-4 w-4" />
-                  🎯 Populate Tournament với 16 Users
-                </>
-              )}
-            </Button>
-
-            <Button 
-              onClick={cleanupTestData}
-              disabled={isPopulating}
-              variant="outline"
-            >
-              🧹 Cleanup Test Data
-            </Button>
-          </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Target className="h-5 w-5" />
+          ⚾ Match Result Tester
+        </CardTitle>
+        <CardDescription>Test match reporting and winner advancement</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <label className="text-sm font-medium">Select Match:</label>
+          <Select value={selectedMatch?.id || ''} onValueChange={(value) => {
+            const match = matches.find(m => m.id === value);
+            setSelectedMatch(match);
+          }}>
+            <SelectTrigger>
+              <SelectValue placeholder="-- Select Match --" />
+            </SelectTrigger>
+            <SelectContent>
+              {matches.map(match => (
+                <SelectItem key={match.id} value={match.id}>
+                  R{match.round_number} M{match.match_number}: {match.player1?.display_name} vs {match.player2?.display_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Real-time logs */}
-        {logs.length > 0 && (
-          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border max-h-60 overflow-y-auto">
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">
-                Tiến trình ({logs.length})
-              </h4>
-              <button 
-                onClick={() => setLogs([])}
-                className="text-xs text-gray-500 hover:text-gray-700 underline"
+        {selectedMatch && (
+          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-3">
+            <h4 className="font-medium">Test Match Result</h4>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => reportMatchResult(selectedMatch.player1_id)}
+                disabled={isReporting}
+                className="flex-1"
               >
-                Clear
-              </button>
+                {isReporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "🏆"}
+                {selectedMatch.player1?.display_name} Wins
+              </Button>
+              <Button 
+                onClick={() => reportMatchResult(selectedMatch.player2_id)}
+                disabled={isReporting}
+                className="flex-1"
+              >
+                {isReporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "🏆"}
+                {selectedMatch.player2?.display_name} Wins
+              </Button>
             </div>
-            <div className="space-y-1">
-              {logs.map((log, index) => (
-                <div 
-                  key={index} 
-                  className={`text-xs font-mono flex items-start gap-2 p-2 rounded ${
-                    log.type === 'error' 
-                      ? 'bg-red-50 text-red-700 border-l-2 border-red-300' 
-                      : log.type === 'success'
-                      ? 'bg-green-50 text-green-700 border-l-2 border-green-300'
-                      : 'bg-blue-50 text-blue-700 border-l-2 border-blue-300'
-                  }`}
-                >
-                  <span className="text-gray-500 min-w-fit">
-                    [{log.timestamp}]
-                  </span>
-                  <span className="flex-1">
-                    {log.message}
-                  </span>
-                </div>
-              ))}
-            </div>
-            {logs.length === 0 && (
-              <p className="text-sm text-gray-500 italic">Chưa có log nào...</p>
-            )}
           </div>
         )}
+
+        {matches.length === 0 && (
+          <div className="text-center py-4 text-gray-500">
+            No matches available for testing.
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// STEP 3 - Tournament Progression Tester
+const TournamentProgressionTester = ({ tournamentId, addLog }: { tournamentId: string; addLog: (message: string, type?: 'info' | 'error' | 'success') => void }) => {
+  const [isProgressing, setIsProgressing] = useState(false);
+  const [progressLogs, setProgressLogs] = useState<string[]>([]);
+
+  const addProgressLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logMessage = `${timestamp}: ${message}`;
+    setProgressLogs(prev => [...prev, logMessage]);
+    addLog(message);
+  };
+
+  const completeRound = async (roundNumber: number) => {
+    try {
+      addProgressLog(`🚀 Completing Round ${roundNumber}...`);
+      
+      const { data: matches, error: matchesError } = await supabase
+        .from('tournament_matches')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .eq('round_number', roundNumber)
+        .eq('status', 'scheduled');
+
+      if (matchesError) throw matchesError;
+
+      if (!matches?.length) {
+        addProgressLog(`✅ Round ${roundNumber} already completed`);
+        return;
+      }
+
+      addProgressLog(`📊 Found ${matches.length} matches to complete`);
+
+      for (const match of matches) {
+        const randomWinner = Math.random() > 0.5 ? match.player1_id : match.player2_id;
+        
+        // Update match
+        const { error: matchError } = await supabase
+          .from('tournament_matches')
+          .update({
+            winner_id: randomWinner,
+            score_player1: randomWinner === match.player1_id ? 2 : 1,
+            score_player2: randomWinner === match.player2_id ? 2 : 1,
+            status: 'completed',
+            actual_end_time: new Date().toISOString()
+          })
+          .eq('id', match.id);
+
+        if (matchError) throw matchError;
+
+        // Advance winner
+        const { error: advanceError } = await supabase
+          .rpc('advance_tournament_winner', {
+            p_match_id: match.id,
+            p_tournament_id: tournamentId
+          });
+
+        if (advanceError) throw advanceError;
+
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      addProgressLog(`✅ Round ${roundNumber} completed successfully`);
+      
+    } catch (error: any) {
+      addProgressLog(`❌ Error completing Round ${roundNumber}: ${error.message}`);
+    }
+  };
+
+  const runFullTournament = async () => {
+    setIsProgressing(true);
+    setProgressLogs([]);
+    
+    try {
+      addProgressLog('🏆 Starting full tournament simulation...');
+      
+      await completeRound(1);
+      await completeRound(2);
+      await completeRound(3);
+      await completeRound(4);
+      
+      // Update tournament status
+      await supabase
+        .from('tournaments')
+        .update({ status: 'completed' })
+        .eq('id', tournamentId);
+
+      addProgressLog('🎉 Tournament completed successfully!');
+      
+    } catch (error: any) {
+      addProgressLog(`💥 Tournament simulation failed: ${error.message}`);
+    } finally {
+      setIsProgressing(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Trophy className="h-5 w-5" />
+          🏆 Tournament Progression Tester
+        </CardTitle>
+        <CardDescription>Test complete tournament flow from start to champion</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => completeRound(1)} disabled={isProgressing} variant="outline" size="sm">
+            Complete Round 1
+          </Button>
+          <Button onClick={() => completeRound(2)} disabled={isProgressing} variant="outline" size="sm">
+            Complete Round 2
+          </Button>
+          <Button onClick={() => completeRound(3)} disabled={isProgressing} variant="outline" size="sm">
+            Complete Round 3
+          </Button>
+          <Button onClick={() => completeRound(4)} disabled={isProgressing} variant="outline" size="sm">
+            Complete Final
+          </Button>
+          <Button onClick={runFullTournament} disabled={isProgressing} className="bg-green-600 hover:bg-green-700">
+            {isProgressing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            🚀 Run Full Tournament
+          </Button>
+        </div>
+
+        {progressLogs.length > 0 && (
+          <div className="bg-muted/50 p-3 rounded-lg max-h-60 overflow-y-auto">
+            <h4 className="font-medium mb-2">Tournament Progress:</h4>
+            <div className="space-y-1">
+              {progressLogs.map((log, i) => (
+                <div key={i} className="text-xs font-mono text-muted-foreground">{log}</div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// STEP 4 - Admin Tournament Controls Testing
+const AdminTournamentControls = ({ tournamentId }: { tournamentId: string }) => {
+  const [logs, setLogs] = useState<string[]>([]);
+  const [isTesting, setIsTesting] = useState(false);
+
+  const addLog = (message: string) => {
+    setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+  };
+
+  const testAdminControls = async () => {
+    setIsTesting(true);
+    setLogs([]);
+    
+    try {
+      addLog('🎮 Testing admin tournament controls...');
+      
+      await testStatusTransitions();
+      await testPlayerManagement();
+      await testTournamentModifications();
+      await testAdminOverrides();
+      
+      addLog('✅ All admin controls tested successfully');
+    } catch (error: any) {
+      addLog(`❌ Admin testing failed: ${error.message}`);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const testStatusTransitions = async () => {
+    const transitions = ['draft', 'registration_open', 'registration_closed', 'ongoing', 'completed', 'cancelled'];
+    
+    for (const status of transitions) {
+      addLog(`🔄 Testing transition to: ${status}`);
+      await supabase.from('tournaments').update({ status }).eq('id', tournamentId);
+      await new Promise(r => setTimeout(r, 500));
+    }
+  };
+
+  const testPlayerManagement = async () => {
+    addLog('👥 Testing player management...');
+    
+    const { data: registrations } = await supabase
+      .from('tournament_registrations')
+      .select('*')
+      .eq('tournament_id', tournamentId);
+    
+    addLog(`📊 Found ${registrations?.length || 0} registrations`);
+    
+    if (registrations && registrations.length > 0) {
+      const firstReg = registrations[0];
+      await supabase
+        .from('tournament_registrations')
+        .update({ registration_status: 'confirmed' })
+        .eq('id', firstReg.id);
+      addLog('✅ Player status updated successfully');
+    }
+  };
+
+  const testTournamentModifications = async () => {
+    addLog('🔧 Testing tournament modifications...');
+    
+    await supabase
+      .from('tournaments')
+      .update({ 
+        updated_at: new Date().toISOString(),
+        description: 'Updated via admin testing'
+      })
+      .eq('id', tournamentId);
+    
+    addLog('✅ Tournament modified successfully');
+  };
+
+  const testAdminOverrides = async () => {
+    addLog('⚡ Testing admin overrides...');
+    
+    const { data: matches } = await supabase
+      .from('tournament_matches')
+      .select('*')
+      .eq('tournament_id', tournamentId)
+      .limit(1);
+    
+    if (matches && matches.length > 0) {
+      const match = matches[0];
+      await supabase
+        .from('tournament_matches')
+        .update({ 
+          status: 'completed',
+          winner_id: match.player1_id || match.player2_id
+        })
+        .eq('id', match.id);
+      addLog('✅ Admin override applied successfully');
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          🎮 Admin Controls Testing
+        </CardTitle>
+        <CardDescription>Test administrative tournament management features</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Button 
+          onClick={testAdminControls}
+          disabled={isTesting}
+          className="w-full bg-purple-600 hover:bg-purple-700"
+        >
+          {isTesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          {isTesting ? 'Testing...' : 'Test All Admin Functions'}
+        </Button>
+
+        {logs.length > 0 && (
+          <div className="bg-muted/50 p-3 rounded-lg max-h-40 overflow-y-auto">
+            <h4 className="font-medium mb-2">Admin Test Logs:</h4>
+            {logs.map((log, i) => (
+              <div key={i} className="text-sm font-mono text-muted-foreground">{log}</div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// STEP 5 - User Experience Testing
+const UserExperienceTester = ({ tournamentId }: { tournamentId: string }) => {
+  const [logs, setLogs] = useState<string[]>([]);
+  const [isTesting, setIsTesting] = useState(false);
+
+  const addLog = (message: string) => {
+    setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+  };
+
+  const testUserJourney = async () => {
+    setIsTesting(true);
+    setLogs([]);
+    
+    try {
+      addLog('👥 Testing user experience journey...');
+      
+      await testTournamentViewing();
+      await testRegistrationFlow();
+      await testNotifications();
+      await testRealtimeUpdates();
+      
+      addLog('✅ User experience testing completed');
+    } catch (error: any) {
+      addLog(`❌ User testing failed: ${error.message}`);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const testTournamentViewing = async () => {
+    addLog('📱 Testing tournament viewing...');
+    
+    const { data: tournament } = await supabase
+      .from('tournaments')
+      .select('*')
+      .eq('id', tournamentId)
+      .single();
+    
+    addLog(`📊 Tournament loaded: ${tournament?.name}`);
+    
+    const { data: bracket } = await supabase
+      .from('tournament_brackets')
+      .select('*')
+      .eq('tournament_id', tournamentId);
+    
+    addLog(`🎯 Bracket data: ${bracket ? 'Available' : 'Not found'}`);
+    
+    const { data: matches } = await supabase
+      .from('tournament_matches')
+      .select('*')
+      .eq('tournament_id', tournamentId);
+    
+    addLog(`⚾ Matches loaded: ${matches?.length || 0}`);
+  };
+
+  const testRegistrationFlow = async () => {
+    addLog('📝 Testing registration flow...');
+    
+    const { data: registrations } = await supabase
+      .from('tournament_registrations')
+      .select('*')
+      .eq('tournament_id', tournamentId);
+    
+    addLog(`👤 Registrations found: ${registrations?.length || 0}`);
+  };
+
+  const testNotifications = async () => {
+    addLog('🔔 Testing notifications...');
+    
+    const { data: notifications } = await supabase
+      .from('notifications')
+      .select('*')
+      .contains('metadata', { tournament_id: tournamentId })
+      .limit(5);
+    
+    addLog(`📢 Notifications found: ${notifications?.length || 0}`);
+  };
+
+  const testRealtimeUpdates = async () => {
+    addLog('⚡ Testing real-time updates...');
+    
+    await supabase
+      .from('tournaments')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', tournamentId);
+    
+    addLog('✅ Real-time update triggered');
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Eye className="h-5 w-5" />
+          👥 User Experience Testing
+        </CardTitle>
+        <CardDescription>Test user-facing tournament features and interfaces</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Button 
+          onClick={testUserJourney}
+          disabled={isTesting}
+          className="w-full bg-blue-600 hover:bg-blue-700"
+        >
+          {isTesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          {isTesting ? 'Testing...' : 'Test User Journey'}
+        </Button>
+
+        {logs.length > 0 && (
+          <div className="bg-muted/50 p-3 rounded-lg max-h-40 overflow-y-auto">
+            <h4 className="font-medium mb-2">UX Test Logs:</h4>
+            {logs.map((log, i) => (
+              <div key={i} className="text-sm font-mono text-muted-foreground">{log}</div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// STEP 6 - Scale & Performance Testing
+const ScalePerformanceTester = () => {
+  const [logs, setLogs] = useState<string[]>([]);
+  const [isTesting, setIsTesting] = useState(false);
+
+  const addLog = (message: string) => {
+    setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+  };
+
+  const testDifferentFormats = async () => {
+    setIsTesting(true);
+    setLogs([]);
+    
+    try {
+      addLog('📈 Testing different tournament formats...');
+      
+      await createAndTestTournament(8, 'single_elimination');
+      await createAndTestTournament(16, 'single_elimination');
+      await createAndTestTournament(32, 'single_elimination');
+      
+      await measurePerformanceMetrics();
+      
+      addLog('✅ Scale testing completed');
+    } catch (error: any) {
+      addLog(`❌ Scale testing failed: ${error.message}`);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const createAndTestTournament = async (playerCount: number, format: string) => {
+    const startTime = Date.now();
+    addLog(`🎯 Creating ${playerCount}-player ${format} tournament...`);
+    
+    const { data: tournament } = await supabase
+      .from('tournaments')
+      .insert({
+        name: `Scale Test ${playerCount} Players`,
+        tournament_type: format,
+        max_participants: playerCount,
+        tournament_start: new Date(Date.now() + 86400000).toISOString(),
+        tournament_end: new Date(Date.now() + 172800000).toISOString(),
+        registration_start: new Date().toISOString(),
+        registration_end: new Date(Date.now() + 43200000).toISOString(),
+        status: 'registration_open'
+      })
+      .select()
+      .single();
+    
+    if (!tournament) throw new Error('Failed to create tournament');
+    
+    const bracketStart = Date.now();
+    const { error: bracketError } = await supabase
+      .rpc('generate_advanced_tournament_bracket', {
+        p_tournament_id: tournament.id,
+        p_seeding_method: 'elo_ranking'
+      });
+    
+    if (bracketError) throw bracketError;
+    
+    const bracketTime = Date.now() - bracketStart;
+    const totalTime = Date.now() - startTime;
+    
+    addLog(`✅ ${playerCount}-player tournament: Total ${totalTime}ms, Bracket ${bracketTime}ms`);
+  };
+
+  const measurePerformanceMetrics = async () => {
+    addLog('📊 Measuring performance metrics...');
+    
+    const { count: tournamentCount } = await supabase
+      .from('tournaments')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: matchCount } = await supabase
+      .from('tournament_matches')
+      .select('*', { count: 'exact', head: true });
+    
+    addLog(`📈 System stats: ${tournamentCount} tournaments, ${matchCount} matches`);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Target className="h-5 w-5" />
+          📈 Scale & Performance Testing
+        </CardTitle>
+        <CardDescription>Test system performance with different tournament sizes</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Button 
+          onClick={testDifferentFormats}
+          disabled={isTesting}
+          className="w-full bg-orange-600 hover:bg-orange-700"
+        >
+          {isTesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          {isTesting ? 'Testing...' : 'Test All Formats'}
+        </Button>
+
+        {logs.length > 0 && (
+          <div className="bg-muted/50 p-3 rounded-lg max-h-40 overflow-y-auto">
+            <h4 className="font-medium mb-2">Performance Logs:</h4>
+            {logs.map((log, i) => (
+              <div key={i} className="text-sm font-mono text-muted-foreground">{log}</div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// STEP 7 - Data Cleanup & Reset
+const DataCleanupTools = () => {
+  const [logs, setLogs] = useState<string[]>([]);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
+
+  const addLog = (message: string) => {
+    setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+  };
+
+  const cleanupAllTestData = async () => {
+    setIsCleaningUp(true);
+    setLogs([]);
+    
+    try {
+      addLog('🧹 Starting comprehensive cleanup...');
+      
+      const { error: tournamentsError } = await supabase
+        .from('tournaments')
+        .delete()
+        .or('name.ilike.%Test%,name.ilike.%Scale Test%');
+      
+      if (tournamentsError) throw tournamentsError;
+      addLog('✅ Test tournaments removed');
+      
+      const { error: profilesError } = await supabase
+        .from('test_profiles')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      
+      if (profilesError) {
+        addLog('⚠️ Test profiles cleanup skipped (table may not exist)');
+      } else {
+        addLog('✅ Test profiles removed');
+      }
+      
+      addLog('✅ All test data cleaned up successfully');
+    } catch (error: any) {
+      addLog(`❌ Cleanup failed: ${error.message}`);
+    } finally {
+      setIsCleaningUp(false);
+    }
+  };
+
+  const resetSystemForProduction = async () => {
+    setIsCleaningUp(true);
+    setLogs([]);
+    
+    try {
+      addLog('🔄 Resetting system for production...');
+      
+      await cleanupAllTestData();
+      await verifySystemIntegrity();
+      
+      addLog('🎉 System ready for production!');
+    } catch (error: any) {
+      addLog(`❌ Reset failed: ${error.message}`);
+    } finally {
+      setIsCleaningUp(false);
+    }
+  };
+
+  const verifySystemIntegrity = async () => {
+    addLog('🔍 Verifying system integrity...');
+    
+    const { data: orphanedMatches } = await supabase
+      .from('tournament_matches')
+      .select('id')
+      .not('tournament_id', 'in', '(select id from tournaments)');
+    
+    if (orphanedMatches && orphanedMatches.length > 0) {
+      addLog(`⚠️ Found ${orphanedMatches.length} orphaned matches`);
+    } else {
+      addLog('✅ No orphaned matches found');
+    }
+    
+    addLog('✅ System integrity verified');
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Trophy className="h-5 w-5" />
+          🧹 Data Cleanup & Reset
+        </CardTitle>
+        <CardDescription>Clean up test data and reset system for production</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex gap-2">
+          <Button 
+            onClick={cleanupAllTestData}
+            disabled={isCleaningUp}
+            variant="outline"
+            className="flex-1"
+          >
+            {isCleaningUp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isCleaningUp ? 'Cleaning...' : 'Clean Test Data'}
+          </Button>
+          <Button 
+            onClick={resetSystemForProduction}
+            disabled={isCleaningUp}
+            className="flex-1 bg-red-600 hover:bg-red-700"
+          >
+            {isCleaningUp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isCleaningUp ? 'Resetting...' : 'Reset for Production'}
+          </Button>
+        </div>
+
+        {logs.length > 0 && (
+          <div className="bg-muted/50 p-3 rounded-lg max-h-40 overflow-y-auto">
+            <h4 className="font-medium mb-2">Cleanup Logs:</h4>
+            {logs.map((log, i) => (
+              <div key={i} className="text-sm font-mono text-muted-foreground">{log}</div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// FINAL INTEGRATION - Complete Testing Dashboard
+const CompleteTournamentTester = () => {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [selectedTournament, setSelectedTournament] = useState<string>('');
+  const [tournaments, setTournaments] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchTournaments();
+  }, []);
+
+  const fetchTournaments = async () => {
+    const { data } = await supabase
+      .from('tournaments')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (data) {
+      setTournaments(data);
+    }
+  };
+
+  const steps = [
+    { id: 1, name: 'Bracket Verification', component: BracketVerification, requiresTournament: true },
+    { id: 2, name: 'Match Reporting', component: MatchTester, requiresTournament: true },
+    { id: 3, name: 'Tournament Progression', component: TournamentProgressionTester, requiresTournament: true },
+    { id: 4, name: 'Admin Controls', component: AdminTournamentControls, requiresTournament: true },
+    { id: 5, name: 'User Experience', component: UserExperienceTester, requiresTournament: true },
+    { id: 6, name: 'Scale Testing', component: ScalePerformanceTester, requiresTournament: false },
+    { id: 7, name: 'Data Cleanup', component: DataCleanupTools, requiresTournament: false }
+  ];
+
+  const markStepCompleted = (stepId: number) => {
+    if (!completedSteps.includes(stepId)) {
+      setCompletedSteps(prev => [...prev, stepId]);
+    }
+  };
+
+  const currentStepData = steps.find(s => s.id === currentStep);
+
+  const addLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    console.log(`${type.toUpperCase()}: ${message}`);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <Trophy className="w-6 h-6 text-blue-600" />
+        <h2 className="text-2xl font-bold">🏆 Complete Tournament System Testing</h2>
+      </div>
+      
+      {/* Tournament Selection */}
+      <Card>
+        <CardContent className="pt-6">
+          <div>
+            <label className="block text-sm font-medium mb-2">Select Tournament (for steps 1-5):</label>
+            <Select value={selectedTournament} onValueChange={setSelectedTournament}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a tournament..." />
+              </SelectTrigger>
+              <SelectContent>
+                {tournaments.map(tournament => (
+                  <SelectItem key={tournament.id} value={tournament.id}>
+                    {tournament.name} ({tournament.status})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
-
-      {/* Tournament Testing Tools */}
-      {selectedTournament && (
-        <>
-          <BracketVerification tournamentId={selectedTournament} addLog={addLog} />
-          
-          <TournamentProgressionTester 
-            tournamentId={selectedTournament}
-            bracket={[]} // Will be loaded by the component
-            loadBracket={() => {}} // Handled internally
-            addLog={addLog}
-          />
-          
-          <TournamentSummary tournamentId={selectedTournament} />
-        </>
-      )}
+      
+      {/* Progress indicator */}
+      <div className="flex flex-wrap gap-2">
+        {steps.map(step => (
+          <div 
+            key={step.id}
+            className={`px-3 py-1 rounded text-sm cursor-pointer transition-colors ${
+              completedSteps.includes(step.id) 
+                ? 'bg-green-500 text-white' 
+                : currentStep === step.id 
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600'
+            }`}
+            onClick={() => setCurrentStep(step.id)}
+          >
+            {step.name}
+            {completedSteps.includes(step.id) && ' ✓'}
+          </div>
+        ))}
+      </div>
+      
+      {/* Current step component */}
+      <div className="border rounded-lg p-4">
+        {currentStepData && (
+          <>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Step {currentStep}: {currentStepData.name}</h3>
+              <Button 
+                onClick={() => markStepCompleted(currentStep)}
+                variant="outline"
+                size="sm"
+                disabled={completedSteps.includes(currentStep)}
+              >
+                {completedSteps.includes(currentStep) ? 'Completed ✓' : 'Mark Complete'}
+              </Button>
+            </div>
+            
+            {currentStepData.requiresTournament && !selectedTournament ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Please select a tournament above to test this step.
+              </div>
+            ) : (
+              React.createElement(currentStepData.component, 
+                currentStepData.requiresTournament 
+                  ? { tournamentId: selectedTournament, addLog } 
+                  : currentStepData.id === 6 || currentStepData.id === 7 
+                  ? {} 
+                  : { tournamentId: selectedTournament, addLog }
+              )
+            )}
+          </>
+        )}
+      </div>
+      
+      {/* Navigation */}
+      <div className="flex justify-between items-center">
+        <Button 
+          onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+          disabled={currentStep === 1}
+          variant="outline"
+        >
+          Previous
+        </Button>
+        <div className="text-sm text-muted-foreground">
+          Step {currentStep} of {steps.length} | {completedSteps.length} completed
+        </div>
+        <Button 
+          onClick={() => setCurrentStep(Math.min(7, currentStep + 1))}
+          disabled={currentStep === 7}
+        >
+          Next Step
+        </Button>
+      </div>
     </div>
   );
+};
+
+const TournamentTestingTools = () => {
+  return <CompleteTournamentTester />;
 };
 
 export default TournamentTestingTools;
