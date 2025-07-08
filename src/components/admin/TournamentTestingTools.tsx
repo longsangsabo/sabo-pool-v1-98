@@ -64,9 +64,9 @@ const TournamentTestingTools = () => {
         activity_status: 'active'
       }));
 
-      // Use admin function to create users safely
+      // Use new safe admin function to create test users without wallet triggers
       const { data: createResult, error: userError } = await supabase
-        .rpc('admin_create_test_users', {
+        .rpc('admin_create_test_users_safe', {
           user_data: fakeUsersData
         });
 
@@ -94,7 +94,7 @@ const TournamentTestingTools = () => {
       }));
 
       const { error: rankingError } = await supabase
-        .from('player_rankings')
+        .from('test_player_rankings')
         .insert(rankings);
 
       if (rankingError) {
@@ -163,11 +163,10 @@ const TournamentTestingTools = () => {
     try {
       addLog('🧹 Bắt đầu xóa test data...');
       
-      // First get test user IDs
+      // First get test user IDs from test_profiles table
       const { data: testUsers, error: getUserError } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .like('bio', '%Auto-generated test user%');
+        .from('test_profiles')
+        .select('user_id');
 
       if (getUserError) throw getUserError;
       
@@ -184,9 +183,9 @@ const TournamentTestingTools = () => {
           addLog(`⚠️ Lỗi xóa registrations: ${regError.message}`, 'error');
         }
 
-        // Delete rankings
+        // Delete test rankings
         const { error: rankError } = await supabase
-          .from('player_rankings')
+          .from('test_player_rankings')
           .delete()
           .in('player_id', testUserIds);
 
@@ -196,9 +195,9 @@ const TournamentTestingTools = () => {
 
         // Delete test users
         const { error: userError } = await supabase
-          .from('profiles')
+          .from('test_profiles')
           .delete()
-          .like('bio', '%Auto-generated test user%');
+          .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
 
         if (userError) throw userError;
         

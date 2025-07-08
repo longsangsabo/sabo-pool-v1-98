@@ -3961,6 +3961,98 @@ export type Database = {
           },
         ]
       }
+      test_player_rankings: {
+        Row: {
+          created_at: string | null
+          elo: number | null
+          id: string
+          losses: number | null
+          player_id: string
+          spa_points: number | null
+          total_matches: number | null
+          updated_at: string | null
+          wins: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          elo?: number | null
+          id?: string
+          losses?: number | null
+          player_id: string
+          spa_points?: number | null
+          total_matches?: number | null
+          updated_at?: string | null
+          wins?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          elo?: number | null
+          id?: string
+          losses?: number | null
+          player_id?: string
+          spa_points?: number | null
+          total_matches?: number | null
+          updated_at?: string | null
+          wins?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_player_rankings_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "test_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      test_profiles: {
+        Row: {
+          activity_status: string | null
+          bio: string | null
+          city: string | null
+          created_at: string | null
+          display_name: string | null
+          district: string | null
+          full_name: string
+          id: string
+          phone: string | null
+          role: string | null
+          skill_level: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_status?: string | null
+          bio?: string | null
+          city?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          district?: string | null
+          full_name: string
+          id?: string
+          phone?: string | null
+          role?: string | null
+          skill_level?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_status?: string | null
+          bio?: string | null
+          city?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          district?: string | null
+          full_name?: string
+          id?: string
+          phone?: string | null
+          role?: string | null
+          skill_level?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       tournament_brackets: {
         Row: {
           bracket_config: Json | null
@@ -4899,6 +4991,10 @@ export type Database = {
     }
     Functions: {
       admin_create_test_users: {
+        Args: { user_data: Json[] }
+        Returns: Json
+      }
+      admin_create_test_users_safe: {
         Args: { user_data: Json[] }
         Returns: Json
       }
