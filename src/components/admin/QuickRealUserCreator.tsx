@@ -19,6 +19,8 @@ const QuickRealUserCreator = () => {
   const [currentStep, setCurrentStep] = useState('');
   const [logs, setLogs] = useState<Array<{message: string, type: 'info' | 'error' | 'success', timestamp: string}>>([]);
   const [createdUsers, setCreatedUsers] = useState<any[]>([]);
+  const [databaseStatus, setDatabaseStatus] = useState<any>(null);
+  const [isChecking, setIsChecking] = useState(false);
 
   const vietnamesePrefixes = ['Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Huỳnh', 'Phan', 'Vũ', 'Võ', 'Đặng'];
   const vietnameseFirstNames = ['Văn', 'Thị', 'Minh', 'Tuấn', 'Hương', 'Lan', 'Hùng', 'Linh', 'Nam', 'Mai'];
@@ -53,6 +55,92 @@ const QuickRealUserCreator = () => {
   const addLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
     const timestamp = new Date().toLocaleTimeString('vi-VN');
     setLogs(prev => [...prev, { message, type, timestamp }]);
+  };
+
+  const checkDatabaseStatus = async () => {
+    setIsChecking(true);
+    try {
+      // Check recent users in the last hour
+      const { data: recentUsers, error: usersError } = await supabase
+        .from('profiles')
+        .select(`
+          user_id,
+          full_name,
+          phone,
+          skill_level,
+          city,
+          created_at
+        `)
+        .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+      }
+
+      // Get detailed info for recent users
+      const detailedUsers = [];
+      if (recentUsers && recentUsers.length > 0) {
+        for (const user of recentUsers) {
+          const { data: authUser } = await supabase.auth.admin.getUserById(user.user_id);
+          const { data: ranking } = await supabase
+            .from('player_rankings')
+            .select('elo_points, spa_points')
+            .eq('player_id', user.user_id)
+            .single();
+          const { data: wallet } = await supabase
+            .from('wallets')
+            .select('balance')
+            .eq('user_id', user.user_id)
+            .single();
+
+          detailedUsers.push({
+            id: user.user_id,
+            email: authUser?.user?.email || 'N/A',
+            auth_created_at: authUser?.user?.created_at || user.created_at,
+            full_name: user.full_name,
+            phone: user.phone,
+            skill_level: user.skill_level,
+            city: user.city,
+            elo_points: ranking?.elo_points,
+            spa_points: ranking?.spa_points,
+            balance: wallet?.balance
+          });
+        }
+      }
+
+      // Count totals in the last hour (simplified since admin API doesn't have count)
+      const authUsers = await supabase.auth.admin.listUsers();
+      const authCount = authUsers?.data?.users?.length || 0;
+      
+      const { count: profilesCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
+      const { count: rankingsCount } = await supabase
+        .from('player_rankings')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
+      const { count: walletsCount } = await supabase
+        .from('wallets')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
+
+      setDatabaseStatus({
+        authUsers: authCount || 0,
+        profiles: profilesCount || 0,
+        rankings: rankingsCount || 0,
+        wallets: walletsCount || 0,
+        recentUsers: detailedUsers
+      });
+
+    } catch (error) {
+      console.error('Error checking database:', error);
+      toast.error('Lỗi kiểm tra database');
+    } finally {
+      setIsChecking(false);
+    }
   };
 
   const createRealUsers = async () => {
@@ -354,19 +442,97 @@ const QuickRealUserCreator = () => {
           </div>
         )}
 
+        {/* Database Verification Section */}
+        <div className="mt-6 space-y-4">
+          <Button 
+            onClick={checkDatabaseStatus}
+            variant="outline"
+            className="w-full"
+            disabled={isChecking}
+          >
+            {isChecking ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Đang kiểm tra Database...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Kiểm tra Database
+              </>
+            )}
+          </Button>
+
+          {databaseStatus && (
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border">
+              <h3 className="font-medium text-blue-800 dark:text-blue-300 mb-3">
+                📊 Trạng thái Database (1 giờ gần nhất)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                <div className="bg-white dark:bg-gray-800 p-3 rounded border">
+                  <div className="font-medium text-gray-700 dark:text-gray-300">Auth Users</div>
+                  <div className="text-lg font-bold text-blue-600">{databaseStatus.authUsers}</div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded border">
+                  <div className="font-medium text-gray-700 dark:text-gray-300">Profiles</div>
+                  <div className="text-lg font-bold text-green-600">{databaseStatus.profiles}</div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded border">
+                  <div className="font-medium text-gray-700 dark:text-gray-300">Rankings</div>
+                  <div className="text-lg font-bold text-purple-600">{databaseStatus.rankings}</div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded border">
+                  <div className="font-medium text-gray-700 dark:text-gray-300">Wallets</div>
+                  <div className="text-lg font-bold text-orange-600">{databaseStatus.wallets}</div>
+                </div>
+              </div>
+              
+              {databaseStatus.recentUsers && databaseStatus.recentUsers.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Users gần nhất:</h4>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {databaseStatus.recentUsers.map((user, index) => (
+                      <div key={user.id} className="text-xs bg-white dark:bg-gray-800 p-2 rounded border">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div><strong>{user.email}</strong></div>
+                            <div className="text-gray-500">ID: {user.id.slice(0, 8)}...</div>
+                            <div className="text-gray-500">Tạo: {new Date(user.auth_created_at).toLocaleString('vi-VN')}</div>
+                          </div>
+                          <div className="flex gap-1">
+                            <span className={`w-2 h-2 rounded-full ${user.full_name ? 'bg-green-500' : 'bg-red-500'}`} title="Profile"></span>
+                            <span className={`w-2 h-2 rounded-full ${user.elo_points !== null ? 'bg-green-500' : 'bg-red-500'}`} title="Ranking"></span>
+                            <span className={`w-2 h-2 rounded-full ${user.balance !== null ? 'bg-green-500' : 'bg-red-500'}`} title="Wallet"></span>
+                          </div>
+                        </div>
+                        {user.full_name && (
+                          <div className="mt-1 text-green-700 dark:text-green-300">
+                            <div>{user.full_name} | {user.skill_level} | {user.city}</div>
+                            <div>ELO: {user.elo_points || 'N/A'} | SPA: {user.spa_points || 'N/A'} | Wallet: {user.balance || 'N/A'}</div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {createdUsers.length > 0 && (
-          <div className="mt-6 p-4 bg-green-50 rounded-lg">
+          <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
-              <h3 className="font-medium text-green-800">Tạo thành công!</h3>
+              <h3 className="font-medium text-green-800 dark:text-green-300">Tạo thành công!</h3>
             </div>
-            <p className="text-sm text-green-700 mb-3">
+            <p className="text-sm text-green-700 dark:text-green-300 mb-3">
               Đã tạo {createdUsers.length} user hoàn chỉnh với password: <strong>Demo123!@#</strong>
               <span className="block text-xs mt-1">🎯 Users đã sẵn sàng tham gia giải đấu!</span>
             </p>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {createdUsers.map((user, index) => (
-                <div key={user.id} className="text-xs bg-white p-2 rounded border">
+                <div key={user.id} className="text-xs bg-white dark:bg-gray-800 p-2 rounded border">
                   <div><strong>{user.full_name}</strong> ({user.city})</div>
                   <div>📧 {user.email}</div>
                   <div>📱 {user.phone} | 🏆 {user.skill_level}</div>
