@@ -200,14 +200,11 @@ const QuickRealUserCreator = () => {
 
           addLog(`✅ Auth user tạo thành công: ${authData.user.id}`, 'success');
 
-          // Logout ngay để không bị auto-login
-          await supabase.auth.signOut();
-
           // Bước 2: Tạo Profile (đợi trigger tự động tạo hoặc tạo thủ công)
           addLog(`2️⃣ Cập nhật profile...`, 'info');
           
           // Đợi một chút để trigger tự động chạy
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 500));
 
           // Cập nhật profile với thông tin đầy đủ
           const { error: profileError } = await supabase
@@ -290,6 +287,11 @@ const QuickRealUserCreator = () => {
       setCurrentStep('Hoàn thành!');
       addLog(`🏁 Tạo thành công ${createdUsersList.length}/${userCount} users hoàn chỉnh!`, 'success');
       addLog(`🎯 Users đã sẵn sàng tham gia giải đấu!`, 'success');
+      
+      // SignOut cuối cùng để tránh auto-login với user cuối
+      await supabase.auth.signOut();
+      addLog(`🔓 Đã logout để tránh auto-login`, 'info');
+      
       setCreatedUsers(createdUsersList);
       toast.success(`Thành công tạo ${createdUsersList.length} user hoàn chỉnh!`);
 
