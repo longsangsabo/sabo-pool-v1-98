@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { UserPlus, Play, CheckCircle, Loader2 } from 'lucide-react';
+import { UserPlus, Play, CheckCircle, Loader2, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -19,6 +20,11 @@ const QuickRealUserCreator = () => {
   const [currentStep, setCurrentStep] = useState('');
   const [logs, setLogs] = useState<Array<{message: string, type: 'info' | 'error' | 'success', timestamp: string}>>([]);
   const [createdUsers, setCreatedUsers] = useState<any[]>([]);
+  
+  // Admin controls
+  const [skipEmailVerification, setSkipEmailVerification] = useState(true);
+  const [autoConfirmUsers, setAutoConfirmUsers] = useState(true);
+  const [batchMode, setBatchMode] = useState(false);
 
   const vietnamesePrefixes = ['Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Huỳnh', 'Phan', 'Vũ', 'Võ', 'Đặng'];
   const vietnameseFirstNames = ['Văn', 'Thị', 'Minh', 'Tuấn', 'Hương', 'Lan', 'Hùng', 'Linh', 'Nam', 'Mai'];
@@ -51,6 +57,29 @@ const QuickRealUserCreator = () => {
   const addLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
     const timestamp = new Date().toLocaleTimeString('vi-VN');
     setLogs(prev => [...prev, { message, type, timestamp }]);
+  };
+
+  // Admin function to confirm user email (bypass verification)
+  const confirmUserEmail = async (userId: string, email: string) => {
+    try {
+      addLog(`🔧 Admin confirming email for: ${email}`, 'info');
+      
+      // Use admin API to confirm user
+      const { error } = await supabase.auth.admin.updateUserById(userId, {
+        email_confirm: true
+      });
+
+      if (error) {
+        addLog(`❌ Admin confirm failed: ${error.message}`, 'error');
+        return false;
+      }
+
+      addLog(`✅ Admin confirmed user email: ${email}`, 'success');
+      return true;
+    } catch (error) {
+      addLog(`❌ Admin confirm error: ${error.message}`, 'error');
+      return false;
+    }
   };
 
   const createRealUsers = async () => {
@@ -106,6 +135,12 @@ const QuickRealUserCreator = () => {
         }
 
         addLog(`✅ Auth thành công cho user ${i + 1}`, 'success');
+
+        // Admin auto-confirm email if enabled
+        if (autoConfirmUsers && authData.user && !authData.user.email_confirmed_at) {
+          addLog(`🔧 Admin auto-confirming user ${i + 1}...`, 'info');
+          await confirmUserEmail(authData.user.id, email);
+        }
 
         if (authData.user) {
           addLog(`📝 Tạo profile cho user ${i + 1}...`, 'info');
@@ -224,6 +259,53 @@ const QuickRealUserCreator = () => {
           </div>
         </div>
 
+        {/* Admin Controls */}
+        <div className="border rounded-lg p-4 bg-amber-50 dark:bg-amber-900/20">
+          <div className="flex items-center gap-2 mb-3">
+            <Shield className="h-4 w-4 text-amber-600" />
+            <h3 className="font-medium text-amber-800 dark:text-amber-300">Admin Controls</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="skipEmailVerification" 
+                checked={skipEmailVerification}
+                onCheckedChange={(checked) => setSkipEmailVerification(checked as boolean)}
+              />
+              <Label htmlFor="skipEmailVerification" className="text-sm">
+                Bỏ qua xác thực email (Testing)
+              </Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="autoConfirmUsers" 
+                checked={autoConfirmUsers}
+                onCheckedChange={(checked) => setAutoConfirmUsers(checked as boolean)}
+              />
+              <Label htmlFor="autoConfirmUsers" className="text-sm">
+                Tự động kích hoạt users
+              </Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="batchMode" 
+                checked={batchMode}
+                onCheckedChange={(checked) => setBatchMode(checked as boolean)}
+              />
+              <Label htmlFor="batchMode" className="text-sm">
+                Chế độ batch (Nhanh hơn)
+              </Label>
+            </div>
+          </div>
+          
+          <p className="text-xs text-amber-700 dark:text-amber-400 mt-2">
+            ⚠️ Chỉ dùng cho testing. Skip email verification sẽ tạo users có thể đăng nhập ngay.
+          </p>
+        </div>
+
         {isCreating && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -327,6 +409,7 @@ const QuickRealUserCreator = () => {
             </div>
             <p className="text-sm text-green-700 mb-3">
               Đã tạo {createdUsers.length} user thực với email/password: <strong>Demo123!@#</strong>
+              {autoConfirmUsers && <span className="block text-xs mt-1">✅ Users đã được admin kích hoạt - có thể đăng nhập ngay!</span>}
             </p>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {createdUsers.map((user, index) => (
