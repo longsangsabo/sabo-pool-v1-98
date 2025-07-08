@@ -113,17 +113,19 @@ const QuickRealUserCreator = () => {
           skillLevel = skillDistribution;
         }
 
-        addLog(`📧 Tạo user Admin API cho: ${email}`, 'info');
+        addLog(`📧 Đăng ký user cho: ${email}`, 'info');
 
-        // Create user using Admin API (không auto login)
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        // Create user without affecting current session
+        const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
           password,
-          user_metadata: {
-            full_name: fullName,
-            phone: phone,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              full_name: fullName,
+              phone: phone,
+            },
           },
-          email_confirm: autoConfirmUsers // Auto confirm nếu enabled
         });
 
         if (authError) {
