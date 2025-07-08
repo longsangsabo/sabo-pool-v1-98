@@ -4898,6 +4898,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_create_test_users: {
+        Args: { user_data: Json[] }
+        Returns: Json
+      }
       apply_automatic_penalty: {
         Args: { player_uuid: string }
         Returns: undefined

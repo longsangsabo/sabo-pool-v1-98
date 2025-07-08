@@ -51,11 +51,8 @@ const TournamentTestingTools = () => {
     try {
       addLog('🚀 Bắt đầu tạo 16 test users...');
       
-      // Step 1: Create 16 fake users using test_profiles table instead
-      addLog('🔄 Tạo test users bằng cách tránh wallet triggers...');
-      
-      const fakeUsers = Array.from({length: 16}, (_, i) => ({
-        user_id: crypto.randomUUID(),
+      // Step 1: Create 16 fake users using admin function (bypasses wallet triggers)
+      const fakeUsersData = Array.from({length: 16}, (_, i) => ({
         phone: `090${String(Date.now() + i).slice(-7)}`,
         full_name: `Test Player ${i + 1}`,
         display_name: `Player${i + 1}`,
@@ -67,12 +64,22 @@ const TournamentTestingTools = () => {
         activity_status: 'active'
       }));
 
-      const { data: users, error: userError } = await supabase
-        .from('profiles')
-        .insert(fakeUsers)
-        .select('user_id, full_name');
+      // Use admin function to create users safely
+      const { data: createResult, error: userError } = await supabase
+        .rpc('admin_create_test_users', {
+          user_data: fakeUsersData
+        });
 
       if (userError) throw userError;
+      
+      // Type cast the result since RPC returns Json type
+      const result = createResult as any;
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create test users');
+      }
+
+      const users = result.users;
       addLog(`✅ Đã tạo ${users.length} test users thành công`);
 
       // Step 2: Create rankings for test users
