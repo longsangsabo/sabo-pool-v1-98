@@ -15,7 +15,14 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
   const [loading, setLoading] = useState(false);
 
   const loadBracket = async () => {
+    if (!tournamentId) {
+      addLog('❌ Vui lòng chọn một giải đấu trước', 'error');
+      return;
+    }
+
     setLoading(true);
+    addLog('🔄 Đang tải bracket...', 'info');
+    
     try {
       // Load tournament matches with player info
       const { data: matches, error: matchError } = await supabase
@@ -29,7 +36,13 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
         .order('round_number', { ascending: true })
         .order('match_number', { ascending: true });
 
-      if (matchError) throw matchError;
+      if (matchError) {
+        console.error('Match error:', matchError);
+        addLog(`❌ Lỗi tải matches: ${matchError.message}`, 'error');
+        throw matchError;
+      }
+
+      addLog(`📊 Tìm thấy ${matches?.length || 0} trận đấu`, 'info');
 
       // Load seeding data
       const { data: seedingData, error: seedError } = await supabase
@@ -41,7 +54,13 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
         .eq('tournament_id', tournamentId)
         .order('seed_position', { ascending: true });
 
-      if (seedError) throw seedError;
+      if (seedError) {
+        console.error('Seeding error:', seedError);
+        addLog(`⚠️ Lỗi tải seeding: ${seedError.message}`, 'error');
+        // Don't throw here, seeding might not exist yet
+      }
+
+      addLog(`🎯 Tìm thấy ${seedingData?.length || 0} seeded players`, 'info');
 
       // Load bracket metadata
       const { data: bracketMeta, error: bracketError } = await supabase
@@ -50,14 +69,51 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
         .eq('tournament_id', tournamentId)
         .single();
 
-      if (bracketError && bracketError.code !== 'PGRST116') throw bracketError;
+      if (bracketError && bracketError.code !== 'PGRST116') {
+        console.error('Bracket error:', bracketError);
+        addLog(`⚠️ Lỗi tải bracket metadata: ${bracketError.message}`, 'error');
+      }
 
       setBracket(matches || []);
       setSeeding(seedingData || []);
       setBracketData(bracketMeta);
-      addLog('✅ Bracket loaded successfully', 'success');
+      
+      if (!matches || matches.length === 0) {
+        addLog('⚠️ Giải đấu chưa có bracket. Hãy tạo bracket trước.', 'error');
+      } else {
+        addLog('✅ Bracket loaded successfully', 'success');
+      }
     } catch (error: any) {
-      addLog(`❌ Error loading bracket: ${error.message}`, 'error');
+      console.error('Load bracket error:', error);
+      addLog(`❌ Lỗi loading bracket: ${error.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateSampleBracket = async () => {
+    if (!tournamentId) {
+      addLog('❌ Vui lòng chọn một giải đấu trước', 'error');
+      return;
+    }
+
+    setLoading(true);
+    addLog('🔧 Đang tạo bracket mẫu...', 'info');
+
+    try {
+      const { data, error } = await supabase.rpc('generate_advanced_tournament_bracket', {
+        p_tournament_id: tournamentId,
+        p_seeding_method: 'elo_ranking',
+        p_force_regenerate: true
+      });
+
+      if (error) throw error;
+
+      addLog('✅ Tạo bracket mẫu thành công!', 'success');
+      // Reload bracket after generation
+      setTimeout(() => loadBracket(), 1000);
+    } catch (error: any) {
+      addLog(`❌ Lỗi tạo bracket: ${error.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -66,10 +122,10 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
   const getRoundName = (round: number, totalRounds: number) => {
     const remaining = Math.pow(2, totalRounds - round + 1);
     switch (remaining) {
-      case 2: return 'Final';
-      case 4: return 'Semifinal';
-      case 8: return 'Quarterfinal';
-      default: return `Round ${round}`;
+      case 2: return 'Chung kết';
+      case 4: return 'Bán kết';
+      case 8: return 'Tứ kết';
+      default: return `Vòng ${round}`;
     }
   };
 
@@ -83,10 +139,16 @@ const BracketVerification = ({ tournamentId, addLog }: { tournamentId: string; a
         <CardDescription>Verify tournament bracket structure and seeding</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Button onClick={loadBracket} disabled={loading} className="w-full">
-          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}
-          {loading ? 'Loading...' : 'Load Bracket'}
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={loadBracket} disabled={loading || !tournamentId} className="flex-1">
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}
+            {loading ? 'Đang tải...' : 'Tải Bracket'}
+          </Button>
+          <Button onClick={generateSampleBracket} disabled={loading || !tournamentId} variant="outline">
+            <Target className="mr-2 h-4 w-4" />
+            Tạo Bracket Mẫu
+          </Button>
+        </div>
 
         {bracket.length > 0 && (
           <div className="space-y-4">
