@@ -51,19 +51,21 @@ const TournamentTestingTools = () => {
     try {
       addLog('🚀 Bắt đầu tạo 16 test users...');
       
-      // Step 1: Create 16 fake users (adjusted for actual schema)
+      // Step 1: Create 16 fake users using test_profiles table instead
+      addLog('🔄 Tạo test users bằng cách tránh wallet triggers...');
+      
       const fakeUsers = Array.from({length: 16}, (_, i) => ({
-        user_id: crypto.randomUUID(),
+        // Use same UUID pattern but ensure no wallet creation
+        phone: `090${String(Date.now() + i).slice(-7)}`,
         full_name: `Test Player ${i + 1}`,
         display_name: `Player${i + 1}`,
-        phone: `090${String(Date.now() + i).slice(-7)}`,
         role: 'player',
         skill_level: ['beginner', 'intermediate', 'advanced'][i % 3],
         city: 'Hồ Chí Minh',
         district: 'Quận 1',
-        bio: `Auto-generated test user ${i + 1} for tournament testing - NO WALLET NEEDED`,
-        // Explicitly avoid any fields that might trigger wallet creation
+        bio: `Auto-generated test user ${i + 1} for tournament testing - NO WALLET`,
         activity_status: 'active'
+        // CRITICAL: Do NOT include user_id field to avoid foreign key issues
       }));
 
       const { data: users, error: userError } = await supabase
