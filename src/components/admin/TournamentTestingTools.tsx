@@ -929,6 +929,419 @@ const DataCleanupTools = ({ addLog: globalAddLog }: { addLog?: (message: string,
   );
 };
 
+// ============= ADMIN PANEL COMPREHENSIVE TESTING =============
+
+// Admin Tournament Audit Component
+const AdminTournamentAudit = ({ addLog }: { addLog: (message: string, type?: 'info' | 'error' | 'success') => void }) => {
+  const [isAuditing, setIsAuditing] = useState(false);
+  const [auditResults, setAuditResults] = useState<string[]>([]);
+
+  const localAddLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    setAuditResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    addLog(message, type);
+  };
+
+  const runComprehensiveAudit = async () => {
+    setIsAuditing(true);
+    setAuditResults([]);
+    
+    try {
+      localAddLog('🔍 Starting comprehensive admin panel audit...', 'info');
+      
+      // Test 1: Tournament Overview & Monitoring
+      await testTournamentOverview();
+      
+      // Test 2: Tournament CRUD Operations
+      await testTournamentCRUD();
+      
+      // Test 3: Player Management in Tournaments
+      await testPlayerManagement();
+      
+      // Test 4: Match Management & Overrides
+      await testMatchManagement();
+      
+      // Test 5: Real-time Monitoring
+      await testRealtimeMonitoring();
+      
+      // Test 6: Analytics & Reporting
+      await testAnalyticsReporting();
+      
+      // Test 7: System Health Checks
+      await testSystemHealth();
+      
+      localAddLog('🎉 Comprehensive admin audit completed successfully!', 'success');
+      
+    } catch (error) {
+      localAddLog(`💥 Audit failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    } finally {
+      setIsAuditing(false);
+    }
+  };
+
+  const testTournamentOverview = async () => {
+    localAddLog('📊 Testing tournament overview dashboard...');
+    
+    try {
+      // Check if admin can see all tournaments
+      const { data: tournaments, error: tournamentsError } = await supabase
+        .from('tournaments')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (tournamentsError) throw tournamentsError;
+      
+      localAddLog(`✅ Found ${tournaments?.length || 0} tournaments in system`);
+      
+      // Test tournament status filtering
+      const statuses = ['draft', 'open', 'registration_closed', 'ongoing', 'completed'];
+      for (const status of statuses) {
+        const { count, error: countError } = await supabase
+          .from('tournaments')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', status);
+        
+        if (countError) throw countError;
+        localAddLog(`📋 ${status}: ${count || 0} tournaments`);
+      }
+    } catch (error) {
+      localAddLog(`❌ Tournament overview test failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
+  };
+
+  const testTournamentCRUD = async () => {
+    localAddLog('⚙️ Testing tournament CRUD operations...');
+    
+    try {
+      // Test Create
+      const { data: newTournament, error: createError } = await supabase
+        .from('tournaments')
+        .insert({
+          name: `Admin Test Tournament ${Date.now()}`,
+          description: 'Created by admin audit',
+          max_participants: 8,
+          entry_fee: 50000,
+          status: 'upcoming',
+          tournament_type: 'single_elimination',
+          tier: 'amateur',
+          venue_address: 'Test Venue',
+          tournament_start: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
+          tournament_end: new Date(Date.now() + 172800000).toISOString(), // Day after tomorrow
+          registration_start: new Date().toISOString(),
+          registration_end: new Date(Date.now() + 43200000).toISOString(), // 12 hours from now
+        })
+        .select()
+        .single();
+      
+      if (createError) throw createError;
+      
+      localAddLog(`✅ Tournament created: ${newTournament.name}`);
+      
+      // Test Update
+      const { error: updateError } = await supabase
+        .from('tournaments')
+        .update({ 
+          status: 'registration_open',
+          description: 'Updated by admin audit'
+        })
+        .eq('id', newTournament.id);
+      
+      if (updateError) throw updateError;
+      localAddLog(`✅ Tournament updated successfully`);
+      
+      // Test Delete
+      const { error: deleteError } = await supabase
+        .from('tournaments')
+        .delete()
+        .eq('id', newTournament.id);
+      
+      if (deleteError) throw deleteError;
+      localAddLog(`✅ Tournament deleted successfully`);
+      
+    } catch (error) {
+      localAddLog(`❌ CRUD test failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
+  };
+
+  const testPlayerManagement = async () => {
+    localAddLog('👥 Testing player management functions...');
+    
+    try {
+      // Get a test tournament
+      const { data: tournaments } = await supabase
+        .from('tournaments')
+        .select('id')
+        .limit(1);
+      
+      if (!tournaments?.length) {
+        localAddLog('⚠️ No tournaments found for player management test');
+        return;
+      }
+      
+      const testTournamentId = tournaments[0].id;
+      
+      // Test viewing tournament registrations
+      const { data: registrations, error: regError } = await supabase
+        .from('tournament_registrations')
+        .select(`
+          *,
+          profiles!tournament_registrations_player_id_fkey(
+            full_name, display_name, phone
+          )
+        `)
+        .eq('tournament_id', testTournamentId);
+      
+      if (regError) throw regError;
+      
+      localAddLog(`📋 Found ${registrations?.length || 0} registrations for tournament`);
+      
+      // Test player status management
+      if (registrations?.length > 0) {
+        const testRegistration = registrations[0];
+        
+        // Test status change
+        const { error: statusError } = await supabase
+          .from('tournament_registrations')
+          .update({ registration_status: 'confirmed' })
+          .eq('id', testRegistration.id);
+        
+        if (statusError) throw statusError;
+        localAddLog(`✅ Player status updated successfully`);
+      }
+    } catch (error) {
+      localAddLog(`❌ Player management test failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
+  };
+
+  const testMatchManagement = async () => {
+    localAddLog('⚾ Testing match management & overrides...');
+    
+    try {
+      // Test viewing tournament matches
+      const { data: matches, error: matchError } = await supabase
+        .from('tournament_matches')
+        .select(`
+          *,
+          player1:profiles!tournament_matches_player1_id_fkey(display_name),
+          player2:profiles!tournament_matches_player2_id_fkey(display_name)
+        `)
+        .limit(5);
+      
+      if (matchError) throw matchError;
+      
+      localAddLog(`🎯 Found ${matches?.length || 0} tournament matches to test`);
+      
+      // Test admin match override
+      if (matches?.length > 0) {
+        const testMatch = matches[0];
+        
+        const { error: overrideError } = await supabase
+          .from('tournament_matches')
+          .update({
+            notes: 'Modified by admin audit',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', testMatch.id);
+        
+        if (overrideError) throw overrideError;
+        localAddLog(`✅ Match override successful`);
+      }
+    } catch (error) {
+      localAddLog(`❌ Match management test failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
+  };
+
+  const testRealtimeMonitoring = async () => {
+    localAddLog('📡 Testing real-time monitoring capabilities...');
+    
+    try {
+      // Test real-time subscriptions
+      const channel = supabase
+        .channel('admin-monitoring')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'tournaments' },
+          (payload) => localAddLog(`🔔 Tournament change detected: ${payload.eventType}`)
+        )
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'tournament_matches' },
+          (payload) => localAddLog(`🔔 Match change detected: ${payload.eventType}`)
+        )
+        .subscribe();
+      
+      localAddLog(`✅ Real-time monitoring active`);
+      
+      // Cleanup after test
+      setTimeout(() => {
+        channel.unsubscribe();
+        localAddLog(`📡 Real-time monitoring stopped`);
+      }, 3000);
+    } catch (error) {
+      localAddLog(`❌ Real-time monitoring test failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
+  };
+
+  const testAnalyticsReporting = async () => {
+    localAddLog('📈 Testing analytics & reporting functions...');
+    
+    try {
+      // Test tournament statistics
+      const { count: totalTournaments } = await supabase
+        .from('tournaments')
+        .select('*', { count: 'exact', head: true });
+      
+      const { count: activeTournaments } = await supabase
+        .from('tournaments')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['registration_open', 'ongoing']);
+      
+      const { count: totalMatches } = await supabase
+        .from('tournament_matches')
+        .select('*', { count: 'exact', head: true });
+      
+      const { count: completedMatches } = await supabase
+        .from('tournament_matches')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'completed');
+      
+      localAddLog(`📊 Tournament Analytics:`);
+      localAddLog(`   Total Tournaments: ${totalTournaments || 0}`);
+      localAddLog(`   Active Tournaments: ${activeTournaments || 0}`);
+      localAddLog(`   Total Matches: ${totalMatches || 0}`);
+      localAddLog(`   Completed Matches: ${completedMatches || 0}`);
+    } catch (error) {
+      localAddLog(`❌ Analytics test failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
+  };
+
+  const testSystemHealth = async () => {
+    localAddLog('🏥 Testing system health checks...');
+    
+    try {
+      // Test database connections
+      const { error: dbError } = await supabase
+        .from('tournaments')
+        .select('id')
+        .limit(1);
+      
+      if (dbError) throw dbError;
+      localAddLog(`✅ Database connection healthy`);
+      
+      // Test admin permissions
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        localAddLog(`❌ No authenticated user found`, 'error');
+        return;
+      }
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, is_admin')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (profile?.is_admin) {
+        localAddLog(`✅ Admin permissions verified`);
+      } else {
+        localAddLog(`⚠️ Admin permissions may be missing or not properly configured`);
+      }
+    } catch (error) {
+      localAddLog(`❌ System health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold">🔍 Admin Panel Comprehensive Audit</h2>
+      <div className="bg-yellow-50 p-3 rounded border border-yellow-200">
+        <p className="text-sm text-yellow-800">
+          This audit will test all admin functions with the tournament system. 
+          Monitor the logs to verify each capability.
+        </p>
+      </div>
+      
+      <Button 
+        onClick={runComprehensiveAudit}
+        disabled={isAuditing}
+        className="w-full bg-blue-600 hover:bg-blue-700"
+      >
+        {isAuditing ? '🔄 Running Audit...' : '🚀 Run Complete Admin Audit'}
+      </Button>
+      
+      {auditResults.length > 0 && (
+        <div className="bg-gray-50 p-3 rounded-lg max-h-60 overflow-y-auto">
+          <h4 className="font-medium mb-2">Audit Results:</h4>
+          {auditResults.map((result, i) => (
+            <div key={i} className="text-sm font-mono text-gray-700">{result}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Admin Capability Matrix Component
+const AdminCapabilityMatrix = () => {
+  const capabilities = [
+    { category: 'Tournament Management', items: [
+      'View all tournaments',
+      'Create tournaments', 
+      'Edit tournament details',
+      'Change tournament status',
+      'Delete tournaments',
+      'Force tournament transitions'
+    ]},
+    { category: 'Player Management', items: [
+      'View all registrations',
+      'Approve/reject registrations',
+      'Add players manually',
+      'Remove players',
+      'Change player status',
+      'Player substitution'
+    ]},
+    { category: 'Match Management', items: [
+      'View all matches',
+      'Override match results',
+      'Reschedule matches',
+      'Add match notes',
+      'Force match completion',
+      'Generate brackets'
+    ]},
+    { category: 'System Monitoring', items: [
+      'Real-time updates',
+      'System health checks',
+      'Performance monitoring',
+      'Error tracking',
+      'Audit logs',
+      'Database status'
+    ]}
+  ];
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-xl font-semibold">🎛️ Admin Capability Matrix</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {capabilities.map(category => (
+          <div key={category.category} className="border rounded-lg p-4 bg-white">
+            <h4 className="font-semibold mb-3 text-primary">{category.category}</h4>
+            <div className="space-y-2">
+              {category.items.map(item => (
+                <div key={item} className="flex items-center gap-2 text-sm">
+                  <span className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></span>
+                  <span className="text-gray-700">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="bg-blue-50 p-3 rounded border border-blue-200">
+        <p className="text-sm text-blue-800">
+          ✅ All capabilities above should be tested and verified through the admin audit.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // FINAL INTEGRATION - Complete Testing Dashboard
 const CompleteTournamentTester = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -958,7 +1371,9 @@ const CompleteTournamentTester = () => {
     { id: 4, name: 'Admin Controls', component: AdminTournamentControls, requiresTournament: true },
     { id: 5, name: 'User Experience', component: UserExperienceTester, requiresTournament: true },
     { id: 6, name: 'Scale Testing', component: ScalePerformanceTester, requiresTournament: false },
-    { id: 7, name: 'Data Cleanup', component: DataCleanupTools, requiresTournament: false }
+    { id: 7, name: 'Data Cleanup', component: DataCleanupTools, requiresTournament: false },
+    { id: 8, name: 'Admin Audit', component: AdminTournamentAudit, requiresTournament: false },
+    { id: 9, name: 'Admin Capabilities', component: AdminCapabilityMatrix, requiresTournament: false }
   ];
 
   const markStepCompleted = (stepId: number) => {
