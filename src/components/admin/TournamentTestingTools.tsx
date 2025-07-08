@@ -61,7 +61,9 @@ const TournamentTestingTools = () => {
         skill_level: ['beginner', 'intermediate', 'advanced'][i % 3],
         city: 'Hồ Chí Minh',
         district: 'Quận 1',
-        bio: `Auto-generated test user ${i + 1} for tournament testing`
+        bio: `Auto-generated test user ${i + 1} for tournament testing - NO WALLET NEEDED`,
+        // Explicitly avoid any fields that might trigger wallet creation
+        activity_status: 'active'
       }));
 
       const { data: users, error: userError } = await supabase
