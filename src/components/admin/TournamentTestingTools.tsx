@@ -97,8 +97,9 @@ const TournamentTestingTools = () => {
       addLog('📝 Đăng ký users vào giải đấu...');
       const registrations = users.map(user => ({
         tournament_id: selectedTournament,
-        user_id: user.user_id, // Use user_id not player_id
-        status: 'confirmed',
+        player_id: user.user_id, // Correct field name is player_id
+        registration_status: 'confirmed',
+        payment_status: 'paid',
         registration_date: new Date().toISOString()
       }));
 
@@ -115,7 +116,8 @@ const TournamentTestingTools = () => {
         .from('tournaments')
         .update({
           current_participants: 16,
-          status: 'registration_closed'
+          status: 'registration_closed',
+          management_status: 'locked'
         })
         .eq('id', selectedTournament);
 
@@ -151,15 +153,50 @@ const TournamentTestingTools = () => {
     try {
       addLog('🧹 Bắt đầu xóa test data...');
       
-      // Delete test users (profiles with bio containing 'Auto-generated test user')
-      const { error } = await supabase
+      // First get test user IDs
+      const { data: testUsers, error: getUserError } = await supabase
         .from('profiles')
-        .delete()
+        .select('user_id')
         .like('bio', '%Auto-generated test user%');
 
-      if (error) throw error;
+      if (getUserError) throw getUserError;
       
-      addLog('✅ Test data đã được xóa', 'success');
+      if (testUsers && testUsers.length > 0) {
+        const testUserIds = testUsers.map(u => u.user_id);
+        
+        // Delete tournament registrations first
+        const { error: regError } = await supabase
+          .from('tournament_registrations')
+          .delete()
+          .in('player_id', testUserIds);
+
+        if (regError) {
+          addLog(`⚠️ Lỗi xóa registrations: ${regError.message}`, 'error');
+        }
+
+        // Delete rankings
+        const { error: rankError } = await supabase
+          .from('player_rankings')
+          .delete()
+          .in('player_id', testUserIds);
+
+        if (rankError) {
+          addLog(`⚠️ Lỗi xóa rankings: ${rankError.message}`, 'error');
+        }
+
+        // Delete test users
+        const { error: userError } = await supabase
+          .from('profiles')
+          .delete()
+          .like('bio', '%Auto-generated test user%');
+
+        if (userError) throw userError;
+        
+        addLog(`✅ Đã xóa ${testUsers.length} test users và related data`, 'success');
+      } else {
+        addLog('ℹ️ Không tìm thấy test users để xóa', 'info');
+      }
+      
       toast.success('Test data đã được xóa');
       loadTournaments(); // Refresh tournament list
     } catch (error) {

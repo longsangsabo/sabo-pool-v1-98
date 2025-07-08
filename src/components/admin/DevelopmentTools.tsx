@@ -9,6 +9,7 @@ import QuickClubCreator from './QuickClubCreator';
 import TestDataPopulator from './TestDataPopulator';
 import DatabaseResetTools from './DatabaseResetTools';
 import TournamentTestingTools from './TournamentTestingTools';
+import QuickTournamentCreator from './QuickTournamentCreator';
 
 const DevelopmentTools = () => {
   const { t } = useLanguage();
@@ -45,6 +46,7 @@ const DevelopmentTools = () => {
         </TabsContent>
         
         <TabsContent value="tournaments" className="space-y-4">
+          <QuickTournamentCreator />
           <TournamentTestingTools />
         </TabsContent>
         
