@@ -68,6 +68,28 @@ export const TournamentSelectionStep: React.FC<TournamentSelectionStepProps> = (
     addLog('🔧 Generating sample bracket...', 'info');
 
     try {
+      // Debug: Check tournament exists
+      const { data: tournament, error: tournamentError } = await supabase
+        .from('tournaments')
+        .select('*')
+        .eq('id', selectedTournament)
+        .single();
+      
+      if (tournamentError) {
+        addLog(`❌ Tournament not found: ${tournamentError.message}`, 'error');
+        return;
+      }
+      
+      addLog(`🎯 Tournament found: ${tournament.name}`, 'info');
+      
+      // Debug: Check existing matches BEFORE generation
+      const { count: existingMatches } = await supabase
+        .from('tournament_matches')
+        .select('*', { count: 'exact', head: true })
+        .eq('tournament_id', selectedTournament);
+      
+      addLog(`📊 Existing matches before: ${existingMatches || 0}`, 'info');
+
       const { data, error } = await supabase.rpc('generate_advanced_tournament_bracket', {
         p_tournament_id: selectedTournament,
         p_seeding_method: 'elo_ranking',
@@ -76,7 +98,21 @@ export const TournamentSelectionStep: React.FC<TournamentSelectionStepProps> = (
 
       if (error) throw error;
 
-      addLog('✅ Sample bracket generated successfully!', 'success');
+      addLog(`🔧 Bracket function result: ${JSON.stringify(data)}`, 'info');
+      
+      // Debug: Check matches AFTER generation
+      const { count: newMatches } = await supabase
+        .from('tournament_matches')
+        .select('*', { count: 'exact', head: true })
+        .eq('tournament_id', selectedTournament);
+      
+      addLog(`📊 Matches after generation: ${newMatches || 0}`, 'info');
+      
+      if ((newMatches || 0) > (existingMatches || 0)) {
+        addLog(`✅ Sample bracket generated successfully! Created ${(newMatches || 0) - (existingMatches || 0)} matches`, 'success');
+      } else {
+        addLog(`⚠️ No new matches created. Function may have failed silently.`, 'error');
+      }
       
       // Auto-load bracket after generation
       setTimeout(() => loadBracket(), 1000);
