@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
-import { UserPlus, Play, CheckCircle, Loader2, Shield } from 'lucide-react';
+import { UserPlus, Play, CheckCircle, Loader2, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/hooks/useAuth';
 
 const QuickRealUserCreator = () => {
-  const { t } = useLanguage();
+  const { user: currentUser } = useAuth();
   const [userCount, setUserCount] = useState(5);
   const [skillDistribution, setSkillDistribution] = useState('mixed');
   const [isCreating, setIsCreating] = useState(false);
@@ -20,16 +19,12 @@ const QuickRealUserCreator = () => {
   const [currentStep, setCurrentStep] = useState('');
   const [logs, setLogs] = useState<Array<{message: string, type: 'info' | 'error' | 'success', timestamp: string}>>([]);
   const [createdUsers, setCreatedUsers] = useState<any[]>([]);
-  
-  // Admin controls
-  const [skipEmailVerification, setSkipEmailVerification] = useState(true);
-  const [autoConfirmUsers, setAutoConfirmUsers] = useState(true);
-  const [batchMode, setBatchMode] = useState(false);
 
   const vietnamesePrefixes = ['Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Huỳnh', 'Phan', 'Vũ', 'Võ', 'Đặng'];
   const vietnameseFirstNames = ['Văn', 'Thị', 'Minh', 'Tuấn', 'Hương', 'Lan', 'Hùng', 'Linh', 'Nam', 'Mai'];
   const vietnameseLastNames = ['An', 'Bình', 'Cường', 'Dũng', 'Hải', 'Khoa', 'Long', 'Phong', 'Quân', 'Sơn'];
   const skillLevels = ['beginner', 'intermediate', 'advanced', 'professional'];
+  const cities = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'Hải Phòng', 'Nha Trang', 'Vũng Tàu'];
 
   const generateVietnameseName = () => {
     const prefix = vietnamesePrefixes[Math.floor(Math.random() * vietnamesePrefixes.length)];
@@ -60,7 +55,6 @@ const QuickRealUserCreator = () => {
     setLogs(prev => [...prev, { message, type, timestamp }]);
   };
 
-
   const createRealUsers = async () => {
     setIsCreating(true);
     setProgress(0);
@@ -69,7 +63,7 @@ const QuickRealUserCreator = () => {
     setCreatedUsers([]);
 
     try {
-      addLog('🚀 Bắt đầu tạo user thực (Backend API)...', 'info');
+      addLog('🚀 Bắt đầu tạo user theo quy trình đầy đủ...', 'info');
       addLog(`📊 Số lượng: ${userCount} users`, 'info');
       setCurrentStep('Khởi tạo...');
       
@@ -77,12 +71,13 @@ const QuickRealUserCreator = () => {
 
       for (let i = 0; i < userCount; i++) {
         setCurrentStep(`Tạo user ${i + 1}/${userCount}...`);
-        addLog(`👤 Tạo user ${i + 1}: Bắt đầu...`, 'info');
+        addLog(`👤 User ${i + 1}: Bắt đầu quy trình...`, 'info');
         
         const fullName = generateVietnameseName();
         const phone = generatePhoneNumber();
         const email = generateEmail(fullName);
-        const password = 'Demo123!@#'; // Simple password for demo users
+        const password = 'Demo123!@#';
+        const city = cities[Math.floor(Math.random() * cities.length)];
         
         let skillLevel = 'beginner';
         if (skillDistribution === 'mixed') {
@@ -91,49 +86,113 @@ const QuickRealUserCreator = () => {
           skillLevel = skillDistribution;
         }
 
-        addLog(`🔧 Gọi Edge Function để tạo: ${email}`, 'info');
-
         try {
-          // Call Edge Function to create user (no redirect, no session change)
-          const { data, error } = await supabase.functions.invoke('create-admin-user', {
-            body: {
-              email,
-              password,
-              fullName,
-              phone,
-              skillLevel,
-              autoConfirm: autoConfirmUsers
+          // Bước 1: Tạo Auth User
+          addLog(`1️⃣ Tạo tài khoản auth: ${email}`, 'info');
+          const { data: authData, error: authError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                full_name: fullName,
+                phone: phone
+              }
             }
           });
 
-          if (error) {
-            addLog(`❌ Edge Function error user ${i + 1}: ${error.message}`, 'error');
-            console.error(`Lỗi Edge Function user ${i + 1}:`, error);
+          if (authError) {
+            addLog(`❌ Lỗi auth user ${i + 1}: ${authError.message}`, 'error');
             continue;
           }
 
-          if (data?.error) {
-            addLog(`❌ Lỗi tạo user ${i + 1}: ${data.error}`, 'error');
-            console.error(`Lỗi tạo user ${i + 1}:`, data.error);
+          if (!authData.user) {
+            addLog(`❌ Không tạo được auth user ${i + 1}`, 'error');
             continue;
           }
 
-          if (data?.success && data?.user) {
-            addLog(`✅ Hoàn thành user ${i + 1}: ${fullName}`, 'success');
-            
-            createdUsersList.push({
-              id: data.user.id,
-              email: data.user.email,
-              phone: data.user.phone,
-              full_name: data.user.full_name,
-              skill_level: data.user.skill_level,
-              confirmed: data.user.confirmed
+          addLog(`✅ Auth user tạo thành công: ${authData.user.id}`, 'success');
+
+          // Logout ngay để không bị auto-login
+          await supabase.auth.signOut();
+
+          // Bước 2: Tạo Profile (đợi trigger tự động tạo hoặc tạo thủ công)
+          addLog(`2️⃣ Cập nhật profile...`, 'info');
+          
+          // Đợi một chút để trigger tự động chạy
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          // Cập nhật profile với thông tin đầy đủ
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              user_id: authData.user.id,
+              full_name: fullName,
+              display_name: fullName.split(' ').slice(-2).join(' '),
+              phone: phone,
+              role: 'player',
+              skill_level: skillLevel,
+              city: city,
+              district: `Quận ${Math.floor(Math.random() * 12) + 1}`,
+              bio: `Demo user - ${skillLevel} level`,
+              experience_years: Math.floor(Math.random() * 10) + 1
             });
+
+          if (profileError) {
+            addLog(`⚠️ Profile warning: ${profileError.message}`, 'error');
+          } else {
+            addLog(`✅ Profile cập nhật thành công`, 'success');
           }
 
-        } catch (functionError) {
-          addLog(`❌ Function call error user ${i + 1}: ${functionError.message}`, 'error');
-          console.error(`Lỗi gọi function cho user ${i + 1}:`, functionError);
+          // Bước 3: Tạo Player Ranking
+          addLog(`3️⃣ Tạo player ranking...`, 'info');
+          const { error: rankingError } = await supabase
+            .from('player_rankings')
+            .upsert({
+              player_id: authData.user.id,
+              elo: 800 + Math.floor(Math.random() * 400), // 800-1200
+              spa_points: Math.floor(Math.random() * 100),
+              total_matches: Math.floor(Math.random() * 20),
+              wins: Math.floor(Math.random() * 15),
+              losses: Math.floor(Math.random() * 10),
+            });
+
+          if (rankingError) {
+            addLog(`⚠️ Ranking warning: ${rankingError.message}`, 'error');
+          } else {
+            addLog(`✅ Player ranking tạo thành công`, 'success');
+          }
+
+          // Bước 4: Tạo Wallet (tùy chọn)
+          addLog(`4️⃣ Khởi tạo wallet...`, 'info');
+          const { error: walletError } = await supabase
+            .from('wallets')
+            .upsert({
+              user_id: authData.user.id,
+              balance: Math.floor(Math.random() * 50000), // 0-50k VNĐ
+              currency: 'VND'
+            });
+
+          if (walletError) {
+            addLog(`⚠️ Wallet warning: ${walletError.message}`, 'error');
+          } else {
+            addLog(`✅ Wallet khởi tạo thành công`, 'success');
+          }
+
+          addLog(`🎉 Hoàn thành user ${i + 1}: ${fullName}`, 'success');
+          
+          createdUsersList.push({
+            id: authData.user.id,
+            email: authData.user.email,
+            phone: phone,
+            full_name: fullName,
+            skill_level: skillLevel,
+            city: city,
+            ready_for_tournament: true
+          });
+
+        } catch (userError) {
+          addLog(`❌ Lỗi tạo user ${i + 1}: ${userError.message}`, 'error');
+          console.error(`Lỗi tạo user ${i + 1}:`, userError);
           continue;
         }
 
@@ -141,9 +200,10 @@ const QuickRealUserCreator = () => {
       }
 
       setCurrentStep('Hoàn thành!');
-      addLog(`🏁 Tạo thành công ${createdUsersList.length}/${userCount} users thực!`, 'success');
+      addLog(`🏁 Tạo thành công ${createdUsersList.length}/${userCount} users hoàn chỉnh!`, 'success');
+      addLog(`🎯 Users đã sẵn sàng tham gia giải đấu!`, 'success');
       setCreatedUsers(createdUsersList);
-      toast.success(`Thành công tạo ${createdUsersList.length} user thực!`);
+      toast.success(`Thành công tạo ${createdUsersList.length} user hoàn chỉnh!`);
 
     } catch (error) {
       console.error('Lỗi tạo users:', error);
@@ -158,13 +218,28 @@ const QuickRealUserCreator = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <UserPlus className="h-5 w-5" />
-          Tạo User Thực Nhanh
+          Tạo User Hoàn Chỉnh
         </CardTitle>
         <CardDescription>
-          Tạo user thực thông qua Supabase Auth với profile và wallet tự động
+          Tạo user với quy trình đầy đủ: Auth → Profile → Ranking → Wallet → Sẵn sàng tham gia giải
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Quy trình Info */}
+        <div className="border rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20">
+          <div className="flex items-center gap-2 mb-3">
+            <Info className="h-4 w-4 text-blue-600" />
+            <h3 className="font-medium text-blue-800 dark:text-blue-300">Quy trình tạo User</h3>
+          </div>
+          <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+            <div>1️⃣ <strong>Auth User:</strong> Email + Password (Demo123!@#)</div>
+            <div>2️⃣ <strong>Profile:</strong> Tên, SĐT, Skill Level, Địa chỉ</div>
+            <div>3️⃣ <strong>Player Ranking:</strong> ELO (800-1200), SPA Points</div>
+            <div>4️⃣ <strong>Wallet:</strong> Số dư ban đầu (0-50k VNĐ)</div>
+            <div>✅ <strong>Kết quả:</strong> User sẵn sàng tham gia giải đấu</div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="userCount">Số lượng user</Label>
@@ -172,7 +247,7 @@ const QuickRealUserCreator = () => {
               id="userCount"
               type="number"
               min="1"
-              max="20"
+              max="10"
               value={userCount}
               onChange={(e) => setUserCount(Number(e.target.value))}
             />
@@ -195,53 +270,6 @@ const QuickRealUserCreator = () => {
           </div>
         </div>
 
-        {/* Admin Controls */}
-        <div className="border rounded-lg p-4 bg-amber-50 dark:bg-amber-900/20">
-          <div className="flex items-center gap-2 mb-3">
-            <Shield className="h-4 w-4 text-amber-600" />
-            <h3 className="font-medium text-amber-800 dark:text-amber-300">Admin Controls</h3>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="skipEmailVerification" 
-                checked={skipEmailVerification}
-                onCheckedChange={(checked) => setSkipEmailVerification(checked as boolean)}
-              />
-              <Label htmlFor="skipEmailVerification" className="text-sm">
-                Bỏ qua xác thực email (Testing)
-              </Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="autoConfirmUsers" 
-                checked={autoConfirmUsers}
-                onCheckedChange={(checked) => setAutoConfirmUsers(checked as boolean)}
-              />
-              <Label htmlFor="autoConfirmUsers" className="text-sm">
-                Tự động kích hoạt users
-              </Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="batchMode" 
-                checked={batchMode}
-                onCheckedChange={(checked) => setBatchMode(checked as boolean)}
-              />
-              <Label htmlFor="batchMode" className="text-sm">
-                Chế độ batch (Nhanh hơn)
-              </Label>
-            </div>
-          </div>
-          
-          <p className="text-xs text-amber-700 dark:text-amber-400 mt-2">
-            ⚠️ Chỉ dùng cho testing. Skip email verification sẽ tạo users có thể đăng nhập ngay.
-          </p>
-        </div>
-
         {isCreating && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -254,7 +282,7 @@ const QuickRealUserCreator = () => {
 
         <Button 
           onClick={createRealUsers} 
-          disabled={isCreating || userCount < 1 || userCount > 20}
+          disabled={isCreating || userCount < 1 || userCount > 10}
           className="w-full"
         >
           {isCreating ? (
@@ -265,7 +293,7 @@ const QuickRealUserCreator = () => {
           ) : (
             <>
               <Play className="h-4 w-4 mr-2" />
-              Tạo {userCount} User Thực
+              Tạo {userCount} User Hoàn Chỉnh
             </>
           )}
         </Button>
@@ -283,22 +311,11 @@ const QuickRealUserCreator = () => {
               </div>
             )}
 
-            {/* Detailed Progress Bar */}
-            {isCreating && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs text-gray-600">
-                  <span>Tiến độ tổng thể</span>
-                  <span>{progress.toFixed(0)}%</span>
-                </div>
-                <Progress value={progress} className="w-full h-2" />
-              </div>
-            )}
-
-            {/* Real-time Logs - Always Visible */}
+            {/* Real-time Logs */}
             <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border max-h-60 overflow-y-auto">
               <div className="flex justify-between items-center mb-3">
                 <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">
-                  Debug Logs ({logs.length})
+                  Quy trình tạo User ({logs.length} logs)
                 </h4>
                 {logs.length > 0 && (
                   <button 
@@ -344,15 +361,16 @@ const QuickRealUserCreator = () => {
               <h3 className="font-medium text-green-800">Tạo thành công!</h3>
             </div>
             <p className="text-sm text-green-700 mb-3">
-              Đã tạo {createdUsers.length} user thực với email/password: <strong>Demo123!@#</strong>
-              {autoConfirmUsers && <span className="block text-xs mt-1">✅ Users đã được admin kích hoạt - có thể đăng nhập ngay!</span>}
+              Đã tạo {createdUsers.length} user hoàn chỉnh với password: <strong>Demo123!@#</strong>
+              <span className="block text-xs mt-1">🎯 Users đã sẵn sàng tham gia giải đấu!</span>
             </p>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {createdUsers.map((user, index) => (
                 <div key={user.id} className="text-xs bg-white p-2 rounded border">
-                  <div><strong>{user.full_name}</strong></div>
-                  <div>Email: {user.email}</div>
-                  <div>SĐT: {user.phone} | Skill: {user.skill_level}</div>
+                  <div><strong>{user.full_name}</strong> ({user.city})</div>
+                  <div>📧 {user.email}</div>
+                  <div>📱 {user.phone} | 🏆 {user.skill_level}</div>
+                  <div className="text-green-600">✅ Sẵn sàng tham gia giải</div>
                 </div>
               ))}
             </div>
