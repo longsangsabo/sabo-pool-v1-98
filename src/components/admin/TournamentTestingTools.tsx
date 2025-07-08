@@ -103,22 +103,26 @@ const TournamentTestingTools = () => {
         addLog('✅ Ranking được tạo thành công');
       }
 
-      // Step 3: Register users to tournament
+      // Step 3: Register users to tournament using admin function
       addLog('📝 Đăng ký users vào giải đấu...');
-      const registrations = users.map(user => ({
-        tournament_id: selectedTournament,
-        player_id: user.user_id, // Correct field name is player_id
-        registration_status: 'confirmed',
-        payment_status: 'paid',
-        registration_date: new Date().toISOString()
-      }));
-
-      const { error: regError } = await supabase
-        .from('tournament_registrations')
-        .insert(registrations);
+      const testUserIds = users.map(user => user.user_id);
+      
+      const { data: regResult, error: regError } = await supabase
+        .rpc('admin_register_test_users_to_tournament', {
+          p_tournament_id: selectedTournament,
+          p_test_user_ids: testUserIds
+        });
 
       if (regError) throw regError;
-      addLog(`✅ Đã đăng ký ${registrations.length} users vào giải`);
+      
+      // Type cast the result since RPC returns Json type
+      const regResultData = regResult as any;
+      
+      if (!regResultData.success) {
+        throw new Error(regResultData.error || 'Failed to register test users');
+      }
+      
+      addLog(`✅ Đã đăng ký ${regResultData.registrations_created} users vào giải`);
 
       // Step 4: Update tournament status
       addLog('🔄 Cập nhật trạng thái giải đấu...');

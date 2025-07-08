@@ -4998,6 +4998,10 @@ export type Database = {
         Args: { user_data: Json[] }
         Returns: Json
       }
+      admin_register_test_users_to_tournament: {
+        Args: { p_tournament_id: string; p_test_user_ids: string[] }
+        Returns: Json
+      }
       apply_automatic_penalty: {
         Args: { player_uuid: string }
         Returns: undefined
