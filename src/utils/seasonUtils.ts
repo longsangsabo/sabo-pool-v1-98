@@ -105,13 +105,15 @@ export async function getPlayerSeasonStats(playerId: string): Promise<{
       ? Math.round((ranking.wins / ranking.total_matches) * 100)
       : 0;
 
+    const rankData = Array.isArray(ranking.ranks) ? ranking.ranks[0] : ranking.ranks;
+    
     return {
       totalSPAPoints: ranking.spa_points || 0,
       rankPoints: ranking.rank_points || 0,
       totalMatches: ranking.total_matches || 0,
       wins: ranking.wins || 0,
       winRate,
-      currentRank: ranking.ranks?.code || 'K',
+      currentRank: rankData?.code || 'K',
       promotions: promotions || 0
     };
   } catch (error) {

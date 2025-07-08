@@ -220,13 +220,14 @@ export function RankingSystemTest() {
         .single();
 
       const duration = Date.now() - startTime;
-      const wasPromoted = ranking?.ranks?.code === 'K+';
+      const rankData = Array.isArray(ranking?.ranks) ? ranking?.ranks[0] : ranking?.ranks;
+      const wasPromoted = rankData?.code === 'K+';
       
       updateTestResult({
         test: 'Rank Promotion',
         status: wasPromoted ? 'PASS' : 'FAIL',
         details: { 
-          finalRank: ranking?.ranks?.code,
+          finalRank: rankData?.code,
           finalSPA: ranking?.spa_points,
           expectedRank: 'K+',
           wasPromoted

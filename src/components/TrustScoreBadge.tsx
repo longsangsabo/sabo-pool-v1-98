@@ -65,7 +65,10 @@ const TrustScoreBadge = ({ playerId, showFullDetails = false, className = '' }: 
       if (data && data.length > 0) {
         const verification = data[0];
         if (verification && verification.club_profiles) {
-          setVerifiedByClub(verification.club_profiles.club_name);
+          const clubProfile = Array.isArray(verification.club_profiles) 
+            ? verification.club_profiles[0] 
+            : verification.club_profiles;
+          setVerifiedByClub(clubProfile?.club_name);
         }
       }
     } catch (error) {

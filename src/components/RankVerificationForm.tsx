@@ -89,7 +89,14 @@ const RankVerificationForm = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setVerifications(data || []);
+      
+      // Transform the data to handle the club_profiles join correctly
+      const transformedData = (data || []).map(item => ({
+        ...item,
+        club_profiles: Array.isArray(item.club_profiles) ? item.club_profiles[0] : item.club_profiles
+      }));
+      
+      setVerifications(transformedData);
     } catch (error) {
       console.error('Error fetching verifications:', error);
     }
