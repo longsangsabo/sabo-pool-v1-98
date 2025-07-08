@@ -60,28 +60,6 @@ const QuickRealUserCreator = () => {
     setLogs(prev => [...prev, { message, type, timestamp }]);
   };
 
-  // Admin function to confirm user email (bypass verification)
-  const confirmUserEmail = async (userId: string, email: string) => {
-    try {
-      addLog(`🔧 Admin confirming email for: ${email}`, 'info');
-      
-      // Use admin API to confirm user
-      const { error } = await supabase.auth.admin.updateUserById(userId, {
-        email_confirm: true
-      });
-
-      if (error) {
-        addLog(`❌ Admin confirm failed: ${error.message}`, 'error');
-        return false;
-      }
-
-      addLog(`✅ Admin confirmed user email: ${email}`, 'success');
-      return true;
-    } catch (error) {
-      addLog(`❌ Admin confirm error: ${error.message}`, 'error');
-      return false;
-    }
-  };
 
   const createRealUsers = async () => {
     setIsCreating(true);
@@ -91,7 +69,7 @@ const QuickRealUserCreator = () => {
     setCreatedUsers([]);
 
     try {
-      addLog('🚀 Bắt đầu tạo user thực...', 'info');
+      addLog('🚀 Bắt đầu tạo user thực (Backend API)...', 'info');
       addLog(`📊 Số lượng: ${userCount} users`, 'info');
       setCurrentStep('Khởi tạo...');
       
@@ -113,94 +91,50 @@ const QuickRealUserCreator = () => {
           skillLevel = skillDistribution;
         }
 
-        addLog(`📧 Đăng ký user cho: ${email}`, 'info');
+        addLog(`🔧 Gọi Edge Function để tạo: ${email}`, 'info');
 
-        // Create user without affecting current session
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              full_name: fullName,
-              phone: phone,
-            },
-          },
-        });
-
-        if (authError) {
-          addLog(`❌ Lỗi Auth user ${i + 1}: ${authError.message}`, 'error');
-          console.error(`Lỗi tạo user ${i + 1}:`, authError);
-          toast.error(`Lỗi tạo user ${i + 1}: ${authError.message}`);
-          continue;
-        }
-
-        addLog(`✅ Auth thành công cho user ${i + 1}`, 'success');
-
-        // Admin auto-confirm email if enabled
-        if (autoConfirmUsers && authData.user && !authData.user.email_confirmed_at) {
-          addLog(`🔧 Admin auto-confirming user ${i + 1}...`, 'info');
-          await confirmUserEmail(authData.user.id, email);
-        }
-
-        if (authData.user) {
-          addLog(`📝 Tạo profile cho user ${i + 1}...`, 'info');
-          // Create profile for the user (email is already in auth.users)
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              user_id: authData.user.id,
-              phone: phone,
-              display_name: fullName.split(' ').slice(-2).join(' '),
-              full_name: fullName,
-              role: 'player',
-              skill_level: skillLevel,
-              city: ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'Hải Phòng'][Math.floor(Math.random() * 5)],
-              district: `Quận ${Math.floor(Math.random() * 12) + 1}`,
-              bio: `Demo user - ${skillLevel} level`,
-              // email is stored in auth.users, not profiles
-            });
-
-          if (profileError) {
-            addLog(`❌ Database error saving new user ${i + 1}: ${profileError.message}`, 'error');
-            addLog(`📋 Chi tiết lỗi profile: ${JSON.stringify(profileError)}`, 'error');
-            console.error(`Lỗi tạo profile cho user ${i + 1}:`, profileError);
-            continue; // Skip to next user if profile creation fails
-          } else {
-            addLog(`✅ Profile user ${i + 1} thành công`, 'success');
-          }
-
-          addLog(`🏆 Tạo ranking cho user ${i + 1}...`, 'info');
-          // Create initial ranking
-          const { error: rankingError } = await supabase
-            .from('player_rankings')
-            .insert({
-              player_id: authData.user.id,
-              elo: 800 + Math.floor(Math.random() * 400),
-              spa_points: Math.floor(Math.random() * 100),
-              total_matches: Math.floor(Math.random() * 20),
-              wins: Math.floor(Math.random() * 15),
-              losses: Math.floor(Math.random() * 10),
-            });
-
-          if (rankingError) {
-            addLog(`❌ Database error saving new user ${i + 1}: ${rankingError.message}`, 'error');
-            addLog(`📋 Chi tiết lỗi ranking: ${JSON.stringify(rankingError)}`, 'error');
-            console.error(`Lỗi tạo ranking cho user ${i + 1}:`, rankingError);
-            // Don't continue here - ranking is optional
-          } else {
-            addLog(`✅ Ranking user ${i + 1} thành công`, 'success');
-          }
-
-          createdUsersList.push({
-            id: authData.user.id,
-            email,
-            phone,
-            full_name: fullName,
-            skill_level: skillLevel,
+        try {
+          // Call Edge Function to create user (no redirect, no session change)
+          const { data, error } = await supabase.functions.invoke('create-admin-user', {
+            body: {
+              email,
+              password,
+              fullName,
+              phone,
+              skillLevel,
+              autoConfirm: autoConfirmUsers
+            }
           });
 
-          addLog(`🎉 Hoàn thành user ${i + 1}: ${fullName}`, 'success');
+          if (error) {
+            addLog(`❌ Edge Function error user ${i + 1}: ${error.message}`, 'error');
+            console.error(`Lỗi Edge Function user ${i + 1}:`, error);
+            continue;
+          }
+
+          if (data?.error) {
+            addLog(`❌ Lỗi tạo user ${i + 1}: ${data.error}`, 'error');
+            console.error(`Lỗi tạo user ${i + 1}:`, data.error);
+            continue;
+          }
+
+          if (data?.success && data?.user) {
+            addLog(`✅ Hoàn thành user ${i + 1}: ${fullName}`, 'success');
+            
+            createdUsersList.push({
+              id: data.user.id,
+              email: data.user.email,
+              phone: data.user.phone,
+              full_name: data.user.full_name,
+              skill_level: data.user.skill_level,
+              confirmed: data.user.confirmed
+            });
+          }
+
+        } catch (functionError) {
+          addLog(`❌ Function call error user ${i + 1}: ${functionError.message}`, 'error');
+          console.error(`Lỗi gọi function cho user ${i + 1}:`, functionError);
+          continue;
         }
 
         setProgress(((i + 1) / userCount) * 100);
