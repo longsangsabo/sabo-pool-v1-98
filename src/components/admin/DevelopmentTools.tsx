@@ -8,6 +8,7 @@ import QuickRealUserCreator from './QuickRealUserCreator';
 import QuickClubCreator from './QuickClubCreator';
 import TestDataPopulator from './TestDataPopulator';
 import DatabaseResetTools from './DatabaseResetTools';
+import TournamentTestingTools from './TournamentTestingTools';
 
 const DevelopmentTools = () => {
   const { t } = useLanguage();
@@ -27,9 +28,10 @@ const DevelopmentTools = () => {
       </Alert>
 
       <Tabs defaultValue="users" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="users">{t('admin.bulk_user_gen')}</TabsTrigger>
           <TabsTrigger value="clubs">{t('admin.quick_club')}</TabsTrigger>
+          <TabsTrigger value="tournaments">Tournament Test</TabsTrigger>
           <TabsTrigger value="data">{t('admin.test_data')}</TabsTrigger>
           <TabsTrigger value="reset">{t('admin.db_tools')}</TabsTrigger>
         </TabsList>
@@ -40,6 +42,10 @@ const DevelopmentTools = () => {
         
         <TabsContent value="clubs" className="space-y-4">
           <QuickClubCreator />
+        </TabsContent>
+        
+        <TabsContent value="tournaments" className="space-y-4">
+          <TournamentTestingTools />
         </TabsContent>
         
         <TabsContent value="data" className="space-y-4">
