@@ -49,9 +49,10 @@ const QuickRealUserCreator = () => {
     const cleanName = fullName.toLowerCase()
       .replace(/\s+/g, '')
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, ''); // Remove diacritics
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+      .replace(/[^a-z0-9]/g, ''); // Remove any non-alphanumeric characters
     const randomNum = Math.floor(Math.random() * 1000);
-    return `${cleanName}${randomNum}@demo.sabopool.com`;
+    return `${cleanName || 'user'}${randomNum}@demo.sabopool.com`;
   };
 
   const addLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
