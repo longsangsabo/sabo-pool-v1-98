@@ -55,7 +55,7 @@ const TournamentTestingTools = () => {
       addLog('🔄 Tạo test users bằng cách tránh wallet triggers...');
       
       const fakeUsers = Array.from({length: 16}, (_, i) => ({
-        // Use same UUID pattern but ensure no wallet creation
+        user_id: crypto.randomUUID(),
         phone: `090${String(Date.now() + i).slice(-7)}`,
         full_name: `Test Player ${i + 1}`,
         display_name: `Player${i + 1}`,
@@ -65,7 +65,6 @@ const TournamentTestingTools = () => {
         district: 'Quận 1',
         bio: `Auto-generated test user ${i + 1} for tournament testing - NO WALLET`,
         activity_status: 'active'
-        // CRITICAL: Do NOT include user_id field to avoid foreign key issues
       }));
 
       const { data: users, error: userError } = await supabase
