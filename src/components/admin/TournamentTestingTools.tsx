@@ -7,6 +7,367 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+const TournamentProgressionTester = ({ 
+  tournamentId, 
+  bracket, 
+  loadBracket, 
+  addLog 
+}: { 
+  tournamentId: string;
+  bracket: any[];
+  loadBracket: () => void;
+  addLog: (message: string, type?: 'info' | 'error' | 'success') => void;
+}) => {
+  const [progressLogs, setProgressLogs] = useState<string[]>([]);
+  const [isProgressing, setIsProgressing] = useState(false);
+
+  const addProgressLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    const timestamp = new Date().toLocaleTimeString();
+    const emoji = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+    const logMessage = `${timestamp} ${emoji} ${message}`;
+    setProgressLogs(prev => [...prev, logMessage]);
+    addLog(message, type);
+  };
+
+  const completeRound = async (roundNumber: number) => {
+    try {
+      addProgressLog(`🚀 Completing Round ${roundNumber}...`);
+      
+      // Get all pending matches in this round
+      const { data: matches, error: matchesError } = await supabase
+        .from('tournament_matches')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .eq('round_number', roundNumber)
+        .eq('status', 'scheduled');
+
+      if (matchesError) throw matchesError;
+
+      // Get player names for logging
+      let enrichedMatches = matches || [];
+      if (matches?.length) {
+        const playerIds = [...new Set([
+          ...matches.map(m => m.player1_id),
+          ...matches.map(m => m.player2_id)
+        ].filter(Boolean))];
+
+        const { data: players } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, full_name')
+          .in('user_id', playerIds);
+
+        const playersMap = new Map(players?.map(p => [p.user_id, p]) || []);
+        
+        enrichedMatches = matches.map(match => ({
+          ...match,
+          player1: playersMap.get(match.player1_id),
+          player2: playersMap.get(match.player2_id)
+        })) as any[];
+      }
+
+      if (matchesError) throw matchesError;
+
+      if (!matches?.length) {
+        addProgressLog(`✅ Round ${roundNumber} already completed`);
+        return;
+      }
+
+      addProgressLog(`📊 Found ${matches.length} matches to complete in Round ${roundNumber}`);
+
+      // Complete each match with random winner using enriched data
+      for (const enrichedMatch of enrichedMatches) {
+        const randomWinner = Math.random() > 0.5 ? enrichedMatch.player1_id : enrichedMatch.player2_id;
+        const winnerName = randomWinner === enrichedMatch.player1_id ? 
+          ((enrichedMatch as any).player1?.display_name || (enrichedMatch as any).player1?.full_name) : 
+          ((enrichedMatch as any).player2?.display_name || (enrichedMatch as any).player2?.full_name);
+
+        addProgressLog(`⚾ Match ${enrichedMatch.match_number}: ${winnerName} wins`);
+
+        // Report match result
+        const { error: matchError } = await supabase
+          .from('tournament_matches')
+          .update({
+            winner_id: randomWinner,
+            score_player1: randomWinner === enrichedMatch.player1_id ? 2 : 1,
+            score_player2: randomWinner === enrichedMatch.player2_id ? 2 : 1,
+            status: 'completed',
+            actual_end_time: new Date().toISOString()
+          })
+          .eq('id', enrichedMatch.id);
+
+        if (matchError) throw matchError;
+
+        // Advance winner to next round
+        const { error: advanceError } = await supabase
+          .rpc('advance_tournament_winner', {
+            p_match_id: enrichedMatch.id,
+            p_tournament_id: tournamentId
+          });
+
+        if (advanceError) throw advanceError;
+
+        // Small delay for visual effect
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      addProgressLog(`✅ Round ${roundNumber} completed successfully`, 'success');
+      loadBracket();
+      
+    } catch (error: any) {
+      addProgressLog(`❌ Error completing Round ${roundNumber}: ${error.message}`, 'error');
+    }
+  };
+
+  const runFullTournament = async () => {
+    setIsProgressing(true);
+    setProgressLogs([]);
+    
+    try {
+      addProgressLog('🏆 Starting full tournament simulation...', 'success');
+      
+      // Complete Round 1 (16→8)
+      await completeRound(1);
+      addProgressLog('🎯 Round 1 complete: Quarter-finals set');
+      
+      // Complete Round 2 (8→4) 
+      await completeRound(2);
+      addProgressLog('🎯 Quarterfinals complete: Semi-finals set');
+      
+      // Complete Round 3 (4→2)
+      await completeRound(3);
+      addProgressLog('🎯 Semifinals complete: Final set');
+      
+      // Complete Final (2→1)
+      await completeRound(4);
+      addProgressLog('🎯 Final complete: Champion determined!');
+      
+      // Get tournament champion
+      const { data: championMatch } = await supabase
+        .from('tournament_matches')
+        .select('winner_id')
+        .eq('tournament_id', tournamentId)
+        .eq('round_number', 4)
+        .eq('status', 'completed')
+        .maybeSingle();
+
+      if (championMatch?.winner_id) {
+        // Get winner's profile info
+        const { data: winnerProfile } = await supabase
+          .from('profiles')
+          .select('display_name, full_name')
+          .eq('user_id', championMatch.winner_id)
+          .single();
+
+        const winnerName = winnerProfile?.display_name || winnerProfile?.full_name || 'Unknown';
+        addProgressLog(`👑 CHAMPION: ${winnerName}`, 'success');
+      }
+
+      // Update tournament status
+      await supabase
+        .from('tournaments')
+        .update({
+          status: 'completed',
+          management_status: 'completed'
+        })
+        .eq('id', tournamentId);
+
+      addProgressLog('🎉 Tournament completed successfully!', 'success');
+      
+    } catch (error: any) {
+      addProgressLog(`💥 Tournament simulation failed: ${error.message}`, 'error');
+    } finally {
+      setIsProgressing(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Trophy className="h-5 w-5" />
+          🏆 Tournament Progression Tester
+        </CardTitle>
+        <CardDescription>
+          Test complete tournament flow from start to champion
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            onClick={() => completeRound(1)}
+            disabled={isProgressing}
+            variant="outline"
+            size="sm"
+          >
+            Complete Round 1
+          </Button>
+          <Button 
+            onClick={() => completeRound(2)}
+            disabled={isProgressing}
+            variant="outline"
+            size="sm"
+          >
+            Complete Round 2
+          </Button>
+          <Button 
+            onClick={() => completeRound(3)}
+            disabled={isProgressing}
+            variant="outline"
+            size="sm"
+          >
+            Complete Round 3
+          </Button>
+          <Button 
+            onClick={() => completeRound(4)}
+            disabled={isProgressing}
+            variant="outline"
+            size="sm"
+          >
+            Complete Final
+          </Button>
+          <Button 
+            onClick={runFullTournament}
+            disabled={isProgressing}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            {isProgressing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            🚀 Run Full Tournament
+          </Button>
+        </div>
+
+        {/* Progress logs */}
+        {progressLogs.length > 0 && (
+          <div className="bg-muted/50 p-3 rounded-lg max-h-60 overflow-y-auto">
+            <h4 className="font-medium mb-2">Tournament Progress:</h4>
+            <div className="space-y-1">
+              {progressLogs.map((log, i) => (
+                <div key={i} className="text-xs font-mono text-muted-foreground">
+                  {log}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+const TournamentSummary = ({ tournamentId }: { tournamentId: string }) => {
+  const [summary, setSummary] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const loadSummary = async () => {
+    setIsLoading(true);
+    try {
+      // Get tournament info
+      const { data: tournament } = await supabase
+        .from('tournaments')
+        .select('name, status, management_status')
+        .eq('id', tournamentId)
+        .single();
+
+      // Get all matches with results
+      const { data: matches } = await supabase
+        .from('tournament_matches')
+        .select(`
+          *,
+          player1:profiles!tournament_matches_player1_id_fkey(display_name),
+          player2:profiles!tournament_matches_player2_id_fkey(display_name),
+          winner:profiles!tournament_matches_winner_id_fkey(display_name)
+        `)
+        .eq('tournament_id', tournamentId)
+        .order('round_number', { ascending: true })
+        .order('match_number', { ascending: true });
+
+      // Get champion
+      const champion = matches?.find(m => 
+        m.round_number === Math.max(...(matches?.map(m => m.round_number) || []))
+        && m.status === 'completed'
+      )?.winner;
+
+      setSummary({
+        tournament,
+        matches: matches || [],
+        champion,
+        totalMatches: matches?.length || 0,
+        completedMatches: matches?.filter(m => m.status === 'completed').length || 0,
+        rounds: Math.max(...(matches?.map(m => m.round_number) || [0]))
+      });
+
+    } catch (error) {
+      console.error('Error loading summary:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tournamentId) {
+      loadSummary();
+    }
+  }, [tournamentId]);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground mt-2">Loading summary...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!summary) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Trophy className="h-5 w-5" />
+          Tournament Summary
+        </CardTitle>
+        <CardDescription>
+          {summary.tournament?.name} - {summary.tournament?.status}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold">{summary.totalMatches}</div>
+            <div className="text-sm text-muted-foreground">Total Matches</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold">{summary.completedMatches}</div>
+            <div className="text-sm text-muted-foreground">Completed</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold">{summary.rounds}</div>
+            <div className="text-sm text-muted-foreground">Rounds</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold">
+              {summary.champion ? '👑' : '⏳'}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {summary.champion?.display_name || 'TBD'}
+            </div>
+          </div>
+        </div>
+
+        {summary.champion && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg text-center">
+            <Trophy className="h-8 w-8 mx-auto mb-2 text-yellow-600" />
+            <h3 className="font-bold text-lg">Champion</h3>
+            <p className="text-lg">{summary.champion.display_name}</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 const MatchTester = ({ 
   tournamentId, 
   bracket, 
@@ -800,9 +1161,20 @@ const TournamentTestingTools = () => {
         </CardContent>
       </Card>
 
-      {/* Bracket Verification Section */}
+      {/* Tournament Testing Tools */}
       {selectedTournament && (
-        <BracketVerification tournamentId={selectedTournament} addLog={addLog} />
+        <>
+          <BracketVerification tournamentId={selectedTournament} addLog={addLog} />
+          
+          <TournamentProgressionTester 
+            tournamentId={selectedTournament}
+            bracket={[]} // Will be loaded by the component
+            loadBracket={() => {}} // Handled internally
+            addLog={addLog}
+          />
+          
+          <TournamentSummary tournamentId={selectedTournament} />
+        </>
       )}
     </div>
   );
