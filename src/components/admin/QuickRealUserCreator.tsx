@@ -148,8 +148,8 @@ const QuickRealUserCreator = () => {
     setCreatedUsers([]);
 
     try {
-      addLog('🚀 Bắt đầu tạo user theo quy trình đầy đủ...', 'info');
-      addLog(`📊 Số lượng: ${userCount} users`, 'info');
+      addLog('🚀 Tạo demo users trực tiếp trong database...', 'info');
+      addLog(`📊 Số lượng: ${userCount} users (không qua auth signup)`, 'info');
       setCurrentStep('Khởi tạo...');
       
       const createdUsersList = [];
@@ -161,7 +161,6 @@ const QuickRealUserCreator = () => {
         const fullName = generateVietnameseName();
         const phone = generatePhoneNumber();
         const email = generateEmail(fullName);
-        const password = 'Demo123!@#';
         const city = cities[Math.floor(Math.random() * cities.length)];
         
         let skillLevel = 'beginner';
@@ -172,114 +171,40 @@ const QuickRealUserCreator = () => {
         }
 
         try {
-          // Bước 1: Tạo Auth User
-          addLog(`1️⃣ Tạo tài khoản auth: ${email}`, 'info');
-          const { data: authData, error: authError } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              data: {
-                full_name: fullName,
-                phone: phone
-              }
-            }
-          });
+          // Bước 1: Tạo fake user ID và profile trực tiếp
+          addLog(`1️⃣ Tạo profile: ${fullName}`, 'info');
+          const fakeUserId = crypto.randomUUID();
+          
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              user_id: fakeUserId,
+              full_name: fullName,
+              display_name: fullName.split(' ').slice(-2).join(' '),
+              phone: phone,
+              email: email,
+              role: 'player',
+              skill_level: skillLevel,
+              city: city,
+              district: `Quận ${Math.floor(Math.random() * 12) + 1}`,
+              bio: `Demo user - ${skillLevel} level`,
+              experience_years: Math.floor(Math.random() * 10) + 1,
+              is_admin: false
+            });
 
-          if (authError) {
-            addLog(`❌ Lỗi auth user ${i + 1}: ${authError.message}`, 'error');
+          if (profileError) {
+            addLog(`❌ Lỗi tạo profile: ${profileError.message}`, 'error');
             continue;
           }
 
-          if (!authData.user) {
-            addLog(`❌ Không tạo được auth user ${i + 1}`, 'error');
-            continue;
-          }
+          addLog(`✅ Profile tạo thành công: ${fullName}`, 'success');
 
-          addLog(`✅ Auth user tạo thành công: ${authData.user.id}`, 'success');
-
-          // Bước 2: Workflow tự động tạo Profile
-          addLog(`2️⃣ Kiểm tra và tạo profile...`, 'info');
-          
-          // Đợi trigger tự động chạy (nếu có)
-          await new Promise(resolve => setTimeout(resolve, 500));
-
-          // Kiểm tra xem profile đã tồn tại chưa
-          const { data: existingProfile } = await supabase
-            .from('profiles')
-            .select('user_id')
-            .eq('user_id', authData.user.id)
-            .single();
-
-          if (!existingProfile) {
-            // Tạo profile mới nếu chưa tồn tại
-            addLog(`📝 Profile chưa tồn tại, tạo mới...`, 'info');
-            const { error: createProfileError } = await supabase
-              .from('profiles')
-              .insert({
-                user_id: authData.user.id,
-                full_name: fullName,
-                display_name: fullName.split(' ').slice(-2).join(' '),
-                phone: phone,
-                role: 'player',
-                skill_level: skillLevel,
-                city: city,
-                district: `Quận ${Math.floor(Math.random() * 12) + 1}`,
-                bio: `Demo user - ${skillLevel} level`,
-                experience_years: Math.floor(Math.random() * 10) + 1,
-                email: email
-              });
-
-            if (createProfileError) {
-              addLog(`❌ Lỗi tạo profile: ${createProfileError.message}`, 'error');
-              throw new Error(`Profile creation failed: ${createProfileError.message}`);
-            } else {
-              addLog(`✅ Profile tạo thành công`, 'success');
-            }
-          } else {
-            // Cập nhật profile nếu đã tồn tại
-            addLog(`📝 Profile đã tồn tại, cập nhật thông tin...`, 'info');
-            const { error: updateProfileError } = await supabase
-              .from('profiles')
-              .update({
-                full_name: fullName,
-                display_name: fullName.split(' ').slice(-2).join(' '),
-                phone: phone,
-                role: 'player',
-                skill_level: skillLevel,
-                city: city,
-                district: `Quận ${Math.floor(Math.random() * 12) + 1}`,
-                bio: `Demo user - ${skillLevel} level`,
-                experience_years: Math.floor(Math.random() * 10) + 1,
-                email: email
-              })
-              .eq('user_id', authData.user.id);
-
-            if (updateProfileError) {
-              addLog(`⚠️ Profile warning: ${updateProfileError.message}`, 'error');
-            } else {
-              addLog(`✅ Profile cập nhật thành công`, 'success');
-            }
-          }
-
-          // Xác minh profile đã được tạo thành công
-          const { data: verifyProfile } = await supabase
-            .from('profiles')
-            .select('user_id, full_name')
-            .eq('user_id', authData.user.id)
-            .single();
-
-          if (!verifyProfile) {
-            throw new Error('Profile verification failed - không tồn tại trong database');
-          }
-          
-          addLog(`✅ Xác minh profile thành công: ${verifyProfile.full_name}`, 'success');
-
-          // Bước 3: Tạo Player Ranking
-          addLog(`3️⃣ Tạo player ranking...`, 'info');
+          // Bước 2: Tạo Player Ranking
+          addLog(`2️⃣ Tạo player ranking...`, 'info');
           const { error: rankingError } = await supabase
             .from('player_rankings')
             .upsert({
-              player_id: authData.user.id,
+              player_id: fakeUserId,
               elo: 800 + Math.floor(Math.random() * 400), // 800-1200
               spa_points: Math.floor(Math.random() * 100),
               total_matches: Math.floor(Math.random() * 20),
@@ -293,12 +218,12 @@ const QuickRealUserCreator = () => {
             addLog(`✅ Player ranking tạo thành công`, 'success');
           }
 
-          // Bước 4: Tạo Wallet (tùy chọn)
-          addLog(`4️⃣ Khởi tạo wallet...`, 'info');
+          // Bước 3: Tạo Wallet
+          addLog(`3️⃣ Khởi tạo wallet...`, 'info');
           const { error: walletError } = await supabase
             .from('wallets')
             .upsert({
-              user_id: authData.user.id,
+              user_id: fakeUserId,
               balance: Math.floor(Math.random() * 50000), // 0-50k VNĐ
               currency: 'VND'
             });
@@ -312,8 +237,8 @@ const QuickRealUserCreator = () => {
           addLog(`🎉 Hoàn thành user ${i + 1}: ${fullName}`, 'success');
           
           createdUsersList.push({
-            id: authData.user.id,
-            email: authData.user.email,
+            id: fakeUserId,
+            email: email,
             phone: phone,
             full_name: fullName,
             skill_level: skillLevel,
