@@ -1,11 +1,254 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Users, Loader2, Play } from 'lucide-react';
+import { Trophy, Users, Loader2, Play, Eye, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
+
+const BracketVerification = ({ tournamentId }: { tournamentId: string }) => {
+  const [bracket, setBracket] = useState<any[]>([]);
+  const [seeding, setSeeding] = useState<any[]>([]);
+  const [bracketData, setBracketData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const loadBracket = async () => {
+    setLoading(true);
+    try {
+      // Load tournament matches with player info from all_profiles view
+      const { data: matches, error: matchError } = await supabase
+        .from('tournament_matches')
+        .select(`
+          *,
+          player1:all_profiles!tournament_matches_player1_id_fkey(user_id, full_name, display_name, profile_type),
+          player2:all_profiles!tournament_matches_player2_id_fkey(user_id, full_name, display_name, profile_type)
+        `)
+        .eq('tournament_id', tournamentId)
+        .order('round_number', { ascending: true })
+        .order('match_number', { ascending: true });
+
+      if (matchError) throw matchError;
+
+      // Load seeding data
+      const { data: seedingData, error: seedError } = await supabase
+        .from('tournament_seeding')
+        .select(`
+          *,
+          player:all_profiles!tournament_seeding_player_id_fkey(user_id, full_name, display_name, profile_type)
+        `)
+        .eq('tournament_id', tournamentId)
+        .order('seed_position', { ascending: true });
+
+      if (seedError) throw seedError;
+
+      // Load bracket metadata
+      const { data: bracketMeta, error: bracketError } = await supabase
+        .from('tournament_brackets')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .single();
+
+      if (bracketError && bracketError.code !== 'PGRST116') throw bracketError;
+
+      setBracket(matches || []);
+      setSeeding(seedingData || []);
+      setBracketData(bracketMeta);
+    } catch (error) {
+      console.error('Error loading bracket:', error);
+      toast.error('Lỗi load bracket: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getRoundName = (round: number, totalRounds: number) => {
+    const remaining = Math.pow(2, totalRounds - round + 1);
+    switch (remaining) {
+      case 2: return 'Final';
+      case 4: return 'Semifinal';
+      case 8: return 'Quarterfinal';
+      default: return `Round ${round} (${remaining}→${remaining/2})`;
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <GitBranch className="h-5 w-5" />
+          🏆 Bracket Verification
+        </CardTitle>
+        <CardDescription>
+          Verify tournament bracket structure and seeding
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Tournament Bracket</h3>
+          <Button onClick={loadBracket} disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <Eye className="mr-2 h-4 w-4" />
+                Load Bracket
+              </>
+            )}
+          </Button>
+        </div>
+
+        {seeding.length > 0 && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+            <h4 className="font-medium mb-3">🎯 Seeding Order (Top 8)</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {seeding.slice(0, 8).map((seed) => (
+                <div key={seed.seed_position} className="flex justify-between p-2 bg-white dark:bg-gray-800 rounded">
+                  <span className="font-medium">#{seed.seed_position}</span>
+                  <span>
+                    {seed.player?.display_name || seed.player?.full_name || 'BYE'}
+                    {seed.player?.profile_type === 'test' && (
+                      <span className="text-orange-500 ml-1">[TEST]</span>
+                    )}
+                  </span>
+                  <span className="text-gray-500">{seed.elo_rating} ELO</span>
+                </div>
+              ))}
+            </div>
+            {seeding.length > 8 && (
+              <div className="text-center mt-2 text-gray-500 text-sm">
+                ... và {seeding.length - 8} players khác
+              </div>
+            )}
+          </div>
+        )}
+
+        {bracket.length > 0 && (
+          <div className="space-y-4">
+            {/* Bracket Structure */}
+            <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.max(...bracket.map(m => m.round_number))}, 1fr)` }}>
+              {[...Array(Math.max(...bracket.map(m => m.round_number)))].map((_, roundIndex) => {
+                const round = roundIndex + 1;
+                const roundMatches = bracket.filter(m => m.round_number === round);
+                const totalRounds = Math.max(...bracket.map(m => m.round_number));
+                
+                return (
+                  <div key={round}>
+                    <h4 className="font-medium mb-2 text-center">
+                      {getRoundName(round, totalRounds)}
+                    </h4>
+                    <div className="space-y-2">
+                      {roundMatches.map(match => (
+                        <div key={match.id} className="p-3 border rounded-lg bg-white dark:bg-gray-800">
+                          <div className="text-xs text-gray-500 mb-1">
+                            Match {match.match_number}
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">
+                                {match.player1?.display_name || match.player1?.full_name || 'TBD'}
+                                {match.player1?.profile_type === 'test' && (
+                                  <span className="text-orange-500 ml-1 text-xs">[TEST]</span>
+                                )}
+                              </span>
+                              {match.winner_id === match.player1_id && (
+                                <span className="text-green-500 text-xs">✓</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-400">vs</div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">
+                                {match.player2?.display_name || match.player2?.full_name || 'TBD'}
+                                {match.player2?.profile_type === 'test' && (
+                                  <span className="text-orange-500 ml-1 text-xs">[TEST]</span>
+                                )}
+                              </span>
+                              {match.winner_id === match.player2_id && (
+                                <span className="text-green-500 text-xs">✓</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Status: {match.status}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Statistics */}
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+              <h4 className="font-medium mb-2">📊 Bracket Statistics</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <div className="font-medium">Total Matches</div>
+                  <div className="text-gray-600">{bracket.length}</div>
+                </div>
+                <div>
+                  <div className="font-medium">Rounds</div>
+                  <div className="text-gray-600">{Math.max(...bracket.map(m => m.round_number))}</div>
+                </div>
+                <div>
+                  <div className="font-medium">Players Seeded</div>
+                  <div className="text-gray-600">{seeding.length}</div>
+                </div>
+                <div>
+                  <div className="font-medium">Test Players</div>
+                  <div className="text-gray-600">
+                    {seeding.filter(s => s.player?.profile_type === 'test').length}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Verification Checklist */}
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+              <h4 className="font-medium mb-2">✅ Verification Checklist</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className={seeding.length === 16 ? "text-green-500" : "text-red-500"}>
+                    {seeding.length === 16 ? "✅" : "❌"}
+                  </span>
+                  <span>All 16 players properly seeded in Round 1: {seeding.length}/16</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={bracket.filter(m => m.round_number === 1).length === 8 ? "text-green-500" : "text-red-500"}>
+                    {bracket.filter(m => m.round_number === 1).length === 8 ? "✅" : "❌"}
+                  </span>
+                  <span>Round 1 has 8 matches: {bracket.filter(m => m.round_number === 1).length}/8</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={bracketData?.bracket_data?.tournament_type === 'single_elimination' ? "text-green-500" : "text-yellow-500"}>
+                    {bracketData?.bracket_data?.tournament_type === 'single_elimination' ? "✅" : "⚠️"}
+                  </span>
+                  <span>Tournament format: {bracketData?.bracket_data?.tournament_type || 'Unknown'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={bracket.length === 15 ? "text-green-500" : "text-red-500"}>
+                    {bracket.length === 15 ? "✅" : "❌"}
+                  </span>
+                  <span>Total matches for 16-player bracket: {bracket.length}/15</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!loading && bracket.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            Click "Load Bracket" to verify tournament structure
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 const TournamentTestingTools = () => {
   const { t } = useLanguage();
@@ -229,33 +472,34 @@ const TournamentTestingTools = () => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Trophy className="h-5 w-5" />
-          Công Cụ Test Tournament
-        </CardTitle>
-        <CardDescription>
-          Tạo 16 test users và populate tournament để test bracket generation
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-3">
-          <div>
-            <label className="text-sm font-medium">Chọn giải đấu để test:</label>
-            <Select value={selectedTournament} onValueChange={setSelectedTournament}>
-              <SelectTrigger>
-                <SelectValue placeholder="-- Chọn giải đấu --" />
-              </SelectTrigger>
-              <SelectContent>
-                {tournaments.map(t => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name} ({t.current_participants || 0}/{t.max_participants || 16})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trophy className="h-5 w-5" />
+            Công Cụ Test Tournament
+          </CardTitle>
+          <CardDescription>
+            Tạo 16 test users và populate tournament để test bracket generation
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium">Chọn giải đấu để test:</label>
+              <Select value={selectedTournament} onValueChange={setSelectedTournament}>
+                <SelectTrigger>
+                  <SelectValue placeholder="-- Chọn giải đấu --" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tournaments.map(t => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name} ({t.current_participants || 0}/{t.max_participants || 16})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
           <div className="flex gap-3">
             <Button 
@@ -326,8 +570,14 @@ const TournamentTestingTools = () => {
             )}
           </div>
         )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Bracket Verification Section */}
+      {selectedTournament && (
+        <BracketVerification tournamentId={selectedTournament} />
+      )}
+    </div>
   );
 };
 
